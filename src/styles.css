@@ -234,3 +234,137 @@
     left: 12px;
   }
 }
+
+/* Screenshot pass: denser race HUD, readable over bright roads and buildings. */
+.hud-top {
+  inset: 22px 32px auto;
+  grid-template-columns: 240px minmax(260px, 420px) 240px;
+  align-items: start;
+}
+
+.wordmark.small {
+  padding: 8px 0 0 4px;
+  font-size: 34px;
+  color: #f8fbff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, .8), 0 0 18px rgba(95, 225, 255, .28);
+}
+
+.objective-stack {
+  justify-self: center;
+  min-width: min(36vw, 440px);
+  padding: 10px 20px 9px;
+  background: linear-gradient(100deg, rgba(5, 9, 15, .86), rgba(15, 25, 34, .78));
+  border: 1px solid rgba(222, 244, 255, .28);
+  border-bottom-color: rgba(90, 220, 255, .44);
+  clip-path: polygon(18px 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .36), inset 0 -2px 0 rgba(86, 220, 255, .28);
+}
+
+.hud-top #objective {
+  font: 800 12px 'DM Mono', monospace;
+  color: #f7fbff;
+  letter-spacing: .2em;
+}
+
+.route-progress {
+  margin-top: 6px;
+  height: 3px;
+  background: rgba(255, 255, 255, .14);
+}
+
+.route-progress b {
+  background: linear-gradient(90deg, #ffffff, #63e6ff, #ff6fbd);
+  box-shadow: 0 0 10px rgba(98, 228, 255, .45);
+}
+
+.hud-top #timer {
+  justify-self: end;
+  padding: 8px 12px 6px;
+  min-width: 178px;
+  background: rgba(5, 9, 15, .58);
+  border-right: 2px solid rgba(255, 255, 255, .82);
+  font-size: 34px;
+  line-height: .9;
+  color: #f8fbff;
+}
+
+#event-feed {
+  top: 116px;
+  left: 32px;
+  padding: 12px 18px 12px 14px;
+  min-width: 206px;
+  background: linear-gradient(90deg, rgba(6, 11, 18, .84), rgba(7, 13, 21, .48));
+  border-left: 4px solid #f8fbff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .32);
+}
+
+#event-feed b {
+  display: block;
+  color: #ffffff;
+  font-size: 21px;
+  line-height: .82;
+}
+
+#event-feed span {
+  color: #67e8ff;
+}
+
+.mini-wrap {
+  width: 184px;
+  height: 184px;
+  background: linear-gradient(145deg, rgba(5, 10, 17, .88), rgba(8, 16, 25, .72));
+  border: 1px solid rgba(218, 244, 255, .34);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, .36), inset 0 0 22px rgba(81, 218, 255, .08);
+}
+
+.speed-pod,
+.meter,
+.race-state {
+  background: linear-gradient(120deg, rgba(6, 10, 16, .86), rgba(12, 18, 26, .72));
+  border: 1px solid rgba(225, 244, 255, .18);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, .36);
+}
+
+.speed-pod {
+  min-width: 148px;
+}
+
+.meter {
+  width: 190px;
+}
+
+.readouts strong {
+  font-size: 76px;
+  color: #ffffff;
+}
+
+.race-state {
+  min-width: 190px;
+  border-right: 3px solid #ffffff;
+}
+
+.race-state>b {
+  color: #ffffff;
+  font-size: 29px;
+}
+
+@media(max-width:850px) {
+  .hud-top {
+    inset: 14px 14px auto;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .objective-stack {
+    min-width: min(54vw, 300px);
+  }
+
+  .hud-top #timer {
+    min-width: 132px;
+    font-size: 24px;
+  }
+
+  .mini-wrap {
+    width: 154px;
+    height: 154px;
+  }
+}

@@ -920,11 +920,26 @@ export class Game {
         Math.cos(p.mesh.rotation.y),
       );
 
+      const bikeFx = p.spec.kind === "bike";
+
       this.effects?.emit(
         p.mesh.position.clone().addScaledVector(rear, boost ? 2.2 : 1.7),
         boost ? 0x31dfff : 0xcbd6de,
-        boost ? 2 : 1,
-        boost ? 2.6 : 0.7,
+        bikeFx ? 1 : boost ? 2 : 1,
+        bikeFx ? 0.85 : boost ? 2.6 : 0.7,
+        bikeFx
+          ? {
+              scale: 0.07,
+              scaleJitter: 0.06,
+              spread: 0.28,
+              life: 0.12,
+              lifeJitter: 0.12,
+              lift: 0.04,
+              growth: 0.35,
+              opacity: 0.46,
+              gravity: 0.6,
+            }
+          : undefined,
       );
     }
 

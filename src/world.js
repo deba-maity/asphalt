@@ -1148,7 +1148,7 @@ export class World {
       const p = this.route[i];
       const t = tangentAt(this.route, i);
       const side = new THREE.Vector3(-t.z, 0, t.x);
-      const roadside = n % 2 ? -16.6 : 16.6;
+      const roadside = n % 2 ? -21.5 : 21.5;
       const pos = p.clone().addScaledVector(side, roadside);
       const yaw = Math.atan2(t.x, t.z);
       const style = n % 3;
@@ -2241,8 +2241,9 @@ export class World {
 
   buildingPlacementAllowed(position, width, depth) {
     const roadClearance = this.distanceToRoad(position);
+    const footprint = Math.max(width, depth);
 
-    if (roadClearance < 22) {
+    if (roadClearance < 32 + footprint * 0.48) {
       return false;
     }
 
@@ -2479,7 +2480,7 @@ export class World {
           const side = new THREE.Vector3(-t.z, 0, t.x);
 
           const depthOffset =
-            25.5 + r() * (district.type === "downtown" ? 12 : 8);
+            40 + r() * (district.type === "downtown" ? 18 : 13);
 
           const center = p
             .addScaledVector(side, depthOffset * sideSign)
@@ -2580,7 +2581,7 @@ export class World {
 
         const side = new THREE.Vector3(-t.z, 0, t.x);
 
-        const center = p.addScaledVector(side, 54 + r() * 20);
+        const center = p.addScaledVector(side, (58 + r() * 24) * sideSign);
 
         const yaw =
           Math.atan2(t.x, t.z) - sideSign * (Math.PI / 2) + 0.12 * (r() - 0.5);

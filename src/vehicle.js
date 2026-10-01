@@ -58,6 +58,16 @@ const shared = {
     roughness: 0.28,
     metalness: 0.74,
   }),
+  riderSuit: new THREE.MeshStandardMaterial({
+    color: 0x07090d,
+    roughness: 0.5,
+    metalness: 0.18,
+  }),
+  riderArmor: new THREE.MeshStandardMaterial({
+    color: 0x161f2a,
+    roughness: 0.34,
+    metalness: 0.46,
+  }),
   lampHousing: new THREE.MeshStandardMaterial({
     color: 0x111821,
     roughness: 0.38,
@@ -343,6 +353,59 @@ function buildCar(root, spec, paint, data, police) {
   if (police) addPoliceBar(root, data, c.w);
 }
 
+function addBikeRider(frame, profile, paint) {
+  const long = profile === "cruiser";
+  const dirt = profile === "dirt";
+  const lean = long ? -0.22 : dirt ? -0.36 : -0.48;
+  const hipZ = long ? 0.54 : 0.38;
+
+  part(frame, geo.sphere, shared.riderSuit, [0, 0.78, hipZ], [0.34, 0.24, 0.32]);
+  part(frame, geo.box, shared.riderSuit, [0, 1.12, hipZ - 0.26], [0.54, 0.72, 0.26], [
+    lean,
+    0,
+    0,
+  ]);
+  part(frame, geo.sphere, shared.riderArmor, [0, 1.52, hipZ - 0.72], [0.33, 0.35, 0.36], [
+    lean * 0.28,
+    0,
+    0,
+  ]);
+  part(frame, geo.box, shared.glass, [0, 1.49, hipZ - 1.03], [0.46, 0.1, 0.08], [
+    lean * 0.2,
+    0,
+    0,
+  ]);
+  part(frame, geo.box, paint, [0, 1.28, hipZ - 0.48], [0.44, 0.08, 0.09], [
+    lean,
+    0,
+    0,
+  ]);
+
+  for (const side of [-1, 1]) {
+    part(frame, geo.box, shared.riderSuit, [side * 0.27, 1.02, hipZ - 0.64], [0.11, 0.12, 0.86], [
+      -0.92,
+      side * 0.08,
+      side * 0.18,
+    ]);
+    part(frame, geo.sphere, shared.riderArmor, [side * 0.42, 0.82, hipZ - 1.02], [0.11, 0.1, 0.11]);
+    part(frame, geo.box, shared.riderSuit, [side * 0.26, 0.55, hipZ + 0.08], [0.13, 0.62, 0.14], [
+      0.42,
+      0,
+      side * 0.12,
+    ]);
+    part(frame, geo.box, shared.riderArmor, [side * 0.28, 0.38, hipZ - 0.36], [0.12, 0.13, 0.58], [
+      -0.74,
+      0,
+      side * 0.08,
+    ]);
+    part(frame, geo.box, shared.rubber, [side * 0.27, 0.26, hipZ - 0.7], [0.17, 0.11, 0.31], [
+      -0.62,
+      0,
+      side * 0.06,
+    ]);
+  }
+}
+
 function buildBike(root, spec, paint, data, police) {
   const profile = spec.profile || "sport";
   const radius = profile === "dirt" ? 0.55 : 0.47;
@@ -367,6 +430,7 @@ function buildBike(root, spec, paint, data, police) {
     0,
     0,
   ]);
+  addBikeRider(frame, profile, paint);
 
   tube(frame, [-0.22, 0.12, -0.05], [0.035, 0.035, wheelBase * 0.66], shared.chrome, [
     Math.PI / 2,
