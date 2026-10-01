@@ -1,0 +1,12 @@
+2026-09-27 11:27:26.240: [INFO] CurrentProfilePath: C:\Users\Dmaity\Desktop\asphalt\edge-ui-preview\Default
+2026-09-27 11:27:26.240: [INFO] Profiles total count: 1
+2026-09-27 11:27:26.240: [INFO] Profile: name=Profile 1 path=C:\Users\Dmaity\Desktop\asphalt\edge-ui-preview\Default lastActive=2026-09-27T11:27:26.205Z
+2026-09-27 11:27:26.240: [INFO] LastUsedProfileDir: C:\Users\Dmaity\Desktop\asphalt\edge-ui-preview\Default
+2026-09-27 11:27:26.240: [INFO] MostRecentlyActiveProfile: name=Profile 1 path=C:\Users\Dmaity\Desktop\asphalt\edge-ui-preview\Default lastActive=2026-09-27T11:27:26.205Z
+2026-09-27 11:27:26.240: [INFO] OnDoneLoading sync enabled: 0
+2026-09-27 11:27:26.240: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-09-27 11:27:26.240: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-09-27 11:27:26.240: [INFO] BookmarksSnapshot Startup total=4 bar=4 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-09-27 11:27:26.345: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-09-27 11:27:26.636: [INFO] VisibilityChanged: 0
+2026-09-27 11:27:29.690: [INFO] BookmarksSnapshot Shutdown total=4 bar=4 other=0 mobile=0 showBar=0 showBarNTP=1

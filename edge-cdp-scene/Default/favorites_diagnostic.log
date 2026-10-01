@@ -1,0 +1,24 @@
+2026-09-27 11:19:01.189: [INFO] CurrentProfilePath: C:\Users\Dmaity\Desktop\asphalt\edge-cdp-scene\Default
+2026-09-27 11:19:01.190: [INFO] Profiles total count: 1
+2026-09-27 11:19:01.190: [INFO] Profile: name=Profile 1 path=C:\Users\Dmaity\Desktop\asphalt\edge-cdp-scene\Default lastActive=null
+2026-09-27 11:19:01.190: [INFO] LastUsedProfileDir: C:\Users\Dmaity\Desktop\asphalt\edge-cdp-scene\Default
+2026-09-27 11:19:01.190: [INFO] VisibilityChanged: 0
+2026-09-27 11:19:01.216: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-09-27 11:19:01.219: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-09-27 11:19:01.221: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-09-27 11:19:01.224: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-09-27 11:19:01.227: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-09-27 11:19:01.229: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-09-27 11:19:01.232: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-09-27 11:19:01.235: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-09-27 11:19:01.238: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-09-27 11:19:01.240: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-09-27 11:19:01.262: [INFO] BookmarkNodeAdded, ABU: 0
+2026-09-27 11:19:01.263: [INFO] BookmarkNodeAdded, ABU: 0
+2026-09-27 11:19:01.263: [INFO] BookmarkNodeAdded, ABU: 0
+2026-09-27 11:19:01.264: [INFO] BookmarkNodeAdded, ABU: 0
+2026-09-27 11:19:01.264: [INFO] OnDoneLoading sync enabled: 0
+2026-09-27 11:19:01.264: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-09-27 11:19:01.264: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-09-27 11:19:01.264: [INFO] BookmarksSnapshot Startup total=4 bar=4 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-09-27 11:19:01.272: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
