@@ -52,6 +52,11 @@ const shared = {
     roughness: 0.18,
     metalness: 1,
   }),
+  satin: new THREE.MeshStandardMaterial({
+    color: 0xdfe8ee,
+    roughness: 0.28,
+    metalness: 0.74,
+  }),
   lampHousing: new THREE.MeshStandardMaterial({
     color: 0x111821,
     roughness: 0.38,
@@ -247,6 +252,26 @@ function buildCar(root, spec, paint, data, police) {
     0.18,
     c.l * 0.64,
   ]);
+  part(body, geo.box, shared.carbon, [0, c.h * 0.36, -c.l * 0.32], [
+    c.w * 0.42,
+    0.035,
+    c.l * 0.22,
+  ], [-0.12, 0, 0]);
+  part(body, geo.box, shared.satin, [0, c.h * 0.24, -c.l * 0.48], [
+    c.w * 0.62,
+    0.045,
+    0.055,
+  ]);
+  part(body, geo.box, shared.carbon, [-c.w * 0.56, 0.02, -c.l * 0.02], [
+    0.06,
+    c.h * 0.3,
+    c.l * 0.28,
+  ], [0, 0, -0.04]);
+  part(body, geo.box, shared.carbon, [c.w * 0.56, 0.02, -c.l * 0.02], [
+    0.06,
+    c.h * 0.3,
+    c.l * 0.28,
+  ], [0, 0, 0.04]);
 
   part(body, geo.box, shared.glass, [0, c.cabin, -c.l * 0.02], [
     c.w * 0.58,
@@ -258,6 +283,16 @@ function buildCar(root, spec, paint, data, police) {
     c.h * 0.48,
     c.l * 0.18,
   ], [0.12, 0, 0]);
+  part(body, geo.box, shared.satin, [0, c.cabin + 0.02, -c.l * 0.22], [
+    c.w * 0.5,
+    0.035,
+    0.055,
+  ], [-0.05, 0, 0]);
+  part(body, geo.box, shared.satin, [0, c.cabin * 0.84, c.l * 0.3], [
+    c.w * 0.42,
+    0.03,
+    0.05,
+  ], [0.1, 0, 0]);
 
   part(body, geo.box, shared.carbon, [-c.w * 0.58, c.cabin * 0.75, -0.12], [
     0.12,
@@ -385,6 +420,26 @@ function buildInterceptor(root, spec, paint, data, police) {
   part(body, geo.box, shared.carbon, [0, 0.04, -l * 0.48], [w * 0.94, 0.18, 0.34]);
   part(body, geo.box, shared.carbon, [0, 0.03, l * 0.5], [w * 0.98, 0.2, 0.24]);
   part(body, geo.box, shared.glass, [0, 0.74, 0.18], [w * 0.62, 0.34, 1.62]);
+  part(body, geo.box, shared.carbon, [0, 0.34, -l * 0.33], [
+    w * 0.48,
+    0.04,
+    l * 0.22,
+  ], [-0.08, 0, 0]);
+  part(body, geo.box, shared.satin, [0, 0.22, -l * 0.55], [
+    w * 0.62,
+    0.05,
+    0.06,
+  ]);
+  part(body, geo.box, shared.carbon, [-w * 0.54, 0.04, -0.05], [
+    0.08,
+    0.26,
+    l * 0.32,
+  ]);
+  part(body, geo.box, shared.carbon, [w * 0.54, 0.04, -0.05], [
+    0.08,
+    0.26,
+    l * 0.32,
+  ]);
 
   for (const x of [-w * 0.45, w * 0.45]) {
     createWheel(root, x, -l * 0.29, r, data, true, 0.38);

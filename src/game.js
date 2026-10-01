@@ -89,18 +89,22 @@ export class Game {
       800,
     );
 
-    this.composer = new EffectComposer(this.renderer);
+    this.composer = null;
 
-    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    if (!this.lowPower) {
+      this.composer = new EffectComposer(this.renderer);
 
-    this.composer.addPass(
-      new UnrealBloomPass(
-        new THREE.Vector2(innerWidth, innerHeight),
-        this.lowPower ? 0.28 : 0.46,
-        this.lowPower ? 0.38 : 0.5,
-        0.84,
-      ),
-    );
+      this.composer.addPass(new RenderPass(this.scene, this.camera));
+
+      this.composer.addPass(
+        new UnrealBloomPass(
+          new THREE.Vector2(innerWidth, innerHeight),
+          0.52,
+          0.48,
+          0.84,
+        ),
+      );
+    }
 
     this.listen();
 
@@ -111,7 +115,7 @@ export class Game {
 
       this.renderer.setSize(innerWidth, innerHeight);
 
-      this.composer.setSize(innerWidth, innerHeight);
+      this.composer?.setSize(innerWidth, innerHeight);
     };
 
     addEventListener("resize", this.resize);
@@ -1133,6 +1137,14 @@ export class Game {
     this.callbacks.pause?.(this.paused);
   }
 
+  renderScene() {
+    if (this.composer) {
+      this.composer.render();
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
+  }
+
   frame() {
     if (!this.running) {
       return;
@@ -1143,7 +1155,7 @@ export class Game {
     const dt = Math.min(this.clock.getDelta(), 0.05);
 
     if (this.paused) {
-      this.composer.render();
+      this.renderScene();
       return;
     }
 
@@ -1228,7 +1240,7 @@ export class Game {
 
     this.callbacks.hud?.(this.hudState());
 
-    this.composer.render();
+    this.renderScene();
   }
 
   updateCamera(dt) {

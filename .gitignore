@@ -1,4 +1,6 @@
 node_modules/
 chrome-cdp-*/
+chrome-shot-fresh/
+edge-shot-fresh/
 runtime-*.png
 npm-debug.log*

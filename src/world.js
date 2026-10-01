@@ -605,6 +605,179 @@ export class World {
 
       this.buildBridgeRails(this.route[13], this.route[14]);
     }
+
+    this.addCourseDressing();
+  }
+
+  createSignTexture(title, subtitle, accent = this.map.accent) {
+    return makeCanvasTexture(
+      (ctx, w, h) => {
+        const gradient = ctx.createLinearGradient(0, 0, w, h);
+        gradient.addColorStop(0, "#07101a");
+        gradient.addColorStop(0.56, "#111522");
+        gradient.addColorStop(1, "#261338");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.globalAlpha = 0.26;
+        ctx.fillStyle = accent;
+        for (let i = -2; i < 6; i++) {
+          ctx.fillRect(i * 118, h * 0.72, 82, 8);
+        }
+        ctx.globalAlpha = 1;
+
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 7;
+        ctx.strokeRect(9, 9, w - 18, h - 18);
+
+        ctx.fillStyle = "#f7fbff";
+        ctx.font = "700 54px Arial";
+        ctx.fillText(title.toUpperCase(), 28, 74);
+
+        ctx.fillStyle = accent;
+        ctx.font = "700 21px Arial";
+        ctx.fillText(subtitle.toUpperCase(), 31, 111);
+      },
+      512,
+      128,
+    );
+  }
+
+  addPanel(position, yaw, title, subtitle, width = 13.5, height = 3.4) {
+    const texture = this.createSignTexture(title, subtitle);
+    const material = this.basic({
+      map: texture,
+      transparent: true,
+      side: THREE.DoubleSide,
+      toneMapped: false,
+    });
+
+    const panel = mesh(
+      this.group,
+      this.trackGeometry(new THREE.PlaneGeometry(width, height)),
+      material,
+      [position.x, position.y, position.z],
+      [1, 1, 1],
+      [0, yaw + Math.PI / 2, 0],
+    );
+
+    panel.userData.worldOwned = true;
+    return panel;
+  }
+
+  addCourseDressing() {
+    const accent = this.basic({
+      color: this.map.accent,
+      transparent: true,
+      opacity: this.map.id === "neon" ? 0.9 : 0.72,
+    });
+
+    const dark = this.material({
+      color: 0x10151c,
+      roughness: 0.62,
+      metalness: 0.62,
+    });
+
+    const warning = this.basic({
+      color:
+        this.map.id === "dock"
+          ? 0xffa255
+          : this.map.id === "mesa"
+            ? 0xffd05a
+            : 0x55e7ff,
+      transparent: true,
+      opacity: 0.82,
+    });
+
+    const matrix = new THREE.Matrix4();
+    const q = new THREE.Quaternion();
+    const chevrons = [];
+    const supports = [];
+
+    const start = this.route[0];
+    const startYaw = this.segmentAngle(0);
+
+    for (const side of [-1, 1]) {
+      const post = localPoint(start, startYaw, side * 10.8, 3.6, -1.6);
+      mesh(
+        this.group,
+        box,
+        dark,
+        [post.x, post.y, post.z],
+        [0.32, 7.2, 0.32],
+        [0, startYaw, 0],
+      );
+    }
+
+    mesh(
+      this.group,
+      box,
+      accent,
+      [start.x, 7.1, start.z],
+      [22.0, 0.22, 0.42],
+      [0, startYaw, 0],
+    );
+
+    this.addPanel(
+      localPoint(start, startYaw, 0, 5.7, -1.9),
+      startYaw,
+      this.map.name,
+      this.map.tag || "street circuit",
+      11.6,
+      2.45,
+    );
+
+    const billboardCount = this.lowPower ? 2 : 4;
+    for (let i = 0; i < billboardCount; i++) {
+      const index = (2 + i * Math.floor(this.route.length / billboardCount)) %
+        this.route.length;
+      const side = i % 2 ? -1 : 1;
+      const yaw = this.segmentAngle(index);
+      const label =
+        i % 3 === 0 ? "NITRO" : i % 3 === 1 ? "APEX" : "TOUCHDRIVE";
+      const pos = localPoint(this.route[index], yaw, side * 22.5, 5.2, 0);
+
+      mesh(
+        this.group,
+        box,
+        dark,
+        [pos.x, 2.3, pos.z],
+        [0.24, 4.6, 0.24],
+        [0, yaw, 0],
+      );
+      this.addPanel(pos, yaw, label, "NIGHTSHIFT SERIES", 10.2, 2.75);
+    }
+
+    for (let i = 1; i < this.route.length; i++) {
+      const prev = tangentAt(this.route, i - 1);
+      const next = tangentAt(this.route, i);
+      const turn = prev.x * next.z - prev.z * next.x;
+
+      if (Math.abs(turn) < 0.18 && i % 3 !== 0) continue;
+
+      const yaw = this.segmentAngle(i);
+      const side = turn >= 0 ? -1 : 1;
+
+      for (let j = -1; j <= 1; j++) {
+        const base = localPoint(this.route[i], yaw, side * 11.6, 1.15, j * 2.15);
+        matrix.compose(
+          base,
+          q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw - side * 0.42),
+          new THREE.Vector3(1.25, 0.22, 0.08),
+        );
+        chevrons.push(matrix.clone());
+
+        matrix.compose(
+          localPoint(this.route[i], yaw, side * 12.0, 0.72, j * 2.15),
+          q.identity(),
+          new THREE.Vector3(0.16, 1.44, 0.16),
+        );
+        supports.push(matrix.clone());
+      }
+    }
+
+    this.installInstance("courseChevrons", box, warning, chevrons);
+    this.installInstance("courseChevronSupports", box, dark, supports);
   }
 
   addRoadMarkings(points) {
@@ -3644,6 +3817,24 @@ export class World {
 
     const r = seeded(m.id.length * 81);
 
+    const regionalMats = {
+      sand: this.material({ color: 0xb99463, roughness: 0.98, metalness: 0 }),
+      palm: this.material({ color: 0x22472d, roughness: 0.96, metalness: 0 }),
+      trunk: this.material({ color: 0x5b3f2a, roughness: 0.92, metalness: 0.02 }),
+      glass: this.physical({
+        color: 0x6fd2e3,
+        roughness: 0.16,
+        metalness: 0.34,
+        clearcoat: 0.62,
+      }),
+      containerRed: this.material({ color: 0x8b3136, roughness: 0.78, metalness: 0.18 }),
+      containerBlue: this.material({ color: 0x244d66, roughness: 0.78, metalness: 0.18 }),
+      containerYellow: this.material({ color: 0xb77737, roughness: 0.78, metalness: 0.18 }),
+      crane: this.material({ color: 0xd28536, roughness: 0.5, metalness: 0.54 }),
+      mesaA: this.material({ color: 0x7f4730, roughness: 0.98, metalness: 0.02 }),
+      mesaB: this.material({ color: 0xa65d39, roughness: 0.98, metalness: 0.02 }),
+    };
+
     if (m.id === "coast") {
       mesh(
         g,
@@ -3654,6 +3845,15 @@ export class World {
           metalness: 0.48,
         }),
         [0, -0.24, 225],
+        [1, 1, 1],
+        [-Math.PI / 2, 0, 0],
+      );
+
+      mesh(
+        g,
+        new THREE.PlaneGeometry(620, 54),
+        regionalMats.sand,
+        [0, -0.19, 78],
         [1, 1, 1],
         [-Math.PI / 2, 0, 0],
       );
@@ -3678,6 +3878,12 @@ export class World {
           [x, h / 2, z],
         );
       }
+
+      this.addCoastalSetPieces(regionalMats, r);
+    }
+
+    if (m.id === "dock") {
+      this.addDockSetPieces(regionalMats, r);
     }
 
     if (m.id === "mesa") {
@@ -3703,6 +3909,8 @@ export class World {
           [x, h / 2 - 0.25, z],
         );
       }
+
+      this.addMesaSetPieces(regionalMats, r);
     }
 
     for (let i = 0; i < 58; i++) {
@@ -3743,6 +3951,146 @@ export class World {
         [w, h, w],
       );
     }
+  }
+
+  addCoastalSetPieces(mats, r) {
+    const palmCount = this.lowPower ? 11 : 18;
+    const trunkMatrices = [];
+    const crownMatrices = [];
+    const resortMatrices = [];
+    const q = new THREE.Quaternion();
+    const matrix = new THREE.Matrix4();
+
+    for (let i = 0; i < palmCount; i++) {
+      const x = -145 + (i / Math.max(1, palmCount - 1)) * 290 + (r() - 0.5) * 14;
+      const z = 55 + r() * 28;
+
+      if (this.distanceToRoad(new THREE.Vector3(x, 0, z)) < 21) continue;
+
+      matrix.compose(
+        new THREE.Vector3(x, 3.1, z),
+        q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), r() * TAU),
+        new THREE.Vector3(0.24, 6.2, 0.24),
+      );
+      trunkMatrices.push(matrix.clone());
+
+      for (let j = 0; j < 4; j++) {
+        matrix.compose(
+          new THREE.Vector3(x + Math.cos(j * Math.PI * 0.5) * 1.3, 6.55, z + Math.sin(j * Math.PI * 0.5) * 1.3),
+          q.setFromEuler(new THREE.Euler(0.55, j * Math.PI * 0.5, 0.18)),
+          new THREE.Vector3(1.55, 0.42, 2.7),
+        );
+        crownMatrices.push(matrix.clone());
+      }
+    }
+
+    for (let i = 0; i < (this.lowPower ? 7 : 12); i++) {
+      const x = -190 + r() * 380;
+      const z = 122 + r() * 68;
+      const h = 10 + r() * 26;
+
+      if (this.distanceToRoad(new THREE.Vector3(x, 0, z)) < 26) continue;
+
+      matrix.compose(
+        new THREE.Vector3(x, h / 2, z),
+        q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), r() * 0.4),
+        new THREE.Vector3(8 + r() * 10, h, 7 + r() * 8),
+      );
+      resortMatrices.push(matrix.clone());
+    }
+
+    this.installInstance("coastPalmTrunks", poleGeo, mats.trunk, trunkMatrices);
+    this.installInstance("coastPalmCrowns", coneGeo, mats.palm, crownMatrices);
+    this.installInstance("coastResortTowers", box, mats.glass, resortMatrices);
+  }
+
+  addDockSetPieces(mats, r) {
+    const containerMats = [mats.containerRed, mats.containerBlue, mats.containerYellow];
+    const containerMatrices = [[], [], []];
+    const q = new THREE.Quaternion();
+    const matrix = new THREE.Matrix4();
+
+    for (let i = 0; i < (this.lowPower ? 36 : 58); i++) {
+      const anchor = this.route[i % this.route.length];
+      const yaw = this.segmentAngle(i % this.route.length);
+      const side = i % 2 ? -1 : 1;
+      const row = Math.floor(i / this.route.length);
+      const pos = localPoint(anchor, yaw, side * (31 + row * 8 + r() * 7), 1.35 + (i % 3) * 1.05, (r() - 0.5) * 18);
+
+      if (this.distanceToRoad(pos) < 24) continue;
+
+      matrix.compose(
+        pos,
+        q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw + (r() - 0.5) * 0.2),
+        new THREE.Vector3(6.6, 2.7, 2.55),
+      );
+      containerMatrices[i % containerMatrices.length].push(matrix.clone());
+    }
+
+    containerMatrices.forEach((matrices, i) =>
+      this.installInstance(`dockContainers${i}`, box, containerMats[i], matrices),
+    );
+
+    for (const index of [1, 5, 9]) {
+      if (index >= this.route.length) continue;
+      const yaw = this.segmentAngle(index);
+      const base = localPoint(this.route[index], yaw, 38, 0, 0);
+      mesh(this.group, box, mats.crane, [base.x, 10, base.z], [1.2, 20, 1.2], [0, yaw, 0]);
+      mesh(
+        this.group,
+        box,
+        mats.crane,
+        [base.x, 20.6, base.z],
+        [19, 0.9, 0.9],
+        [0, yaw + 0.22, 0],
+      );
+      mesh(
+        this.group,
+        box,
+        mats.crane,
+        [base.x, 13.0, base.z],
+        [13, 0.42, 0.42],
+        [0.34, yaw + 0.22, 0],
+      );
+    }
+  }
+
+  addMesaSetPieces(mats, r) {
+    const wallMatrices = [];
+    const gateMatrices = [];
+    const q = new THREE.Quaternion();
+    const matrix = new THREE.Matrix4();
+
+    for (let i = 0; i < this.route.length; i += 2) {
+      const yaw = this.segmentAngle(i);
+      const h = 12 + r() * 22;
+
+      for (const side of [-1, 1]) {
+        const pos = localPoint(this.route[i], yaw, side * (28 + r() * 16), h / 2 - 0.2, (r() - 0.5) * 12);
+        matrix.compose(
+          pos,
+          q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw + (r() - 0.5) * 0.4),
+          new THREE.Vector3(8 + r() * 10, h, 5 + r() * 9),
+        );
+        wallMatrices.push(matrix.clone());
+      }
+    }
+
+    for (const index of [2, 6, 10]) {
+      if (index >= this.route.length) continue;
+      const yaw = this.segmentAngle(index);
+      for (const side of [-1, 1]) {
+        matrix.compose(
+          localPoint(this.route[index], yaw, side * 18.5, 7.0, 0),
+          q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw + side * 0.16),
+          new THREE.Vector3(4.4, 14, 4.4),
+        );
+        gateMatrices.push(matrix.clone());
+      }
+    }
+
+    this.installInstance("mesaCanyonWalls", box, mats.mesaA, wallMatrices);
+    this.installInstance("mesaRockGates", coneGeo, mats.mesaB, gateMatrices);
   }
 
   buildCheckpoints() {
