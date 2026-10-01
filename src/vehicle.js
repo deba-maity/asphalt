@@ -600,6 +600,7 @@ export function createVehicle(spec, color = spec.color || "#ff4b63", police = fa
     handlebars: null,
     frontFork: null,
     turret: null,
+    contactMinY: 0,
   };
   root.userData = data;
 
@@ -635,6 +636,22 @@ export function createVehicle(spec, color = spec.color || "#ff4b63", police = fa
   root.userData.radius =
     spec.kind === "bike" ? 1.55 : spec.kind === "monster" ? 3.35 : 2.8;
   return root;
+}
+
+export function getVehicleGroundOffset(vehicle) {
+  const contactMinY = vehicle.userData?.contactMinY;
+
+  if (Number.isFinite(contactMinY)) {
+    return -contactMinY * (vehicle.scale?.y || 1);
+  }
+
+  const bounds = new THREE.Box3().setFromObject(vehicle);
+  return -bounds.min.y;
+}
+
+export function alignVehicleToSurface(vehicle, surfaceY = 0) {
+  vehicle.position.y = surfaceY + getVehicleGroundOffset(vehicle);
+  return vehicle.position.y;
 }
 
 export function animateVehicle(

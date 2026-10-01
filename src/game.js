@@ -3,7 +3,12 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { World } from "./world.js";
-import { createVehicle, animateVehicle } from "./vehicle.js";
+import {
+  createVehicle,
+  animateVehicle,
+  alignVehicleToSurface,
+  getVehicleGroundOffset,
+} from "./vehicle.js";
 import { vehicles } from "./data.js";
 import { Effects } from "./effects.js";
 import { AudioEngine } from "./audio.js";
@@ -344,9 +349,11 @@ export class Game {
     const scale =
       spec.kind === "bike" ? 1.1 : spec.kind === "heavy" ? 0.82 : 0.98;
 
-    const targetY = Math.max(0.05, -box.min.y + 0.1);
+    const previewSurfaceY = -0.4;
 
-    vehicle.position.y += targetY;
+    const targetY = previewSurfaceY + getVehicleGroundOffset(vehicle);
+
+    alignVehicleToSurface(vehicle, previewSurfaceY);
 
     stage.position.y -= center.y * 0.06;
 
@@ -539,7 +546,7 @@ export class Game {
 
     this.player.mesh.position.copy(this.world.route[0]);
 
-    this.player.mesh.position.y = 0.05;
+    this.alignActorToRoad(this.player);
 
     this.player.mesh.rotation.y = this.routeAngle(0);
 
@@ -658,6 +665,15 @@ export class Game {
     };
   }
 
+  alignActorToRoad(actor) {
+    if (!actor?.mesh || !this.world) return;
+
+    alignVehicleToSurface(
+      actor.mesh,
+      this.world.getRoadHeightAt(actor.mesh.position.x, actor.mesh.position.z),
+    );
+  }
+
   addPlayerLights() {
     if (this.lowPower) {
       return;
@@ -715,7 +731,7 @@ export class Game {
         .addScaledVector(side, (i - 1) * 3.2);
     }
 
-    a.mesh.position.y = 0.05;
+    this.alignActorToRoad(a);
 
     a.mesh.rotation.y = h;
 
@@ -881,6 +897,8 @@ export class Game {
         this.shake = 0.8;
       }
     }
+
+    this.alignActorToRoad(p);
 
     animateVehicle(p.mesh, p.speed, boost, this.time, -steer, brake, drifting);
 
@@ -1074,6 +1092,8 @@ export class Game {
 
     a.mesh.position.z -= Math.cos(a.mesh.rotation.y) * a.speed * dt;
 
+    this.alignActorToRoad(a);
+
     if (a.role !== "police" && Math.hypot(dx, dz) < 14) {
       const hit = a.next;
 
@@ -1116,6 +1136,8 @@ export class Game {
       a.target.rotation,
       clamp(dt * 12, 0, 1),
     );
+
+    this.alignActorToRoad(a);
 
     animateVehicle(a.mesh, a.target.speed || 0, false, this.time);
   }
@@ -1234,7 +1256,11 @@ export class Game {
     }
 
     a.target = {
-      position: new THREE.Vector3(data.x, 0.22, data.z),
+      position: new THREE.Vector3(
+        data.x,
+        this.world?.getRoadHeightAt(data.x, data.z) ?? 0,
+        data.z,
+      ),
       rotation: data.rotation,
       speed: data.speed,
     };
@@ -1253,7 +1279,9 @@ export class Game {
 
     a.mesh.position.copy(this.world.route[0]);
 
-    a.mesh.position.add(new THREE.Vector3(4 + this.remotes.size * 3, 0.22, 0));
+    a.mesh.position.add(new THREE.Vector3(4 + this.remotes.size * 3, 0, 0));
+
+    this.alignActorToRoad(a);
 
     this.remotes.set(player.id, a);
 

@@ -14,7 +14,14 @@ function routePath(map) {
   const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
   const sx = 255 / Math.max(1, maxX - minX), sy = 135 / Math.max(1, maxY - minY);
   const points = route.map(([x, y]) => [22 + (x - minX) * sx, 24 + (y - minY) * sy]);
-  return points.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ') + ' Z';
+  const mid = (a, b) => [(a[0] + b[0]) * 0.5, (a[1] + b[1]) * 0.5];
+  const start = mid(points.at(-1), points[0]);
+  const commands = [`M${start[0].toFixed(1)},${start[1].toFixed(1)}`];
+  points.forEach((p, i) => {
+    const m = mid(p, points[(i + 1) % points.length]);
+    commands.push(`Q${p[0].toFixed(1)},${p[1].toFixed(1)} ${m[0].toFixed(1)},${m[1].toFixed(1)}`);
+  });
+  return commands.join(' ') + ' Z';
 }
 
 function mapArt(map, large = false) {
@@ -173,7 +180,54 @@ export class UI {
   showCountdown(value) { const node = this.root.querySelector('#countdown'); node.textContent = value; node.classList.toggle('visible', !!value); node.classList.toggle('go', value === 'GO!'); }
   setRunning(running) { if (!running) this.hud.hidden = true; }
   updateHUD(s) { if (this.hud.hidden) return; const pursuit = ['escape', 'versus', 'friend'].includes(this.mode.id); this.root.querySelector('#speed').textContent = String(s.speed).padStart(3, '0'); this.root.querySelector('#nitro').style.width = `${s.boost}%`; this.root.querySelector('#nitro-text').textContent = Math.round(s.boost); this.root.querySelector('#health').style.width = `${s.health}%`; this.root.querySelector('#health-text').textContent = Math.round(s.health); this.root.querySelector('#timer').textContent = time(s.time); this.root.querySelector('#position').textContent = this.mode.id === 'race' ? `${s.rank} / ${s.actors.filter(a => !a.police).length} • LAP ${Math.min(s.lap, 3)} / 3` : pursuit ? 'ESCAPE RUN' : 'TIME TRIAL'; this.root.querySelector('#checkpoint').textContent = `CHECKPOINT ${s.next} / ${s.total}`; this.root.querySelector('#objective').textContent = pursuit ? 'OUTRUN THE PURSUIT' : 'RACE // HOLD THE LINE'; this.root.querySelector('#wanted').innerHTML = s.wanted ? `<small>HEAT</small>${'<i>◆</i>'.repeat(s.wanted)}` : ''; const routeProgress = this.root.querySelector('#route-progress'); if (routeProgress) routeProgress.style.width = `${Math.max(3, Math.min(100, ((s.next - 1) / Math.max(1, s.total - 1)) * 100))}%`; this.drawMap(s); }
-  drawMap(s) { const c = this.mini, ctx = c.getContext('2d'), route = s.map.route, w = c.width, h = c.height; ctx.clearRect(0, 0, w, h); ctx.fillStyle = 'rgba(7,11,19,.82)'; ctx.fillRect(0, 0, w, h); const maxExtent = Math.max(1, ...route.map(p => Math.max(Math.abs(p[0]), Math.abs(p[1])))); const scale = (Math.min(w, h) * .42) / maxExtent, ox = w / 2, oy = h / 2; ctx.beginPath(); route.forEach((p, i) => { const x = ox + p[0] * scale, y = oy + p[1] * scale; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.closePath(); ctx.strokeStyle = s.map.accent; ctx.lineWidth = 7; ctx.globalAlpha = .16; ctx.stroke(); ctx.globalAlpha = 1; ctx.lineWidth = 3; ctx.strokeStyle = s.map.accent; ctx.stroke(); route.forEach((p, i) => { const x = ox + p[0] * scale, y = oy + p[1] * scale; ctx.fillStyle = i === s.targetIndex ? '#ffffff' : '#4f9cb0'; ctx.beginPath(); ctx.arc(x, y, i === s.targetIndex ? 4 : 1.8, 0, Math.PI * 2); ctx.fill(); if (i === s.targetIndex) { ctx.strokeStyle = s.map.accent; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.stroke(); } }); for (const a of s.actors) { const x = ox + a.mesh.position.x * scale, y = oy + a.mesh.position.z * scale; ctx.fillStyle = a === s.player ? '#fff' : a.police ? '#ff4861' : '#8898ae'; ctx.beginPath(); ctx.arc(x, y, a === s.player ? 4 : 2.3, 0, Math.PI * 2); ctx.fill(); } }
+  drawMap(s) {
+    const c = this.mini, ctx = c.getContext('2d'), route = s.map.route, w = c.width, h = c.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(7,11,19,.82)';
+    ctx.fillRect(0, 0, w, h);
+    const maxExtent = Math.max(1, ...route.map(p => Math.max(Math.abs(p[0]), Math.abs(p[1]))));
+    const scale = (Math.min(w, h) * .42) / maxExtent, ox = w / 2, oy = h / 2;
+    const point = p => [ox + p[0] * scale, oy + p[1] * scale];
+    const mid = (a, b) => [(a[0] + b[0]) * .5, (a[1] + b[1]) * .5];
+    const start = mid(point(route.at(-1)), point(route[0]));
+    ctx.beginPath();
+    ctx.moveTo(start[0], start[1]);
+    route.forEach((p, i) => {
+      const a = point(p);
+      const b = mid(a, point(route[(i + 1) % route.length]));
+      ctx.quadraticCurveTo(a[0], a[1], b[0], b[1]);
+    });
+    ctx.closePath();
+    ctx.strokeStyle = s.map.accent;
+    ctx.lineWidth = 7;
+    ctx.globalAlpha = .16;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = s.map.accent;
+    ctx.stroke();
+    route.forEach((p, i) => {
+      const [x, y] = point(p);
+      ctx.fillStyle = i === s.targetIndex ? '#ffffff' : '#4f9cb0';
+      ctx.beginPath();
+      ctx.arc(x, y, i === s.targetIndex ? 4 : 1.8, 0, Math.PI * 2);
+      ctx.fill();
+      if (i === s.targetIndex) {
+        ctx.strokeStyle = s.map.accent;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    });
+    for (const a of s.actors) {
+      const x = ox + a.mesh.position.x * scale, y = oy + a.mesh.position.z * scale;
+      ctx.fillStyle = a === s.player ? '#fff' : a.police ? '#ff4861' : '#8898ae';
+      ctx.beginPath();
+      ctx.arc(x, y, a === s.player ? 4 : 2.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
   result(data) { this.layer.innerHTML = `<section class="result screen"><p>OPERATION COMPLETE</p><h1>${esc(data.title)}</h1><div class="result-time">${time(data.time)}</div><span>${data.best ? `BEST ${time(data.best)} // ` : ''}${esc(data.mode).toUpperCase()}</span><div><button class="primary" data-action="rematch">RUN IT BACK <i>→</i></button><button data-action="home">MAIN MENU</button></div></section>`; }
   pause(paused) { if (!paused) { this.root.querySelector('.pause-overlay')?.remove(); return; } this.root.insertAdjacentHTML('beforeend', `<div class="pause-overlay"><p>PAUSED</p><button class="primary" data-action="resume">RESUME</button><button data-action="home">QUIT TO MENU</button></div>`); }
   toast(message) { const n = this.root.querySelector('#toast'); n.textContent = message; n.classList.add('show'); setTimeout(() => n.classList.remove('show'), 3200); }
