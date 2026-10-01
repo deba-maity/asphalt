@@ -467,6 +467,12 @@ export class Game {
 
     this.effects = new Effects(this.scene);
 
+    this.actorGroup = new THREE.Group();
+
+    this.actorGroup.name = "GameplayActors";
+
+    this.scene.add(this.actorGroup);
+
     this.audio.start();
 
     const hemi = new THREE.HemisphereLight(
@@ -564,6 +570,28 @@ export class Game {
 
     this.audio.stop();
 
+    if (this.actorGroup) {
+      this.actorGroup.traverse((object) => {
+        if (object.geometry?.userData?.disposeWithActor) {
+          object.geometry.dispose?.();
+        }
+
+        if (Array.isArray(object.material)) {
+          object.material.forEach((material) => {
+            if (material.userData?.disposeWithActor) {
+              material.dispose?.();
+            }
+          });
+        } else if (object.material?.userData?.disposeWithActor) {
+          object.material?.dispose?.();
+        }
+      });
+
+      this.actorGroup.removeFromParent();
+
+      this.actorGroup = null;
+    }
+
     if (this.effects) {
       this.effects.dispose();
 
@@ -579,6 +607,8 @@ export class Game {
 
   makeActor(spec, color, police = false, name = "DRIVER") {
     const mesh = createVehicle(spec, color);
+
+    this.actorGroup?.add(mesh);
 
     return {
       mesh,
@@ -1210,25 +1240,25 @@ export class Game {
 
     const drift = this.player.mesh.userData.drifting;
 
-    const back = 8.7 + spd * 0.03;
+    const back = 6.8 + spd * 0.035;
 
     const desired = new THREE.Vector3(
       p.x + Math.sin(h) * back,
 
-      p.y + 4.7 + spd * 0.012,
+      p.y + 2.85 + spd * 0.016,
 
       p.z + Math.cos(h) * back,
     );
 
-    this.camera.position.lerp(desired, 1 - Math.pow(0.00035, dt));
+    this.camera.position.lerp(desired, 1 - Math.pow(0.00055, dt));
 
     const look = p.clone().add(
       new THREE.Vector3(
-        -Math.sin(h) * (7.5 + spd * 0.055),
+        -Math.sin(h) * (8.4 + spd * 0.06),
 
-        1.15,
+        1.05 + Math.min(spd * 0.008, 0.55),
 
-        -Math.cos(h) * (7.5 + spd * 0.055),
+        -Math.cos(h) * (8.4 + spd * 0.06),
       ),
     );
 
@@ -1244,7 +1274,7 @@ export class Game {
 
     this.camera.fov = THREE.MathUtils.lerp(
       this.camera.fov,
-      57 + clamp(spd * 0.12, 0, 8) + (drift ? 2 : 0),
+      61 + clamp(spd * 0.1, 0, 7) + (drift ? 1.4 : 0),
       dt * 4,
     );
 

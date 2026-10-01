@@ -38,3 +38,161 @@
 @media(max-width:1100px){.map-grid-premium{grid-template-columns:repeat(2,minmax(230px,1fr))}.garage-modern{grid-template-columns:1fr}.vehicle-info-modern{min-height:330px;padding:22px 8px}.vehicle-list-premium{grid-template-columns:repeat(4,minmax(160px,1fr))}.hero-copy{right:5vw}}
 @media(max-width:700px){.panel-screen{padding:72px 18px 22px}.map-selector-head,.fleet-head{align-items:flex-start;flex-direction:column}.map-grid-premium{grid-template-columns:1fr}.map-card{height:370px}.map-art{inset:0 0 112px}.map-detail-strip{grid-template-columns:1fr}.map-detail-strip>div{border-right:0;border-bottom:1px solid rgba(132,156,182,.1)}.garage-hero{min-height:340px}.premium-preview{min-height:340px}.vehicle-info-modern h2{font-size:55px}.vehicle-list-premium{grid-template-columns:repeat(2,minmax(145px,1fr))}.fleet-filters{width:100%;overflow:auto;flex-wrap:nowrap}.fleet-filter{flex:0 0 auto}.hero-copy{display:none}}
 @media(max-width:460px){.map-card{height:320px}.map-card-copy h2{font-size:29px}.garage-hero{min-height:290px}.premium-preview{min-height:290px}.garage-control-row{align-items:flex-start;flex-direction:column}.deploy-lg{width:100%}.vehicle-list-premium{grid-template-columns:1fr 1fr}.vehicle-chip-premium{min-height:58px;padding-right:25px}.vehicle-chip-premium b{font-size:15px}.chip-orb{width:29px;height:29px;flex-basis:29px}.map-selected-label{width:100%;text-align:left}.back{top:20px}}
+
+/* Gameplay polish pass: cleaner arcade HUD with less thermal-expensive glow. */
+#hud {
+  text-shadow: 0 1px 4px rgba(0, 0, 0, .82);
+}
+
+.hud-vignette {
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, .42), transparent 20%, transparent 78%, rgba(0, 0, 0, .42)),
+    linear-gradient(0deg, rgba(0, 0, 0, .38), transparent 34%);
+}
+
+.objective-stack {
+  min-width: min(32vw, 360px);
+  padding: 8px 18px 7px;
+  background: rgba(6, 10, 16, .54);
+  border: 1px solid rgba(190, 220, 235, .14);
+  border-top-color: rgba(255, 255, 255, .28);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .26);
+}
+
+.route-progress {
+  height: 2px;
+  background: rgba(255, 255, 255, .16);
+}
+
+.route-progress b {
+  background: linear-gradient(90deg, #f1f5f8, #65dbff);
+  box-shadow: none;
+}
+
+#event-feed {
+  top: 88px;
+  padding: 8px 14px 9px 12px;
+  background: rgba(6, 10, 16, .5);
+  border-left-color: #f4f7fb;
+}
+
+#event-feed b {
+  color: #f6f8fb;
+  font-size: 16px;
+}
+
+#event-feed span,
+.race-state span,
+.mini-wrap span {
+  color: #87dfff;
+}
+
+.mini-wrap {
+  width: 164px;
+  height: 164px;
+  border-color: rgba(220, 235, 244, .26);
+  background: rgba(4, 8, 14, .7);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .34);
+}
+
+.readouts {
+  left: auto;
+  right: 20px;
+  transform: none;
+  gap: 10px;
+}
+
+.speed-pod {
+  min-width: 132px;
+  padding: 10px 16px 8px 18px;
+  background: rgba(8, 11, 17, .66);
+  border: 1px solid rgba(230, 240, 248, .14);
+  border-top-color: rgba(255, 255, 255, .28);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .34);
+}
+
+.readouts strong {
+  font-size: 70px;
+  letter-spacing: -.04em;
+  text-shadow: 0 0 12px rgba(210, 236, 255, .22);
+}
+
+.meter {
+  width: 170px;
+  padding: 10px 12px 5px;
+  background: rgba(8, 11, 17, .66);
+  border: 1px solid rgba(230, 240, 248, .12);
+  border-top-color: rgba(255, 255, 255, .24);
+}
+
+.meter i {
+  height: 5px;
+  background: rgba(255, 255, 255, .12);
+  box-shadow: none;
+}
+
+.meter i b {
+  background: linear-gradient(90deg, #e6f9ff, #45dfff);
+  box-shadow: none;
+}
+
+.meter .health b {
+  background: linear-gradient(90deg, #ff5f6f, #ffd77b);
+}
+
+.race-state {
+  right: 20px;
+  transform: translateY(-104px);
+  min-width: 142px;
+  background: rgba(8, 11, 17, .62);
+  border: 1px solid rgba(230, 240, 248, .12);
+  border-right: 2px solid rgba(255, 255, 255, .8);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .3);
+}
+
+.race-state>b {
+  font-size: 23px;
+}
+
+#countdown {
+  text-shadow: 0 0 18px rgba(180, 210, 255, .5), 0 4px 0 rgba(0, 0, 0, .42);
+}
+
+.premium-preview {
+  background:
+    radial-gradient(ellipse at 50% 66%, rgba(88, 118, 140, .22), transparent 34%),
+    linear-gradient(145deg, #10151c, #05070a 72%);
+}
+
+.vehicle-floor-lines {
+  background: linear-gradient(90deg, transparent, rgba(210, 230, 240, .5), transparent);
+  box-shadow: none;
+}
+
+@media(max-width:850px) {
+  .readouts {
+    right: 12px;
+    transform: scale(.76);
+    transform-origin: bottom right;
+  }
+
+  .race-state {
+    display: none;
+  }
+
+  .objective-stack {
+    min-width: 220px;
+  }
+}
+
+@media(max-width:480px) {
+  .readouts {
+    right: 8px;
+    transform: scale(.62);
+  }
+
+  #event-feed {
+    top: 62px;
+    left: 12px;
+  }
+}

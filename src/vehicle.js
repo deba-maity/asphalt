@@ -1,70 +1,524 @@
-import * as THREE from 'three';
+import * as THREE from "three";
 
 const geo = {
-  box: new THREE.BoxGeometry(1, 1, 1), sphere: new THREE.SphereGeometry(1, 20, 14),
-  tire: new THREE.CylinderGeometry(1, 1, 1, 18), rim: new THREE.CylinderGeometry(.66, .66, 1.025, 18),
-  disc: new THREE.CylinderGeometry(.72, .72, .05, 18), torus: new THREE.TorusGeometry(1, .075, 7, 18),
-  exhaust: new THREE.CylinderGeometry(.13, .17, .45, 10), flame: new THREE.ConeGeometry(.18, .72, 10)
+  box: new THREE.BoxGeometry(1, 1, 1),
+  tire: new THREE.CylinderGeometry(1, 1, 1, 22),
+  rim: new THREE.CylinderGeometry(0.68, 0.68, 1.02, 18),
+  disc: new THREE.CylinderGeometry(0.74, 0.74, 0.05, 18),
+  torus: new THREE.TorusGeometry(1, 0.075, 8, 22),
+  flame: new THREE.ConeGeometry(0.18, 0.72, 10),
 };
+
 const shared = {
-  tire: new THREE.MeshStandardMaterial({ color: 0x07090d, roughness: .58, metalness: .08 }),
-  rim: new THREE.MeshStandardMaterial({ color: 0xc7d7e6, roughness: .18, metalness: .95 }),
-  brake: new THREE.MeshStandardMaterial({ color: 0xff633a, emissive: 0xde1e12, emissiveIntensity: .6, roughness: .28, metalness: .45 }),
-  glass: new THREE.MeshPhysicalMaterial({ color: 0x172b43, metalness: .18, roughness: .04, transmission: .1, transparent: true, opacity: .88 }),
-  carbon: new THREE.MeshStandardMaterial({ color: 0x070a10, roughness: .28, metalness: .6 }),
-  chrome: new THREE.MeshStandardMaterial({ color: 0xaabfd4, roughness: .12, metalness: 1 }),
-  white: new THREE.MeshBasicMaterial({ color: 0xcff9ff }),
-  red: new THREE.MeshBasicMaterial({ color: 0xff173e })
+  tire: new THREE.MeshStandardMaterial({
+    color: 0x050608,
+    roughness: 0.72,
+    metalness: 0.02,
+  }),
+  rim: new THREE.MeshStandardMaterial({
+    color: 0xb8c4ce,
+    roughness: 0.23,
+    metalness: 0.9,
+  }),
+  brake: new THREE.MeshStandardMaterial({
+    color: 0xb93d28,
+    emissive: 0x5a0d08,
+    emissiveIntensity: 0.45,
+    roughness: 0.32,
+    metalness: 0.38,
+  }),
+  glass: new THREE.MeshPhysicalMaterial({
+    color: 0x0c1b26,
+    metalness: 0.18,
+    roughness: 0.05,
+    transmission: 0.04,
+    transparent: true,
+    opacity: 0.86,
+    clearcoat: 0.85,
+    clearcoatRoughness: 0.06,
+  }),
+  carbon: new THREE.MeshStandardMaterial({
+    color: 0x05070b,
+    roughness: 0.34,
+    metalness: 0.62,
+  }),
+  rubber: new THREE.MeshStandardMaterial({
+    color: 0x020304,
+    roughness: 0.82,
+    metalness: 0.02,
+  }),
+  chrome: new THREE.MeshStandardMaterial({
+    color: 0x9faeb8,
+    roughness: 0.18,
+    metalness: 1,
+  }),
+  lampHousing: new THREE.MeshStandardMaterial({
+    color: 0x111821,
+    roughness: 0.38,
+    metalness: 0.55,
+  }),
 };
 
-function part(parent, geometry, material, position, scale = [1,1,1], rotation) {
-  const mesh = new THREE.Mesh(geometry, material); mesh.position.set(...position); mesh.scale.set(...scale);
-  if (rotation) mesh.rotation.set(...rotation); mesh.castShadow = mesh.receiveShadow = true; parent.add(mesh); return mesh;
-}
-function tube(parent, position, scale, material = shared.chrome, rotation = [0,0,0]) { return part(parent, geo.tire, material, position, scale, rotation); }
-function paintMaterial(color) { return new THREE.MeshPhysicalMaterial({ color, metalness: .82, roughness: .18, clearcoat: .8, clearcoatRoughness: .16, emissive: color, emissiveIntensity: .035 }); }
-
-function createWheel(parent, x, z, radius, data, front = false) {
-  const pivot = new THREE.Group(); pivot.position.set(x, radius, z); parent.add(pivot);
-  const spin = new THREE.Group(); pivot.add(spin);
-  const tire = part(spin, geo.tire, shared.tire, [0,0,0], [radius,.34,radius], [0,0,Math.PI/2]);
-  part(spin, geo.rim, shared.rim, [0,0,0], [radius*.68,.37,radius*.68], [0,0,Math.PI/2]);
-  part(spin, geo.disc, shared.brake, [x > 0 ? -.385 : .385,0,0], [radius*.62,.7,radius*.62], [0,0,Math.PI/2]);
-  part(parent, geo.torus, shared.carbon, [x, radius+.04,z], [radius*1.16,radius*1.16,1], [0,Math.PI/2,0]);
-  data.wheels.push({ pivot, spin, tire, front });
+function owned(material) {
+  material.userData.disposeWithActor = true;
+  return material;
 }
 
-function addLights(root, width, rear, data, kind = 'car') {
-  const z = rear ? 2.42 : -2.42; const material = (rear ? shared.red : shared.white).clone();
-  if (kind === 'bike') part(root, geo.box, material, [0,.86,z], [rear?.66:.5,.12,.09]);
-  else { part(root, geo.box, material, [-width*.28,.74,z], [width*.32,.16,.10]); part(root, geo.box, material, [width*.28,.74,z], [width*.32,.16,.10]); }
-  (rear ? data.brakeLights : data.headLights).push(material);
+function part(
+  parent,
+  geometry,
+  material,
+  position,
+  scale = [1, 1, 1],
+  rotation,
+  shadows = true,
+) {
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(...position);
+  mesh.scale.set(...scale);
+  if (rotation) mesh.rotation.set(...rotation);
+  mesh.castShadow = shadows;
+  mesh.receiveShadow = shadows;
+  parent.add(mesh);
+  return mesh;
 }
-function addNitro(root, data, x, z) { const flame=part(root,geo.flame,new THREE.MeshBasicMaterial({color:0x45ddff,transparent:true,opacity:.86,depthWrite:false}),[x,.44,z],[1,1,1],[Math.PI/2,0,0]);flame.visible=false;data.flames.push(flame); }
+
+function paintMaterial(color) {
+  return owned(
+    new THREE.MeshPhysicalMaterial({
+      color,
+      metalness: 0.72,
+      roughness: 0.24,
+      clearcoat: 0.9,
+      clearcoatRoughness: 0.18,
+      emissive: color,
+      emissiveIntensity: 0.018,
+    }),
+  );
+}
+
+function lightMaterial(color) {
+  return owned(new THREE.MeshBasicMaterial({ color, toneMapped: false }));
+}
+
+function tube(
+  parent,
+  position,
+  scale,
+  material = shared.chrome,
+  rotation = [0, 0, 0],
+) {
+  return part(parent, geo.tire, material, position, scale, rotation);
+}
+
+function createWheel(parent, x, z, radius, data, front = false, width = 0.34) {
+  const pivot = new THREE.Group();
+  pivot.position.set(x, radius, z);
+  parent.add(pivot);
+
+  const spin = new THREE.Group();
+  pivot.add(spin);
+
+  part(spin, geo.tire, shared.tire, [0, 0, 0], [radius, width, radius], [
+    0,
+    0,
+    Math.PI / 2,
+  ]);
+  part(
+    spin,
+    geo.rim,
+    shared.rim,
+    [0, 0, 0],
+    [radius * 0.63, width * 1.1, radius * 0.63],
+    [0, 0, Math.PI / 2],
+  );
+  part(
+    spin,
+    geo.disc,
+    shared.brake,
+    [x > 0 ? -width * 1.13 : width * 1.13, 0, 0],
+    [radius * 0.58, width * 1.5, radius * 0.58],
+    [0, 0, Math.PI / 2],
+  );
+  part(
+    parent,
+    geo.torus,
+    shared.rubber,
+    [x, radius + 0.04, z],
+    [radius * 1.13, radius * 1.13, 1],
+    [0, Math.PI / 2, 0],
+  );
+
+  data.wheels.push({ pivot, spin, front });
+}
+
+function addCarLights(body, c, data) {
+  const headMat = lightMaterial(0xe8fbff);
+  const rearMat = lightMaterial(0xff263f);
+
+  for (const x of [-c.w * 0.28, c.w * 0.28]) {
+    part(body, geo.box, shared.lampHousing, [x, 0.03, -c.l * 0.5 - 0.02], [
+      c.w * 0.25,
+      0.18,
+      0.08,
+    ]);
+    part(body, geo.box, headMat, [x, 0.05, -c.l * 0.505], [
+      c.w * 0.2,
+      0.07,
+      0.035,
+    ]);
+    part(body, geo.box, rearMat, [x * 1.18, 0.12, c.l * 0.49], [
+      c.w * 0.22,
+      0.11,
+      0.045,
+    ]);
+  }
+
+  data.headLights.push(headMat);
+  data.brakeLights.push(rearMat);
+}
+
+function addNitro(root, data, x, z) {
+  const material = owned(
+    new THREE.MeshBasicMaterial({
+      color: 0x45ddff,
+      transparent: true,
+      opacity: 0.78,
+      depthWrite: false,
+      toneMapped: false,
+    }),
+  );
+  const flame = part(
+    root,
+    geo.flame,
+    material,
+    [x, 0.42, z],
+    [1, 1, 1],
+    [Math.PI / 2, 0, 0],
+    false,
+  );
+  flame.visible = false;
+  data.flames.push(flame);
+}
 
 function buildCar(root, spec, paint, data, police) {
-  const profiles = { coupe:{w:2.18,l:4.75,h:.70,roof:.56,rear:.08,wing:true}, muscle:{w:2.34,l:4.98,h:.78,roof:.55,rear:.28,wing:false}, super:{w:2.28,l:4.88,h:.58,roof:.45,rear:-.08,wing:true}, hyper:{w:2.38,l:5.08,h:.50,roof:.40,rear:-.2,wing:true}, rally:{w:2.24,l:4.68,h:.93,roof:.55,rear:.10,wing:true} };
-  const c=profiles[spec.profile]||profiles.coupe,r=spec.profile==='rally'?.57:.51,body=new THREE.Group();body.position.y=c.h+.05;root.add(body);
-  // Curved layered panels, canopy, skirts and aero are intentionally visible from the chase view.
-  part(body,geo.sphere,paint,[0,-.08,c.rear],[c.w*.52,c.h*.66,c.l*.48]);part(body,geo.box,paint,[0,-.14,-c.l*.15],[c.w*.88,c.h*.68,c.l*.48]);part(body,geo.box,shared.carbon,[0,-.36,-c.l*.43],[c.w*.92,.16,.46]);part(body,geo.box,shared.carbon,[0,-.28,c.l*.44],[c.w*.9,.22,.30]);
-  part(body,geo.sphere,shared.glass,[0,c.roof,c.l*.05],[c.w*.36,c.h*.56,c.l*.27]);part(body,geo.box,paint,[0,.14,-c.l*.22],[c.w*.64,.08,c.l*.28],[-.08,0,0]);part(body,geo.box,shared.carbon,[-c.w*.48,-.19,.05],[.08,.18,c.l*.66]);part(body,geo.box,shared.carbon,[c.w*.48,-.19,.05],[.08,.18,c.l*.66]);
-  part(body,geo.sphere,shared.carbon,[-c.w*.55,c.roof*.8,-.12],[.17,.09,.18]);part(body,geo.sphere,shared.carbon,[c.w*.55,c.roof*.8,-.12],[.17,.09,.18]);
-  if(c.wing){part(body,geo.box,shared.carbon,[0,.7,c.l*.42],[c.w*.56,.08,.25]);part(body,geo.box,shared.carbon,[-c.w*.35,.48,c.l*.42],[.06,.34,.06]);part(body,geo.box,shared.carbon,[c.w*.35,.48,c.l*.42],[.06,.34,.06]);}
-  for(const x of[-c.w*.45,c.w*.45])createWheel(root,x,-c.l*.28,r,data,true);for(const x of[-c.w*.45,c.w*.45])createWheel(root,x,c.l*.30,r,data,false);
-  addLights(body,c.w,false,data);addLights(body,c.w,true,data);for(const x of[-c.w*.25,c.w*.25]){tube(body,[x,.03,c.l*.51],[.13,.13,.42],shared.chrome,[Math.PI/2,0,0]);addNitro(root,data,x,c.l*.59);}if(police)addPoliceBar(root,data,c.w);
+  const profiles = {
+    coupe: { w: 2.05, l: 4.75, h: 0.62, cabin: 0.55, nose: 0.18, wing: false },
+    muscle: { w: 2.24, l: 4.95, h: 0.72, cabin: 0.5, nose: 0.03, wing: false },
+    super: { w: 2.16, l: 4.9, h: 0.54, cabin: 0.43, nose: -0.05, wing: true },
+    hyper: { w: 2.2, l: 5.05, h: 0.5, cabin: 0.38, nose: -0.14, wing: true },
+    rally: { w: 2.16, l: 4.58, h: 0.86, cabin: 0.56, nose: 0.1, wing: true },
+  };
+
+  const c = profiles[spec.profile] || profiles.coupe;
+  const wheelRadius = spec.profile === "rally" ? 0.56 : 0.5;
+  const body = new THREE.Group();
+  body.position.y = wheelRadius + c.h * 0.45;
+  root.add(body);
+
+  part(body, geo.box, paint, [0, 0, c.nose], [c.w, c.h, c.l * 0.78]);
+  part(body, geo.box, paint, [0, 0.1, -c.l * 0.24], [
+    c.w * 0.82,
+    c.h * 0.42,
+    c.l * 0.42,
+  ], [-0.07, 0, 0]);
+  part(body, geo.box, paint, [0, -0.05, c.l * 0.36], [
+    c.w * 0.94,
+    c.h * 0.55,
+    c.l * 0.26,
+  ]);
+  part(body, geo.box, shared.carbon, [0, -0.28, -c.l * 0.32], [
+    c.w * 0.96,
+    0.14,
+    c.l * 0.28,
+  ]);
+  part(body, geo.box, shared.carbon, [0, -0.24, c.l * 0.47], [
+    c.w * 0.88,
+    0.18,
+    c.l * 0.1,
+  ]);
+  part(body, geo.box, shared.carbon, [-c.w * 0.52, -0.13, 0.06], [
+    0.08,
+    0.18,
+    c.l * 0.64,
+  ]);
+  part(body, geo.box, shared.carbon, [c.w * 0.52, -0.13, 0.06], [
+    0.08,
+    0.18,
+    c.l * 0.64,
+  ]);
+
+  part(body, geo.box, shared.glass, [0, c.cabin, -c.l * 0.02], [
+    c.w * 0.58,
+    c.h * 0.55,
+    c.l * 0.32,
+  ], [-0.05, 0, 0]);
+  part(body, geo.box, shared.glass, [0, c.cabin * 0.94, c.l * 0.18], [
+    c.w * 0.5,
+    c.h * 0.48,
+    c.l * 0.18,
+  ], [0.12, 0, 0]);
+
+  part(body, geo.box, shared.carbon, [-c.w * 0.58, c.cabin * 0.75, -0.12], [
+    0.12,
+    0.08,
+    0.2,
+  ]);
+  part(body, geo.box, shared.carbon, [c.w * 0.58, c.cabin * 0.75, -0.12], [
+    0.12,
+    0.08,
+    0.2,
+  ]);
+
+  if (c.wing) {
+    part(body, geo.box, shared.carbon, [0, c.cabin + 0.17, c.l * 0.43], [
+      c.w * 0.64,
+      0.07,
+      0.22,
+    ]);
+    part(body, geo.box, shared.carbon, [-c.w * 0.36, c.cabin, c.l * 0.43], [
+      0.05,
+      0.28,
+      0.05,
+    ]);
+    part(body, geo.box, shared.carbon, [c.w * 0.36, c.cabin, c.l * 0.43], [
+      0.05,
+      0.28,
+      0.05,
+    ]);
+  }
+
+  for (const x of [-c.w * 0.46, c.w * 0.46]) {
+    createWheel(root, x, -c.l * 0.3, wheelRadius, data, true, 0.34);
+    createWheel(root, x, c.l * 0.31, wheelRadius, data, false, 0.36);
+  }
+
+  addCarLights(body, c, data);
+
+  for (const x of [-c.w * 0.26, c.w * 0.26]) {
+    tube(body, [x, -0.12, c.l * 0.53], [0.11, 0.11, 0.36], shared.chrome, [
+      Math.PI / 2,
+      0,
+      0,
+    ]);
+    addNitro(root, data, x, c.l * 0.59);
+  }
+
+  if (police) addPoliceBar(root, data, c.w);
 }
 
 function buildBike(root, spec, paint, data, police) {
-  const profile=spec.profile||'sport',r=profile==='dirt'?.55:.47,frame=new THREE.Group();frame.position.y=.58;root.add(frame);
-  part(frame,geo.sphere,paint,[0,.20,-.15],[.58,.38,.72]);part(frame,geo.sphere,paint,[0,.13,-.58],[.52,.28,.58]);part(frame,geo.box,shared.carbon,[0,.18,.58],[.50,.13,.78]);part(frame,geo.box,shared.carbon,[0,.02,.05],[.18,.16,1.75],[.18,0,0]);part(frame,geo.sphere,shared.glass,[0,.48,-.72],[.40,.28,.28]);
-  const fork=new THREE.Group();fork.position.set(0,.25,-1.17);fork.rotation.x=profile==='cruiser'?-.18:-.34;root.add(fork);tube(fork,[-.18,0,0],[.07,.07,1.22]);tube(fork,[.18,0,0],[.07,.07,1.22]);part(fork,geo.box,shared.chrome,[0,.53,-.03],[1.0,.07,.08]);data.handlebars=fork;
-  const front=createBikeWheel(root,0,-1.26,r,data,true);data.frontFork=front;createBikeWheel(root,0,.66,r,data,false);part(frame,geo.box,shared.red,[0,.33,1.08],[.45,.09,.08]);addLights(frame,.8,false,data,'bike');addLights(frame,.8,true,data,'bike');tube(frame,[.34,.06,.92],[.12,.12,.52],shared.chrome,[Math.PI/2,0,0]);addNitro(root,data,.25,1.15);if(police)addPoliceBar(root,data,.8);
+  const profile = spec.profile || "sport";
+  const radius = profile === "dirt" ? 0.55 : 0.47;
+  const frame = new THREE.Group();
+  frame.position.y = 0.58;
+  root.add(frame);
+
+  part(frame, geo.box, paint, [0, 0.22, -0.15], [0.72, 0.36, 1.25], [-0.04, 0, 0]);
+  part(frame, geo.box, paint, [0, 0.17, -0.72], [0.58, 0.25, 0.55], [-0.18, 0, 0]);
+  part(frame, geo.box, shared.carbon, [0, 0.08, 0.5], [0.45, 0.13, 0.9]);
+  part(frame, geo.box, shared.carbon, [0, -0.02, 0.04], [0.15, 0.16, 1.8], [
+    0.18,
+    0,
+    0,
+  ]);
+  part(frame, geo.box, shared.glass, [0, 0.52, -0.75], [0.38, 0.2, 0.24], [
+    -0.24,
+    0,
+    0,
+  ]);
+
+  const fork = new THREE.Group();
+  fork.position.set(0, 0.25, -1.17);
+  fork.rotation.x = profile === "cruiser" ? -0.18 : -0.34;
+  root.add(fork);
+  tube(fork, [-0.18, 0, 0], [0.06, 0.06, 1.18]);
+  tube(fork, [0.18, 0, 0], [0.06, 0.06, 1.18]);
+  part(fork, geo.box, shared.chrome, [0, 0.53, -0.03], [0.9, 0.06, 0.08]);
+  data.handlebars = fork;
+
+  data.frontFork = createBikeWheel(root, 0, -1.26, radius, data, true);
+  createBikeWheel(root, 0, 0.66, radius, data, false);
+
+  const rearMat = lightMaterial(0xff233c);
+  const headMat = lightMaterial(0xe4fbff);
+  part(frame, geo.box, headMat, [0, 0.55, -1.05], [0.34, 0.08, 0.06]);
+  part(frame, geo.box, rearMat, [0, 0.34, 1.08], [0.42, 0.08, 0.06]);
+  data.headLights.push(headMat);
+  data.brakeLights.push(rearMat);
+
+  tube(frame, [0.34, 0.06, 0.92], [0.11, 0.11, 0.5], shared.chrome, [
+    Math.PI / 2,
+    0,
+    0,
+  ]);
+  addNitro(root, data, 0.25, 1.15);
+  if (police) addPoliceBar(root, data, 0.8);
 }
-function createBikeWheel(parent,x,z,r,data,front){const pivot=new THREE.Group();pivot.position.set(x,r,z);parent.add(pivot);const spin=new THREE.Group();pivot.add(spin);part(spin,geo.tire,shared.tire,[0,0,0],[r,.16,r],[0,0,Math.PI/2]);part(spin,geo.rim,shared.rim,[0,0,0],[r*.64,.18,r*.64],[0,0,Math.PI/2]);data.wheels.push({pivot,spin,front});return pivot;}
 
-function buildInterceptor(root, spec, paint, data, police) { const w=2.55,l=5.25,r=.59,body=new THREE.Group();body.position.y=.74;root.add(body);part(body,geo.box,paint,[0,0,0],[w,.68,l]);part(body,geo.sphere,paint,[0,.31,.25],[w*.48,.55,l*.38]);part(body,geo.box,shared.carbon,[0,.18,-l*.48],[w*.95,.20,.36]);part(body,geo.box,shared.carbon,[0,.1,l*.50],[w*.98,.22,.25]);part(body,geo.box,shared.glass,[0,.64,.22],[w*.68,.38,1.75]);for(const x of[-w*.45,w*.45]){createWheel(root,x,-l*.29,r,data,true);createWheel(root,x,l*.29,r,data,false);}addLights(body,w,false,data);addLights(body,w,true,data);tube(body,[-w*.42,.15,-l*.56],[.07,.07,.85],shared.chrome,[Math.PI/2,0,0]);tube(body,[w*.42,.15,-l*.56],[.07,.07,.85],shared.chrome,[Math.PI/2,0,0]);addNitro(root,data,-.42,l*.6);addNitro(root,data,.42,l*.6);if(police||spec.kind==='heavy')addPoliceBar(root,data,w); }
-function addPoliceBar(root,data,w){const bar=new THREE.Group();bar.position.set(0,1.55,.08);root.add(bar);const blue=new THREE.MeshBasicMaterial({color:0x1b7cff}),red=new THREE.MeshBasicMaterial({color:0xff1945});part(bar,geo.box,blue,[-w*.17,0,0],[w*.32,.12,.30]);part(bar,geo.box,red,[w*.17,0,0],[w*.32,.12,.30]);data.police=[blue,red];}
+function createBikeWheel(parent, x, z, r, data, front) {
+  const pivot = new THREE.Group();
+  pivot.position.set(x, r, z);
+  parent.add(pivot);
+  const spin = new THREE.Group();
+  pivot.add(spin);
+  part(spin, geo.tire, shared.tire, [0, 0, 0], [r, 0.16, r], [0, 0, Math.PI / 2]);
+  part(spin, geo.rim, shared.rim, [0, 0, 0], [r * 0.62, 0.18, r * 0.62], [
+    0,
+    0,
+    Math.PI / 2,
+  ]);
+  data.wheels.push({ pivot, spin, front });
+  return pivot;
+}
 
-export function createVehicle(spec, color=spec.color||'#ff4b63', police=false) { const root=new THREE.Group(),data={spec,wheels:[],flames:[],headLights:[],brakeLights:[],police:null,paint:null,handlebars:null,frontFork:null};root.userData=data;const paint=paintMaterial(color);data.paint=paint;if(spec.kind==='bike')buildBike(root,spec,paint,data,police);else if(spec.kind==='heavy')buildInterceptor(root,spec,paint,data,police);else buildCar(root,spec,paint,data,police);root.userData.radius=spec.kind==='bike'?1.45:2.8;return root; }
-export function animateVehicle(vehicle,speed,boosting,time,steering=0,braking=false,drifting=false){const d=vehicle.userData,spin=speed*.095;for(const wheel of d.wheels){wheel.spin.rotation.x-=spin;if(wheel.front)wheel.pivot.rotation.y=THREE.MathUtils.lerp(wheel.pivot.rotation.y,steering*.48,.2);}if(d.handlebars)d.handlebars.rotation.y=steering*.45;if(d.frontFork)d.frontFork.rotation.y=steering*.36;vehicle.rotation.z=THREE.MathUtils.lerp(vehicle.rotation.z,d.spec.kind==='bike'?-steering*.31:-steering*.10,.11);for(const light of d.headLights)light.color.setHex(0xd9f9ff);for(const light of d.brakeLights)light.color.setHex(braking?0xffeced:0xff2340);for(const flame of d.flames){flame.visible=boosting;flame.scale.setScalar(boosting?(.75+Math.sin(time*38)*.27):.01);}if(d.police)d.police.forEach((m,i)=>m.color.setHex((Math.floor(time*8+i)%2)?(i?0xff163c:0x1678ff):0x07111f));vehicle.userData.drifting=drifting;}
-export function setVehicleColor(vehicle,color){const paint=vehicle.userData.paint;if(paint){paint.color.set(color);paint.emissive.set(color);}}
+function buildInterceptor(root, spec, paint, data, police) {
+  const w = 2.48;
+  const l = 5.18;
+  const r = 0.58;
+  const body = new THREE.Group();
+  body.position.y = 0.82;
+  root.add(body);
+
+  part(body, geo.box, paint, [0, -0.04, 0], [w, 0.68, l]);
+  part(body, geo.box, paint, [0, 0.42, 0.25], [w * 0.78, 0.68, l * 0.45]);
+  part(body, geo.box, shared.carbon, [0, 0.04, -l * 0.48], [w * 0.94, 0.18, 0.34]);
+  part(body, geo.box, shared.carbon, [0, 0.03, l * 0.5], [w * 0.98, 0.2, 0.24]);
+  part(body, geo.box, shared.glass, [0, 0.74, 0.18], [w * 0.62, 0.34, 1.62]);
+
+  for (const x of [-w * 0.45, w * 0.45]) {
+    createWheel(root, x, -l * 0.29, r, data, true, 0.38);
+    createWheel(root, x, l * 0.29, r, data, false, 0.4);
+  }
+
+  addCarLights(body, { w, l }, data);
+  tube(body, [-w * 0.42, 0.05, -l * 0.56], [0.07, 0.07, 0.85], shared.chrome, [
+    Math.PI / 2,
+    0,
+    0,
+  ]);
+  tube(body, [w * 0.42, 0.05, -l * 0.56], [0.07, 0.07, 0.85], shared.chrome, [
+    Math.PI / 2,
+    0,
+    0,
+  ]);
+  addNitro(root, data, -0.42, l * 0.6);
+  addNitro(root, data, 0.42, l * 0.6);
+
+  if (police || spec.kind === "heavy") addPoliceBar(root, data, w);
+}
+
+function addPoliceBar(root, data, w) {
+  const bar = new THREE.Group();
+  bar.position.set(0, 1.55, 0.08);
+  root.add(bar);
+  const blue = lightMaterial(0x1b7cff);
+  const red = lightMaterial(0xff1945);
+  part(bar, geo.box, blue, [-w * 0.17, 0, 0], [w * 0.28, 0.1, 0.24]);
+  part(bar, geo.box, red, [w * 0.17, 0, 0], [w * 0.28, 0.1, 0.24]);
+  data.police = [blue, red];
+}
+
+export function createVehicle(spec, color = spec.color || "#ff4b63", police = false) {
+  const root = new THREE.Group();
+  const data = {
+    spec,
+    wheels: [],
+    flames: [],
+    headLights: [],
+    brakeLights: [],
+    police: null,
+    paint: null,
+    handlebars: null,
+    frontFork: null,
+  };
+  root.userData = data;
+
+  const paint = paintMaterial(color);
+  data.paint = paint;
+
+  if (spec.kind === "bike") buildBike(root, spec, paint, data, police);
+  else if (spec.kind === "heavy") buildInterceptor(root, spec, paint, data, police);
+  else buildCar(root, spec, paint, data, police);
+
+  part(
+    root,
+    geo.box,
+    owned(
+      new THREE.MeshBasicMaterial({
+        color: 0x000000,
+        transparent: true,
+        opacity: spec.kind === "bike" ? 0.22 : 0.3,
+        depthWrite: false,
+      }),
+    ),
+    [0, 0.035, 0],
+    spec.kind === "bike" ? [0.9, 0.01, 2.35] : [2.35, 0.01, 5.0],
+    undefined,
+    false,
+  );
+
+  root.userData.radius = spec.kind === "bike" ? 1.45 : 2.8;
+  return root;
+}
+
+export function animateVehicle(
+  vehicle,
+  speed,
+  boosting,
+  time,
+  steering = 0,
+  braking = false,
+  drifting = false,
+) {
+  const d = vehicle.userData;
+  const spin = speed * 0.095;
+
+  for (const wheel of d.wheels) {
+    wheel.spin.rotation.x -= spin;
+    if (wheel.front) {
+      wheel.pivot.rotation.y = THREE.MathUtils.lerp(
+        wheel.pivot.rotation.y,
+        steering * 0.48,
+        0.2,
+      );
+    }
+  }
+
+  if (d.handlebars) d.handlebars.rotation.y = steering * 0.45;
+  if (d.frontFork) d.frontFork.rotation.y = steering * 0.36;
+
+  vehicle.rotation.z = THREE.MathUtils.lerp(
+    vehicle.rotation.z,
+    d.spec.kind === "bike" ? -steering * 0.31 : -steering * 0.1,
+    0.11,
+  );
+
+  for (const light of d.headLights) light.color.setHex(0xe8fbff);
+  for (const light of d.brakeLights) {
+    light.color.setHex(braking ? 0xffedf0 : 0xff263f);
+  }
+
+  for (const flame of d.flames) {
+    flame.visible = boosting;
+    flame.scale.setScalar(boosting ? 0.75 + Math.sin(time * 38) * 0.27 : 0.01);
+  }
+
+  if (d.police) {
+    d.police.forEach((m, i) =>
+      m.color.setHex(
+        Math.floor(time * 8 + i) % 2 ? (i ? 0xff163c : 0x1678ff) : 0x07111f,
+      ),
+    );
+  }
+
+  vehicle.userData.drifting = drifting;
+}
+
+export function setVehicleColor(vehicle, color) {
+  const paint = vehicle.userData.paint;
+  if (paint) {
+    paint.color.set(color);
+    paint.emissive.set(color);
+  }
+}

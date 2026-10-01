@@ -3,6 +3,7 @@ import { WebSocketServer } from 'ws';
 import { createServer as createViteServer } from 'vite';
 
 const port = Number(process.env.PORT || 5173);
+const hmrPort = Number(process.env.HMR_PORT || 24678);
 const rooms = new Map();
 let idCounter = 1;
 
@@ -21,8 +22,12 @@ function playerList(r) {
 // Browser test profiles are kept beside the project. Their cache writes must
 // never be treated as source edits, or Vite will repeatedly reload the game.
 const vite = await createViteServer({
+  optimizeDeps: {
+    entries: ['index.html']
+  },
   server: {
     middlewareMode: true,
+    hmr: { port: hmrPort },
     watch: { ignored: ['**/chrome-*/**', '**/edge-*/**'] }
   },
   appType: 'spa'

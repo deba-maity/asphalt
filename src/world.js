@@ -376,6 +376,8 @@ export class World {
 
     const sidewalkTexture = makeCanvasTexture(
       (ctx, w, h) => {
+        const r = seeded(89);
+
         ctx.fillStyle = isNeon ? "#4e555b" : "#6c645a";
 
         ctx.fillRect(0, 0, w, h);
@@ -403,7 +405,7 @@ export class World {
         for (let i = 0; i < 1200; i++) {
           ctx.fillStyle = i % 2 ? "#fff" : "#050505";
 
-          ctx.fillRect(Math.random() * w, Math.random() * h, 1, 1);
+          ctx.fillRect(r() * w, r() * h, 1, 1);
         }
 
         ctx.globalAlpha = 1;
@@ -440,13 +442,20 @@ export class World {
     this.edgeLineMat = this.basic({
       color: isNeon ? 0x7eddf7 : 0xffdb98,
       transparent: true,
-      opacity: 0.88,
+      opacity: 0.46,
     });
 
     this.rumbleMat = this.basic({
       color: isNeon ? 0x5ce8ff : 0xe7b45b,
       transparent: true,
       opacity: 0.62,
+    });
+
+    this.neonSpillMat = this.basic({
+      color: isNeon ? 0x45dfff : 0xffdb98,
+      transparent: true,
+      opacity: isNeon ? 0.16 : 0.08,
+      depthWrite: false,
     });
   }
 
@@ -617,9 +626,9 @@ export class World {
       this.group.add(stripe);
     }
 
-    const edgeLeft = this.createContinuousLine(points, -9.85, 0.055, 0.13);
+    const edgeLeft = this.createContinuousLine(points, -9.85, 0.032, 0.13);
 
-    const edgeRight = this.createContinuousLine(points, 9.85, 0.055, 0.13);
+    const edgeRight = this.createContinuousLine(points, 9.85, 0.032, 0.13);
 
     edgeLeft.material = this.edgeLineMat;
 
@@ -922,6 +931,45 @@ export class World {
           [0, yaw, 0],
         );
       }
+    }
+
+    if (this.map.id === "neon") {
+      const spillMatrices = [];
+
+      for (let i = 0; i < this.route.length; i++) {
+        const district = this.getDistrictForSegment(i);
+
+        if ((district?.roadDetail ?? 0.7) < 0.75 && i % 2) {
+          continue;
+        }
+
+        const p = this.route[i];
+
+        const t = tangentAt(this.route, i);
+
+        const side = new THREE.Vector3(-t.z, 0, t.x);
+
+        const yaw = Math.atan2(t.x, t.z);
+
+        for (const sign of [-1, 1]) {
+          if ((i + sign + 2) % 3 === 0 && district?.type !== "neonDistrict") {
+            continue;
+          }
+
+          matrix.compose(
+            p
+              .clone()
+              .addScaledVector(side, sign * (7.9 + r() * 0.6))
+              .setY(0.145),
+            q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw),
+            new THREE.Vector3(3.4 + r() * 2.4, 0.018, 0.18),
+          );
+
+          spillMatrices.push(matrix.clone());
+        }
+      }
+
+      this.installInstance("roadNeonSpills", box, this.neonSpillMat, spillMatrices);
     }
   }
 
@@ -1444,6 +1492,12 @@ export class World {
         metalness: 0.38,
       }),
 
+      concrete: this.material({
+        color: 0x3c4245,
+        roughness: 0.86,
+        metalness: 0.08,
+      }),
+
       trim: this.material({
         color: 0x556169,
         roughness: 0.52,
@@ -1479,6 +1533,10 @@ export class World {
 
       neon: this.basic({
         color: 0x54dcff,
+      }),
+
+      warning: this.basic({
+        color: 0xffc857,
       }),
     };
 
@@ -1655,7 +1713,13 @@ export class World {
     const floorStart = 3.0;
 
     const floorStep =
-      style === "commercial" ? 3.4 : style === "residential" ? 4.0 : 4.4;
+      style === "commercial" || style === "lowRiseStorefront"
+        ? 3.4
+        : style === "residential"
+          ? 4.0
+          : style === "warehouse"
+            ? 5.2
+            : 4.4;
 
     const maxFloors = Math.max(1, Math.floor((h - 2) / floorStep));
 
@@ -1681,6 +1745,12 @@ export class World {
       } else if (style === "mixedUse" && y > 14) {
         widthFactor = 0.78;
         depthFactor = 0.74;
+      } else if (style === "officeSlab") {
+        widthFactor = 1.0;
+        depthFactor = 0.78;
+      } else if (style === "warehouse") {
+        widthFactor = 0.7;
+        depthFactor = 0.7;
       }
 
       const activeW = w * widthFactor;
@@ -1689,7 +1759,12 @@ export class World {
 
       const left = -activeW * 0.4;
 
-      const step = style === "commercial" ? 2.8 : 3.35;
+      const step =
+        style === "commercial" || style === "lowRiseStorefront"
+          ? 2.8
+          : style === "warehouse"
+            ? 4.2
+            : 3.35;
 
       let col = 0;
 
@@ -1699,7 +1774,8 @@ export class World {
           continue;
         }
 
-        const lit = r() > (style === "hotel" ? 0.18 : 0.28);
+        const lit =
+          style === "warehouse" ? r() > 0.68 : r() > (style === "hotel" ? 0.18 : 0.28);
 
         const front = localPoint(center, yaw, x, y, -activeD / 2 - 0.065);
 
@@ -1707,8 +1783,8 @@ export class World {
           lit ? "warm" : "cold",
           front,
           yaw,
-          style === "commercial" ? 1.15 : 1.3,
-          style === "commercial" ? 1.22 : 1.55,
+          style === "commercial" || style === "lowRiseStorefront" ? 1.15 : 1.3,
+          style === "commercial" || style === "lowRiseStorefront" ? 1.22 : 1.55,
         );
 
         col++;
@@ -1805,8 +1881,20 @@ export class World {
             h = 13 + r() * 16;
           }
 
+          if (family === "lowRiseStorefront") {
+            h = 9 + r() * 11;
+          }
+
           if (family === "parking") {
             h = 15 + r() * 19;
+          }
+
+          if (family === "warehouse") {
+            h = 10 + r() * 12;
+          }
+
+          if (family === "officeSlab") {
+            h = clamp(h, 26, 68);
           }
 
           if (family === "residential") {
@@ -1817,9 +1905,21 @@ export class World {
             h = Math.max(42, h);
           }
 
-          const w = family === "commercial" ? 13 + r() * 8 : 16 + r() * 13;
+          const w =
+            family === "commercial"
+              ? 13 + r() * 8
+              : family === "lowRiseStorefront"
+                ? 18 + r() * 13
+                : family === "warehouse"
+                  ? 22 + r() * 16
+                  : 16 + r() * 13;
 
-          const d = family === "commercial" ? 10 + r() * 7 : 13 + r() * 10;
+          const d =
+            family === "commercial"
+              ? 10 + r() * 7
+              : family === "warehouse"
+                ? 17 + r() * 11
+                : 13 + r() * 10;
 
           if (!this.buildingPlacementAllowed(center, w, d)) {
             continue;
@@ -1868,11 +1968,22 @@ export class World {
 
         const family = this.chooseBuildingFamily(district, r);
 
-        const h = 22 + r() * (district.type === "downtown" ? 55 : 42);
+        let h = 22 + r() * (district.type === "downtown" ? 55 : 42);
 
-        const w = 14 + r() * 14;
+        if (family === "lowRiseStorefront" || family === "warehouse") {
+          h = 10 + r() * 14;
+        } else if (family === "officeSlab") {
+          h = 28 + r() * 34;
+        }
 
-        const d = 12 + r() * 14;
+        const w =
+          family === "warehouse"
+            ? 24 + r() * 18
+            : family === "lowRiseStorefront"
+              ? 20 + r() * 12
+              : 14 + r() * 14;
+
+        const d = family === "warehouse" ? 18 + r() * 12 : 12 + r() * 14;
 
         if (this.buildingPlacementAllowed(center, w, d)) {
           const record = {
@@ -1972,6 +2083,18 @@ export class World {
         this.buildCommercial(record, facade);
         break;
 
+      case "lowRiseStorefront":
+        this.buildLowRiseStorefront(record, facade);
+        break;
+
+      case "officeSlab":
+        this.buildOfficeSlab(record, facade);
+        break;
+
+      case "warehouse":
+        this.buildWarehouse(record, facade);
+        break;
+
       case "parking":
         this.buildParkingGarage(record, facade);
         break;
@@ -1985,7 +2108,12 @@ export class World {
         break;
     }
 
-    if (family !== "commercial" && family !== "parking") {
+    if (
+      family !== "commercial" &&
+      family !== "parking" &&
+      family !== "lowRiseStorefront" &&
+      family !== "warehouse"
+    ) {
       this.addBuildingPart(
         "roofCap",
         this.cityMats.roof,
@@ -2133,6 +2261,138 @@ export class World {
       localPoint(center, yaw, 0, 3.4, -d / 2 - 0.8),
       [w * 0.82, 0.18, 1.4],
       yaw,
+    );
+  }
+
+  buildLowRiseStorefront(record, facade) {
+    const { center, yaw, w, d, h } = record;
+
+    const floorH = Math.min(5.2, h * 0.46);
+
+    this.addBuildingPart(
+      "lowRiseBase",
+      facade,
+      localPoint(center, yaw, 0, h / 2, 0),
+      [w, h, d],
+      yaw,
+    );
+
+    this.addBuildingPart(
+      "lowRiseStoreGlass",
+      this.cityMats.storefront,
+      localPoint(center, yaw, 0, floorH * 0.5, -d / 2 - 0.065),
+      [w * 0.88, floorH, 0.09],
+      yaw,
+    );
+
+    for (const x of [-0.32, 0, 0.32]) {
+      this.addBuildingPart(
+        "lowRisePilaster",
+        this.cityMats.trim,
+        localPoint(center, yaw, w * x, floorH * 0.52, -d / 2 - 0.16),
+        [0.18, floorH * 1.06, 0.22],
+        yaw,
+      );
+    }
+
+    this.addBuildingPart(
+      "lowRiseCanopy",
+      this.cityMats.neon,
+      localPoint(center, yaw, 0, floorH + 0.3, -d / 2 - 0.8),
+      [w * 0.72, 0.14, 1.25],
+      yaw,
+    );
+
+    this.addBuildingPart(
+      "lowRiseRoofCap",
+      this.cityMats.concrete,
+      localPoint(center, yaw, 0, h + 0.28, 0),
+      [w * 1.03, 0.56, d * 1.04],
+      yaw,
+    );
+  }
+
+  buildOfficeSlab(record, facade) {
+    const { center, yaw, w, d, h } = record;
+
+    this.addBuildingPart(
+      "officeSlabCore",
+      facade,
+      localPoint(center, yaw, 0, h / 2, 0),
+      [w * 1.12, h, d * 0.82],
+      yaw,
+    );
+
+    this.addBuildingPart(
+      "officeSlabGlass",
+      this.cityMats.darkGlass,
+      localPoint(center, yaw, 0, h * 0.5, -d * 0.42 - 0.08),
+      [w * 0.92, h * 0.8, 0.08],
+      yaw,
+    );
+
+    for (const x of [-0.43, -0.18, 0.18, 0.43]) {
+      this.addBuildingPart(
+        "officeVerticalFin",
+        this.cityMats.trim,
+        localPoint(center, yaw, w * x, h * 0.5, -d * 0.43 - 0.14),
+        [0.16, h * 0.88, 0.18],
+        yaw,
+      );
+    }
+
+    this.addBuildingPart(
+      "officeMechanicalRoof",
+      this.cityMats.roof,
+      localPoint(center, yaw, w * 0.18, h + 1.2, 0),
+      [w * 0.38, 2.4, d * 0.38],
+      yaw,
+    );
+  }
+
+  buildWarehouse(record, facade) {
+    const { center, yaw, w, d, h } = record;
+
+    this.addBuildingPart(
+      "warehouseMass",
+      this.cityMats.concrete,
+      localPoint(center, yaw, 0, h / 2, 0),
+      [w, h, d],
+      yaw,
+    );
+
+    this.addBuildingPart(
+      "warehouseLoadingDoor",
+      this.cityMats.darkGlass,
+      localPoint(center, yaw, -w * 0.22, 2.3, -d / 2 - 0.08),
+      [w * 0.22, 4.2, 0.12],
+      yaw,
+    );
+
+    this.addBuildingPart(
+      "warehouseServiceDoor",
+      this.cityMats.storefront,
+      localPoint(center, yaw, w * 0.22, 1.7, -d / 2 - 0.09),
+      [w * 0.12, 3.0, 0.12],
+      yaw,
+    );
+
+    for (const x of [-0.38, -0.12, 0.14, 0.38]) {
+      this.addBuildingPart(
+        "warehouseRib",
+        this.cityMats.trim,
+        localPoint(center, yaw, w * x, h * 0.5, -d / 2 - 0.12),
+        [0.14, h * 0.92, 0.16],
+        yaw,
+      );
+    }
+
+    this.addBuildingPart(
+      "warehouseRoofSaw",
+      this.cityMats.roof,
+      localPoint(center, yaw, 0, h + 0.55, 0),
+      [w * 0.8, 1.1, d * 0.7],
+      yaw + 0.08,
     );
   }
 
@@ -2849,6 +3109,9 @@ export class World {
     for (let i = 0; i < this.cityBuildings.length; i++) {
       const record = this.cityBuildings[i];
 
+      const district = this.getDistrictForSegment(record.id % this.route.length);
+      const propDensity = district?.propDensity ?? 0.7;
+
       if (this.distanceToRoad(record.center) > 62) {
         continue;
       }
@@ -2859,7 +3122,7 @@ export class World {
 
       const localX = (r() - 0.5) * record.w * 0.52;
 
-      if (r() < 0.35) {
+      if (r() < 0.35 * propDensity) {
         const p = localPoint(
           record.center,
           record.yaw,
@@ -2877,7 +3140,7 @@ export class World {
         );
       }
 
-      if (r() < 0.43) {
+      if (r() < 0.43 * propDensity) {
         const p = localPoint(
           record.center,
           record.yaw,
@@ -2895,7 +3158,7 @@ export class World {
         );
       }
 
-      if (r() < 0.28 && record.family !== "glassTower") {
+      if (r() < 0.28 * propDensity && record.family !== "glassTower") {
         const p = localPoint(
           record.center,
           record.yaw,
@@ -2913,7 +3176,7 @@ export class World {
         );
       }
 
-      if (r() < 0.34) {
+      if (r() < 0.34 * propDensity) {
         const p = localPoint(
           record.center,
           record.yaw,
@@ -2937,6 +3200,10 @@ export class World {
           record.yaw,
         );
       }
+    }
+
+    for (const scene of env.streetScenes || []) {
+      this.addStreetScene(scene, metal, binMat, carMats);
     }
 
     for (const item of env.signage || []) {
@@ -2979,6 +3246,217 @@ export class World {
       [4.8, 1.8, 3.1],
       this.segmentAngle(8),
     );
+  }
+
+  addStreetScene(scene, metal, dark, carMats) {
+    const center = this.pointOnSegment(
+      scene.segment,
+      scene.distance,
+      scene.fraction ?? 0.52,
+      scene.side,
+    );
+
+    const yaw = this.segmentAngle(scene.segment) - scene.side * (Math.PI / 2);
+
+    const label = scene.label || "CITY LOOP";
+
+    const tint = scene.side < 0 ? "#54dcff" : "#ff4f8f";
+
+    const signAt = (x, y, z, scale = 0.5) => {
+      this.addTextBillboard(
+        label,
+        localPoint(center, yaw, x, y, z),
+        scale,
+        tint,
+        yaw,
+      );
+    };
+
+    if (scene.type === "taxiDropoff") {
+      this.addBuildingPart(
+        "dropoffCanopy",
+        this.cityMats.neon,
+        localPoint(center, yaw, 0, 2.55, -0.7),
+        [9.5, 0.16, 1.25],
+        yaw,
+      );
+
+      this.addBuildingPart(
+        "dropoffGlass",
+        this.cityMats.storefront,
+        localPoint(center, yaw, 0, 1.25, -0.1),
+        [7.2, 2.3, 0.08],
+        yaw,
+      );
+
+      for (const x of [-3.2, 3.2]) {
+        this.addBuildingPart(
+          "dropoffCar",
+          carMats[x < 0 ? 0 : 1],
+          localPoint(center, yaw, x, 0.45, 2.6),
+          [2.6, 0.72, 1.25],
+          yaw,
+        );
+      }
+
+      signAt(0, 3.45, -1.42, 0.62);
+      return;
+    }
+
+    if (scene.type === "construction") {
+      for (let i = -2; i <= 2; i++) {
+        this.addBuildingPart(
+          "constructionBarrier",
+          this.cityMats.warning,
+          localPoint(center, yaw, i * 1.55, 0.55, 0.35),
+          [1.1, 0.55, 0.22],
+          yaw,
+        );
+
+        this.addBuildingPart(
+          "constructionCone",
+          this.cityMats.warning,
+          localPoint(center, yaw, i * 1.6, 0.48, 1.35),
+          [0.38, 0.95, 0.38],
+          yaw,
+          coneGeo,
+        );
+      }
+
+      for (const x of [-3.3, 3.3]) {
+        this.addBuildingPart(
+          "scaffoldPole",
+          metal,
+          localPoint(center, yaw, x, 2.4, -1.1),
+          [0.16, 4.8, 0.16],
+          yaw,
+          poleGeo,
+        );
+      }
+
+      signAt(0, 3.15, -1.25, 0.52);
+      return;
+    }
+
+    if (scene.type === "transitStop") {
+      this.addBuildingPart(
+        "busShelterRoof",
+        metal,
+        localPoint(center, yaw, 0, 2.75, -0.4),
+        [7.6, 0.16, 2.2],
+        yaw,
+      );
+
+      this.addBuildingPart(
+        "busShelterGlass",
+        this.cityMats.storefront,
+        localPoint(center, yaw, 0, 1.45, -1.15),
+        [7.2, 2.45, 0.08],
+        yaw,
+      );
+
+      this.addBuildingPart(
+        "busShelterBench",
+        dark,
+        localPoint(center, yaw, 0, 0.52, 0.05),
+        [4.8, 0.36, 0.55],
+        yaw,
+      );
+
+      signAt(0, 3.45, -1.6, 0.58);
+      return;
+    }
+
+    if (scene.type === "delivery") {
+      this.addBuildingPart(
+        "deliveryTruck",
+        carMats[2],
+        localPoint(center, yaw, -1.8, 0.85, 1.2),
+        [4.2, 1.6, 1.55],
+        yaw,
+      );
+
+      this.addBuildingPart(
+        "deliveryCab",
+        this.cityMats.darkGlass,
+        localPoint(center, yaw, 0.9, 1.05, 1.2),
+        [1.25, 1.15, 1.35],
+        yaw,
+      );
+
+      this.addBuildingPart(
+        "deliveryBayDoor",
+        this.cityMats.darkGlass,
+        localPoint(center, yaw, 2.7, 1.8, -1.05),
+        [3.4, 3.2, 0.12],
+        yaw,
+      );
+
+      signAt(2.7, 3.85, -1.25, 0.5);
+      return;
+    }
+
+    if (scene.type === "parkingEntry") {
+      this.addBuildingPart(
+        "parkingPortal",
+        this.cityMats.concrete,
+        localPoint(center, yaw, 0, 2.0, -0.95),
+        [7.2, 4.0, 0.55],
+        yaw,
+      );
+
+      this.addBuildingPart(
+        "parkingVoid",
+        this.cityMats.darkGlass,
+        localPoint(center, yaw, 0, 1.65, -1.28),
+        [4.8, 2.8, 0.12],
+        yaw,
+      );
+
+      for (const x of [-2.6, 2.6]) {
+        this.addBuildingPart(
+          "parkingGate",
+          this.cityMats.warning,
+          localPoint(center, yaw, x, 0.9, 1.5),
+          [2.2, 0.12, 0.16],
+          yaw + 0.25 * Math.sign(x),
+        );
+      }
+
+      signAt(0, 4.4, -1.55, 0.56);
+      return;
+    }
+
+    if (scene.type === "maintenance") {
+      for (let i = -3; i <= 3; i++) {
+        this.addBuildingPart(
+          "maintenanceFence",
+          metal,
+          localPoint(center, yaw, i * 1.15, 1.0, 0.2),
+          [0.1, 2.0, 0.12],
+          yaw,
+          poleGeo,
+        );
+      }
+
+      this.addBuildingPart(
+        "maintenanceBox",
+        dark,
+        localPoint(center, yaw, -2.4, 0.85, -1.0),
+        [1.4, 1.7, 0.82],
+        yaw,
+      );
+
+      this.addBuildingPart(
+        "maintenanceServiceDoor",
+        this.cityMats.darkGlass,
+        localPoint(center, yaw, 2.1, 1.55, -1.15),
+        [1.7, 2.8, 0.12],
+        yaw,
+      );
+
+      signAt(0, 3.2, -1.35, 0.46);
+    }
   }
 
   buildCityPark() {
@@ -3290,21 +3768,21 @@ export class World {
       const glow = this.basic({
         color: this.map.accent,
         transparent: true,
-        opacity: 0.42,
+        opacity: 0.18,
       });
 
-      mesh(marker, box, postMat, [-8.8, 2.65, 0], [0.16, 5.3, 0.16]);
+      mesh(marker, box, postMat, [-8.2, 2.0, 0], [0.12, 4.0, 0.12]);
 
-      mesh(marker, box, postMat, [8.8, 2.65, 0], [0.16, 5.3, 0.16]);
+      mesh(marker, box, postMat, [8.2, 2.0, 0], [0.12, 4.0, 0.12]);
 
-      mesh(marker, box, glow, [0, 5.15, 0], [17.6, 0.16, 0.22]);
+      mesh(marker, box, glow, [0, 3.85, 0], [14.8, 0.07, 0.1]);
 
       const arrow = mesh(
         marker,
         coneGeo,
         glow,
-        [0, 3.65, -0.1],
-        [0.82, 1.6, 0.82],
+        [0, 2.85, -0.1],
+        [0.48, 0.92, 0.48],
         [Math.PI / 2, 0, Math.PI],
       );
 
@@ -3385,9 +3863,9 @@ export class World {
 
       marker.userData.glow.color.set(active ? 0xefffff : this.map.accent);
 
-      marker.userData.glow.opacity = active ? 0.95 : 0.12;
+      marker.userData.glow.opacity = active ? 0.36 : 0.06;
 
-      marker.userData.postMat.opacity = active ? 0.8 : 0.2;
+      marker.userData.postMat.opacity = active ? 0.42 : 0.14;
 
       marker.userData.arrow.visible = active;
     });
@@ -3448,7 +3926,7 @@ export class World {
       if (marker.userData.arrow.visible) {
         marker.userData.arrow.rotation.z = time * 2;
 
-        marker.userData.arrow.position.y = 3.65 + Math.sin(time * 3) * 0.18;
+        marker.userData.arrow.position.y = 2.85 + Math.sin(time * 3) * 0.12;
       }
     }
 
