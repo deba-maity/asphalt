@@ -345,49 +345,103 @@ function buildCar(root, spec, paint, data, police) {
 function buildBike(root, spec, paint, data, police) {
   const profile = spec.profile || "sport";
   const radius = profile === "dirt" ? 0.55 : 0.47;
+  const long = profile === "cruiser";
+  const dirt = profile === "dirt";
   const frame = new THREE.Group();
-  frame.position.y = 0.58;
+  frame.position.y = 0.64;
   root.add(frame);
 
-  part(frame, geo.box, paint, [0, 0.22, -0.15], [0.72, 0.36, 1.25], [-0.04, 0, 0]);
-  part(frame, geo.box, paint, [0, 0.17, -0.72], [0.58, 0.25, 0.55], [-0.18, 0, 0]);
-  part(frame, geo.box, shared.carbon, [0, 0.08, 0.5], [0.45, 0.13, 0.9]);
-  part(frame, geo.box, shared.carbon, [0, -0.02, 0.04], [0.15, 0.16, 1.8], [
+  const wheelBase = long ? 2.85 : dirt ? 2.55 : 2.48;
+  const frontZ = -wheelBase * 0.52;
+  const rearZ = wheelBase * 0.48;
+
+  part(frame, geo.box, paint, [0, 0.36, -0.28], [0.74, 0.38, 0.86], [-0.12, 0, 0]);
+  part(frame, geo.box, paint, [0, 0.46, -0.72], [0.52, 0.28, 0.58], [-0.3, 0, 0]);
+  part(frame, geo.box, shared.carbon, [0, 0.26, 0.36], [0.58, 0.18, 0.95], [0.08, 0, 0]);
+  part(frame, geo.box, shared.rubber, [0, 0.55, 0.42], [0.56, 0.14, 0.9], [-0.08, 0, 0]);
+  part(frame, geo.box, shared.carbon, [0, 0.08, -0.02], [0.16, 0.16, wheelBase * 0.8], [
+    0.08,
+    0,
+    0,
+  ]);
+
+  tube(frame, [-0.22, 0.12, -0.05], [0.035, 0.035, wheelBase * 0.66], shared.chrome, [
+    Math.PI / 2,
+    0,
+    0.22,
+  ]);
+  tube(frame, [0.22, 0.12, -0.05], [0.035, 0.035, wheelBase * 0.66], shared.chrome, [
+    Math.PI / 2,
+    0,
+    -0.22,
+  ]);
+  tube(frame, [-0.18, 0.28, 0.15], [0.032, 0.032, wheelBase * 0.5], shared.chrome, [
+    Math.PI / 2,
+    0,
+    -0.38,
+  ]);
+  tube(frame, [0.18, 0.28, 0.15], [0.032, 0.032, wheelBase * 0.5], shared.chrome, [
+    Math.PI / 2,
+    0,
+    0.38,
+  ]);
+
+  part(frame, geo.box, shared.glass, [0, 0.74, -0.92], [0.46, 0.18, 0.2], [
+    -0.42,
+    0,
+    0,
+  ]);
+  part(frame, geo.box, paint, [0, 0.25, rearZ - 0.18], [0.54, 0.1, 0.72], [
     0.18,
     0,
     0,
   ]);
-  part(frame, geo.box, shared.glass, [0, 0.52, -0.75], [0.38, 0.2, 0.24], [
-    -0.24,
+  part(frame, geo.box, paint, [0, 0.18, frontZ + 0.06], [0.5, 0.09, 0.62], [
+    -0.18,
     0,
     0,
   ]);
 
   const fork = new THREE.Group();
-  fork.position.set(0, 0.25, -1.17);
-  fork.rotation.x = profile === "cruiser" ? -0.18 : -0.34;
+  fork.position.set(0, 0.22, frontZ);
+  fork.rotation.x = long ? -0.12 : -0.3;
   root.add(fork);
-  tube(fork, [-0.18, 0, 0], [0.06, 0.06, 1.18]);
-  tube(fork, [0.18, 0, 0], [0.06, 0.06, 1.18]);
-  part(fork, geo.box, shared.chrome, [0, 0.53, -0.03], [0.9, 0.06, 0.08]);
+  tube(fork, [-0.2, 0.15, 0], [0.055, 0.055, 1.15], shared.chrome, [
+    0.18,
+    0,
+    0,
+  ]);
+  tube(fork, [0.2, 0.15, 0], [0.055, 0.055, 1.15], shared.chrome, [
+    0.18,
+    0,
+    0,
+  ]);
+  part(fork, geo.box, shared.chrome, [0, 0.74, -0.12], [0.95, 0.06, 0.08]);
+  part(fork, geo.box, shared.rubber, [-0.52, 0.75, -0.12], [0.22, 0.08, 0.09]);
+  part(fork, geo.box, shared.rubber, [0.52, 0.75, -0.12], [0.22, 0.08, 0.09]);
   data.handlebars = fork;
 
-  data.frontFork = createBikeWheel(root, 0, -1.26, radius, data, true);
-  createBikeWheel(root, 0, 0.66, radius, data, false);
+  data.frontFork = createBikeWheel(root, 0, frontZ, radius, data, true);
+  createBikeWheel(root, 0, rearZ, radius, data, false);
 
   const rearMat = lightMaterial(0xff233c);
   const headMat = lightMaterial(0xe4fbff);
-  part(frame, geo.box, headMat, [0, 0.55, -1.05], [0.34, 0.08, 0.06]);
-  part(frame, geo.box, rearMat, [0, 0.34, 1.08], [0.42, 0.08, 0.06]);
+  part(frame, geo.box, headMat, [0, 0.66, frontZ - 0.14], [0.36, 0.1, 0.06]);
+  part(frame, geo.box, rearMat, [0, 0.42, rearZ + 0.38], [0.42, 0.09, 0.06]);
   data.headLights.push(headMat);
   data.brakeLights.push(rearMat);
 
-  tube(frame, [0.34, 0.06, 0.92], [0.11, 0.11, 0.5], shared.chrome, [
+  tube(frame, [0.34, 0.08, rearZ + 0.25], [0.11, 0.11, 0.5], shared.chrome, [
     Math.PI / 2,
     0,
     0,
   ]);
-  addNitro(root, data, 0.25, 1.15);
+  tube(frame, [-0.18, 0.14, 0.58], [0.08, 0.08, 0.35], shared.satin, [
+    Math.PI / 2,
+    0,
+    0,
+  ]);
+  addNitro(root, data, 0.25, rearZ + 0.45);
   if (police) addPoliceBar(root, data, 0.8);
 }
 
@@ -460,7 +514,66 @@ function buildInterceptor(root, spec, paint, data, police) {
   addNitro(root, data, -0.42, l * 0.6);
   addNitro(root, data, 0.42, l * 0.6);
 
+  if (spec.armed) {
+    const turret = new THREE.Group();
+    turret.position.set(0, 1.32, 0.08);
+    root.add(turret);
+    part(turret, geo.tire, shared.carbon, [0, 0, 0], [0.38, 0.24, 0.38], [
+      0,
+      0,
+      Math.PI / 2,
+    ]);
+    tube(turret, [-0.16, 0.04, -0.58], [0.045, 0.045, 1.1], shared.chrome, [
+      Math.PI / 2,
+      0,
+      0,
+    ]);
+    tube(turret, [0.18, 0.12, -0.5], [0.075, 0.075, 0.92], shared.satin, [
+      Math.PI / 2,
+      0,
+      0,
+    ]);
+    data.turret = turret;
+  }
+
   if (police || spec.kind === "heavy") addPoliceBar(root, data, w);
+}
+
+function buildMonster(root, spec, paint, data, police) {
+  const w = 2.95;
+  const l = 5.25;
+  const r = 0.82;
+  const body = new THREE.Group();
+  body.position.y = 1.34;
+  root.add(body);
+
+  part(body, geo.box, shared.carbon, [0, -0.42, 0], [w * 0.94, 0.32, l * 0.78]);
+  part(body, geo.box, paint, [0, 0.02, -0.12], [w, 0.74, l * 0.7]);
+  part(body, geo.box, paint, [0, 0.58, 0.18], [w * 0.68, 0.72, l * 0.36]);
+  part(body, geo.box, shared.glass, [0, 0.82, -0.1], [w * 0.5, 0.36, 0.98]);
+  part(body, geo.box, shared.carbon, [0, -0.1, -l * 0.54], [w * 1.08, 0.32, 0.32]);
+  part(body, geo.box, shared.carbon, [0, -0.18, l * 0.52], [w, 0.25, 0.22]);
+
+  for (const x of [-w * 0.55, w * 0.55]) {
+    createWheel(root, x, -l * 0.32, r, data, true, 0.52);
+    createWheel(root, x, l * 0.33, r, data, false, 0.55);
+  }
+
+  addCarLights(body, { w, l }, data);
+  tube(body, [-w * 0.36, 0.78, 0.16], [0.055, 0.055, 1.4], shared.chrome, [
+    0.42,
+    0,
+    0,
+  ]);
+  tube(body, [w * 0.36, 0.78, 0.16], [0.055, 0.055, 1.4], shared.chrome, [
+    0.42,
+    0,
+    0,
+  ]);
+  addNitro(root, data, -0.36, l * 0.6);
+  addNitro(root, data, 0.36, l * 0.6);
+
+  if (police) addPoliceBar(root, data, w);
 }
 
 function addPoliceBar(root, data, w) {
@@ -486,6 +599,7 @@ export function createVehicle(spec, color = spec.color || "#ff4b63", police = fa
     paint: null,
     handlebars: null,
     frontFork: null,
+    turret: null,
   };
   root.userData = data;
 
@@ -494,6 +608,7 @@ export function createVehicle(spec, color = spec.color || "#ff4b63", police = fa
 
   if (spec.kind === "bike") buildBike(root, spec, paint, data, police);
   else if (spec.kind === "heavy") buildInterceptor(root, spec, paint, data, police);
+  else if (spec.kind === "monster") buildMonster(root, spec, paint, data, police);
   else buildCar(root, spec, paint, data, police);
 
   part(
@@ -508,12 +623,17 @@ export function createVehicle(spec, color = spec.color || "#ff4b63", police = fa
       }),
     ),
     [0, 0.035, 0],
-    spec.kind === "bike" ? [0.9, 0.01, 2.35] : [2.35, 0.01, 5.0],
+    spec.kind === "bike"
+      ? [0.9, 0.01, 2.8]
+      : spec.kind === "monster"
+        ? [3.7, 0.01, 5.6]
+        : [2.35, 0.01, 5.0],
     undefined,
     false,
   );
 
-  root.userData.radius = spec.kind === "bike" ? 1.45 : 2.8;
+  root.userData.radius =
+    spec.kind === "bike" ? 1.55 : spec.kind === "monster" ? 3.35 : 2.8;
   return root;
 }
 
@@ -542,6 +662,7 @@ export function animateVehicle(
 
   if (d.handlebars) d.handlebars.rotation.y = steering * 0.45;
   if (d.frontFork) d.frontFork.rotation.y = steering * 0.36;
+  if (d.turret) d.turret.rotation.y = THREE.MathUtils.lerp(d.turret.rotation.y, steering * 0.22, 0.08);
 
   vehicle.rotation.z = THREE.MathUtils.lerp(
     vehicle.rotation.z,

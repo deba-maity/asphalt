@@ -41,6 +41,8 @@ export class Game {
 
     this.remotes = new Map();
 
+    this.projectiles = [];
+
     this.running = false;
 
     this.lastNetwork = 0;
@@ -48,6 +50,8 @@ export class Game {
     this.audio = new AudioEngine();
 
     this.fxTimer = 0;
+
+    this.weaponCooldown = 0;
 
     this.lowPower = LOW_POWER_DEVICE;
 
@@ -477,6 +481,25 @@ export class Game {
 
     this.scene.add(this.actorGroup);
 
+    this.projectiles = [];
+
+    this.weaponCooldown = 0;
+
+    this.projectileGeo = new THREE.SphereGeometry(0.22, 10, 8);
+    this.projectileGeo.userData.disposeWithActor = true;
+
+    this.bulletMat = new THREE.MeshBasicMaterial({
+      color: 0x9eefff,
+      toneMapped: false,
+    });
+    this.bulletMat.userData.disposeWithActor = true;
+
+    this.rocketMat = new THREE.MeshBasicMaterial({
+      color: 0xffc15d,
+      toneMapped: false,
+    });
+    this.rocketMat.userData.disposeWithActor = true;
+
     this.audio.start();
 
     const hemi = new THREE.HemisphereLight(
@@ -574,6 +597,8 @@ export class Game {
 
     this.audio.stop();
 
+    this.projectiles.length = 0;
+
     if (this.actorGroup) {
       this.actorGroup.traverse((object) => {
         if (object.geometry?.userData?.disposeWithActor) {
@@ -628,6 +653,8 @@ export class Game {
       boost: 100,
       onRoad: true,
       remote: false,
+      steerInput: 0,
+      weaponHeat: 0,
     };
   }
 
@@ -734,6 +761,10 @@ export class Game {
 
     let boost = (k.ShiftLeft || k.ShiftRight) && p.boost > 1 && p.speed > 10;
 
+    let gun = k.KeyF || k.ControlLeft || k.ControlRight;
+
+    let rocket = k.KeyR || k.KeyE;
+
     if (pad) {
       gas ||= pad.buttons[7]?.value || pad.buttons[0]?.pressed;
 
@@ -746,11 +777,21 @@ export class Game {
       hand ||= pad.buttons[2]?.pressed;
 
       boost ||= pad.buttons[5]?.pressed && p.boost > 1;
+
+      gun ||= pad.buttons[4]?.pressed;
+
+      rocket ||= pad.buttons[3]?.pressed;
     }
 
-    const max = 12 + p.spec.top * 0.42;
+    const bike = p.spec.kind === "bike";
 
-    const acc = 4 + p.spec.accel * 0.105;
+    const heavy = p.spec.kind === "heavy";
+
+    const monster = p.spec.kind === "monster";
+
+    const max = 12 + p.spec.top * (bike ? 0.46 : monster ? 0.34 : heavy ? 0.32 : 0.42);
+
+    const acc = 4 + p.spec.accel * (bike ? 0.115 : heavy ? 0.078 : 0.105);
 
     const brakeForce = 5 + p.spec.braking * 0.08;
 
@@ -770,37 +811,55 @@ export class Game {
       p.boost = Math.min(100, p.boost + 5.5 * dt);
     }
 
-    p.speed = clamp(p.speed, -max * 0.32, max * (boost ? 1.17 : 1));
+    p.speed = clamp(p.speed, -max * 0.32, max * (boost ? 1.14 : 1));
 
-    const steer = (right ? 1 : 0) - (left ? 1 : 0);
+    const steerTarget = (right ? 1 : 0) - (left ? 1 : 0);
 
-    const bike = p.spec.kind === "bike";
+    p.steerInput = THREE.MathUtils.lerp(
+      p.steerInput || 0,
+      steerTarget,
+      clamp(dt * (steerTarget ? 9.5 : 14), 0, 1),
+    );
 
-    const heavy = p.spec.kind === "heavy";
+    const steer = Math.abs(p.steerInput) < 0.025 ? 0 : p.steerInput;
 
-    const drifting = hand && Math.abs(p.speed) > 11;
+    const drifting = hand && Math.abs(p.speed) > 12 && Math.abs(steer) > 0.08;
 
     const grip =
-      (0.45 + p.spec.handling * 0.009) * (bike ? 1.15 : heavy ? 0.73 : 1);
+      (0.45 + p.spec.handling * 0.009) *
+      (bike ? 1.12 : monster ? 0.62 : heavy ? 0.68 : 1);
+
+    const speedRatio = clamp(Math.abs(p.speed) / Math.max(1, max), 0, 1);
+    const highSpeedStability = THREE.MathUtils.lerp(1, 0.52, speedRatio);
 
     const turn =
       -steer *
       (0.5 + grip) *
       dt *
       (p.speed >= 0 ? 1 : -1) *
-      clamp(Math.abs(p.speed) / 10, 0.15, 1.22) *
-      (drifting ? 1.82 : 1);
+      clamp(Math.abs(p.speed) / 12, 0.08, 1.05) *
+      highSpeedStability *
+      (drifting ? 1.62 : 1);
 
     p.mesh.rotation.y += turn;
 
-    p.mesh.position.x -= Math.sin(p.mesh.rotation.y) * p.speed * dt;
+    const forward = new THREE.Vector3(
+      -Math.sin(p.mesh.rotation.y),
+      0,
+      -Math.cos(p.mesh.rotation.y),
+    );
+    const side = new THREE.Vector3(-forward.z, 0, forward.x);
+    const driftSlip = drifting ? steer * clamp(Math.abs(p.speed) / 38, 0, 1.4) : 0;
 
-    p.mesh.position.z -= Math.cos(p.mesh.rotation.y) * p.speed * dt;
+    p.mesh.position.addScaledVector(forward, p.speed * dt);
+    p.mesh.position.addScaledVector(side, driftSlip * p.speed * dt * 0.42);
 
     const radius = Math.hypot(p.mesh.position.x, p.mesh.position.z);
 
-    if (radius > 210) {
-      p.mesh.position.multiplyScalar(210 / radius);
+    const boundary = this.world.boundaryRadius || 360;
+
+    if (radius > boundary) {
+      p.mesh.position.multiplyScalar(boundary / radius);
 
       p.speed *= -0.35;
 
@@ -811,10 +870,12 @@ export class Game {
 
     p.onRoad = roadDistance < 10.5;
 
-    if (!p.onRoad) {
-      p.speed *= Math.pow(0.93, dt * 18);
+    if (!p.onRoad && !p.spec.offroadImmune) {
+      const penalty = monster ? 0.975 : bike && p.spec.profile === "dirt" ? 0.965 : 0.93;
 
-      if (roadDistance > 24) {
+      p.speed *= Math.pow(penalty, dt * 18);
+
+      if (roadDistance > 44) {
         p.speed *= -0.34;
 
         this.shake = 0.8;
@@ -822,6 +883,8 @@ export class Game {
     }
 
     animateVehicle(p.mesh, p.speed, boost, this.time, -steer, brake, drifting);
+
+    this.handleWeapons(p, gun, rocket, dt);
 
     this.audio.update(p.speed, boost);
 
@@ -855,6 +918,125 @@ export class Game {
 
       this.audio.blip(94, 0.12);
     }
+  }
+
+  handleWeapons(p, gun, rocket, dt) {
+    if (!p.spec.armed) return;
+
+    p.weaponHeat = Math.max(0, (p.weaponHeat || 0) - dt);
+
+    if (rocket && p.weaponHeat <= 0) {
+      this.fireProjectile(p, "rocket");
+      p.weaponHeat = 1.25;
+      return;
+    }
+
+    if (gun && p.weaponHeat <= 0) {
+      this.fireProjectile(p, "bullet");
+      p.weaponHeat = 0.13;
+    }
+  }
+
+  fireProjectile(actor, type) {
+    const dir = new THREE.Vector3(
+      -Math.sin(actor.mesh.rotation.y),
+      0,
+      -Math.cos(actor.mesh.rotation.y),
+    );
+    const start = actor.mesh.position
+      .clone()
+      .addScaledVector(dir, type === "rocket" ? 3.4 : 2.8);
+
+    start.y = type === "rocket" ? 1.35 : 0.9;
+
+    const shot = new THREE.Mesh(
+      this.projectileGeo,
+      type === "rocket" ? this.rocketMat : this.bulletMat,
+    );
+    shot.position.copy(start);
+    shot.scale.setScalar(type === "rocket" ? 1.9 : 0.8);
+    shot.userData.disposeWithActor = true;
+    this.actorGroup?.add(shot);
+
+    this.projectiles.push({
+      mesh: shot,
+      owner: actor,
+      dir,
+      type,
+      speed: type === "rocket" ? 82 : 138,
+      ttl: type === "rocket" ? 2.2 : 0.9,
+      radius: type === "rocket" ? 5.6 : 1.7,
+      damage: type === "rocket" ? 55 : 12,
+    });
+
+    this.audio.blip(type === "rocket" ? 74 : 220, type === "rocket" ? 0.18 : 0.045);
+  }
+
+  updateProjectiles(dt) {
+    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+      const projectile = this.projectiles[i];
+
+      projectile.ttl -= dt;
+      projectile.mesh.position.addScaledVector(projectile.dir, projectile.speed * dt);
+
+      const hit =
+        projectile.ttl <= 0 ||
+        this.hitProjectileActor(projectile) ||
+        this.hitProjectileObstacle(projectile) ||
+        this.world.distanceToRoad(projectile.mesh.position) > 62;
+
+      if (hit) {
+        this.effects?.emit(
+          projectile.mesh.position,
+          projectile.type === "rocket" ? 0xffb45b : 0x9eefff,
+          projectile.type === "rocket" ? 16 : 4,
+          projectile.type === "rocket" ? 7 : 2,
+        );
+
+        projectile.mesh.removeFromParent();
+        this.projectiles.splice(i, 1);
+      }
+    }
+  }
+
+  hitProjectileActor(projectile) {
+    for (const actor of this.actors) {
+      if (actor === projectile.owner || actor.remote) continue;
+
+      const limit = (actor.mesh.userData.radius || 2) + projectile.radius;
+
+      if (actor.mesh.position.distanceTo(projectile.mesh.position) < limit) {
+        actor.health = Math.max(0, actor.health - projectile.damage);
+        actor.speed *= projectile.type === "rocket" ? -0.18 : 0.55;
+
+        const away = actor.mesh.position.clone().sub(projectile.mesh.position);
+        if (away.lengthSq() < 0.01) away.set(1, 0, 0);
+        actor.mesh.position.addScaledVector(away.normalize(), projectile.type === "rocket" ? 5.2 : 1.4);
+
+        if (actor === this.player) {
+          this.shake = projectile.type === "rocket" ? 1.6 : 0.55;
+        }
+
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  hitProjectileObstacle(projectile) {
+    for (const obstacle of this.world.destructibles || []) {
+      if (!obstacle.userData.alive) continue;
+
+      const limit = (obstacle.userData.radius || 2.4) + projectile.radius;
+
+      if (obstacle.position.distanceTo(projectile.mesh.position) < limit) {
+        this.world.destroyDestructible(obstacle, projectile.damage);
+        return true;
+      }
+    }
+
+    return false;
   }
 
   updateAI(a, dt) {
@@ -964,7 +1146,34 @@ export class Game {
 
         p.mesh.position.addScaledVector(away, 0.28);
 
-        p.speed *= p.spec.kind === "heavy" ? 0.98 : 0.88;
+        const canShove = p.spec.kind === "heavy" || p.spec.kind === "monster";
+        a.speed *= canShove ? 0.72 : 0.9;
+        p.speed *= canShove ? 0.98 : 0.88;
+      }
+    }
+
+    for (const obstacle of this.world.destructibles || []) {
+      if (!obstacle.userData.alive) continue;
+
+      const d = p.mesh.position.distanceTo(obstacle.position);
+      const limit = (p.mesh.userData.radius || 2) + (obstacle.userData.radius || 2.4);
+
+      if (d < limit * 0.72) {
+        const smashes = p.spec.canSmash || p.spec.kind === "monster";
+
+        if (smashes) {
+          this.world.destroyDestructible(obstacle, Math.abs(p.speed));
+          p.speed *= 0.92;
+          this.effects?.emit(obstacle.position, 0xffb45b, 12, 6);
+          this.audio.blip(62, 0.14);
+          continue;
+        }
+
+        hit = true;
+        const away = p.mesh.position.clone().sub(obstacle.position);
+        if (away.lengthSq() < 0.1) away.set(1, 0, 0);
+        p.mesh.position.addScaledVector(away.normalize(), 0.65);
+        p.speed *= p.spec.kind === "heavy" ? 0.78 : 0.42;
       }
     }
 
@@ -972,12 +1181,20 @@ export class Game {
   }
 
   checkProgress(p) {
-    const point = this.world.route[p.next];
+    let hit = -1;
 
-    if (p.mesh.position.distanceTo(point) < 13) {
-      const hit = p.next;
+    for (let step = 0; step < Math.min(6, this.world.route.length); step++) {
+      const index = (p.next + step) % this.world.route.length;
+      const point = this.world.route[index];
 
-      p.next = (p.next + 1) % this.world.route.length;
+      if (p.mesh.position.distanceTo(point) < 15.5) {
+        hit = index;
+        break;
+      }
+    }
+
+    if (hit >= 0) {
+      p.next = (hit + 1) % this.world.route.length;
 
       if (hit === 0) {
         p.lap++;
@@ -1235,6 +1452,8 @@ export class Game {
     this.world.update(dt, this.time);
 
     this.effects?.update(dt);
+
+    this.updateProjectiles(dt);
 
     this.updateCamera(dt);
 

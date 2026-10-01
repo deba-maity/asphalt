@@ -151,6 +151,41 @@ function createRibbonGeometry(points, halfWidth, y, uvScale = 14) {
   return geometry;
 }
 
+function createOpenRibbonGeometry(points, halfWidth, y, uvScale = 8) {
+  const positions = [];
+  const uvs = [];
+  const indices = [];
+  const n = points.length;
+
+  for (let i = 0; i < n; i++) {
+    const p = points[i];
+    const t = tangentAt(points, i);
+    const side = new THREE.Vector3(-t.z, 0, t.x);
+    const left = p.clone().addScaledVector(side, halfWidth);
+    const right = p.clone().addScaledVector(side, -halfWidth);
+    const v = (i / Math.max(1, n - 1)) * uvScale;
+
+    positions.push(left.x, y, left.z, right.x, y, right.z);
+    uvs.push(0, v, 1, v);
+  }
+
+  for (let i = 0; i < n - 1; i++) {
+    const k = i * 2;
+    indices.push(k, k + 2, k + 1, k + 1, k + 2, k + 3);
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+
+  return geometry;
+}
+
 function makeCanvasTexture(draw, width = 256, height = 256) {
   const canvas = document.createElement("canvas");
 
@@ -212,6 +247,11 @@ export class World {
     this.route = map.route.map(vec);
 
     this.samples = sampleClosedRoute(this.route, map.id === "neon" ? 10 : 8);
+    this.shortcutRoads = [];
+    this.destructibles = [];
+
+    this.boundaryRadius =
+      Math.max(...this.route.map((p) => Math.hypot(p.x, p.z))) + 86;
 
     this.markers = [];
     this.traffic = [];
@@ -235,7 +275,7 @@ export class World {
           landmarkCap: 6,
           windowCap: 1700,
           streetStride: 2,
-          skylineCount: 42,
+          skylineCount: 62,
           pointLights: 0,
         }
       : {
@@ -243,7 +283,7 @@ export class World {
           landmarkCap: 7,
           windowCap: 3000,
           streetStride: 1,
-          skylineCount: 58,
+          skylineCount: 88,
           pointLights: 4,
         };
 
@@ -484,7 +524,7 @@ export class World {
 
     const ground = mesh(
       this.group,
-      this.trackGeometry(new THREE.PlaneGeometry(650, 650)),
+      this.trackGeometry(new THREE.PlaneGeometry(900, 900)),
       this.material({
         map: groundTexture,
         roughness: 0.96,
@@ -606,7 +646,134 @@ export class World {
       this.buildBridgeRails(this.route[13], this.route[14]);
     }
 
+    this.buildShortcutRoads();
+
     this.addCourseDressing();
+
+    this.addDestructibleRoadTowers();
+  }
+
+  createShortcutPoints(shortcut) {
+    const from = this.route[shortcut.from % this.route.length];
+    const to = this.route[shortcut.to % this.route.length];
+    const mid = from.clone().lerp(to, 0.5);
+    const direct = to.clone().sub(from);
+    const side = new THREE.Vector3(-direct.z, 0, direct.x).normalize();
+    const control = mid.addScaledVector(
+      side,
+      (shortcut.side || 1) * (shortcut.bend || 54),
+    );
+    const points = [];
+
+    for (let i = 0; i <= 18; i++) {
+      const t = i / 18;
+      const a = from.clone().lerp(control, t);
+      const b = control.clone().lerp(to, t);
+      points.push(a.lerp(b, t));
+    }
+
+    return points;
+  }
+
+  buildShortcutRoads() {
+    const shortcuts = this.map.shortcuts || [];
+
+    if (!shortcuts.length) return;
+
+    const deckMat = this.material({
+      color: 0x1e252d,
+      roughness: 0.52,
+      metalness: 0.22,
+    });
+
+    const railMat = this.material({
+      color: 0x404950,
+      roughness: 0.64,
+      metalness: 0.46,
+    });
+
+    const glowMat = this.basic({
+      color: this.map.accent,
+      transparent: true,
+      opacity: 0.66,
+    });
+
+    for (const shortcut of shortcuts) {
+      const points = this.createShortcutPoints(shortcut);
+      this.shortcutRoads.push({
+        from: shortcut.from,
+        to: shortcut.to,
+        points,
+        label: shortcut.label,
+      });
+
+      const road = new THREE.Mesh(
+        this.trackGeometry(createOpenRibbonGeometry(points, 8.2, 0.095, 8)),
+        this.roadMat,
+      );
+      road.receiveShadow = true;
+      road.userData.worldOwned = true;
+      this.group.add(road);
+
+      const edges = [
+        this.createContinuousLine(points, -7.65, 0.05, 0.18),
+        this.createContinuousLine(points, 7.65, 0.05, 0.18),
+      ];
+      edges.forEach((edge) => {
+        edge.material = glowMat;
+        edge.userData.worldOwned = true;
+        this.group.add(edge);
+      });
+
+      for (let i = 3; i < points.length - 3; i += 5) {
+        const p = points[i];
+        const t = tangentAt(points, i);
+        const yaw = Math.atan2(t.x, t.z);
+        const side = new THREE.Vector3(-t.z, 0, t.x);
+
+        for (const sign of [-1, 1]) {
+          const rail = p.clone().addScaledVector(side, sign * 8.6);
+          mesh(
+            this.group,
+            box,
+            railMat,
+            [rail.x, shortcut.elevated ? 2.35 : 0.62, rail.z],
+            [0.28, shortcut.elevated ? 4.1 : 1.24, 1.3],
+            [0, yaw, 0],
+          );
+        }
+      }
+
+      if (shortcut.elevated) {
+        const mid = points[Math.floor(points.length / 2)];
+        const yaw = Math.atan2(
+          points.at(-1).x - points[0].x,
+          points.at(-1).z - points[0].z,
+        );
+        const len = points[0].distanceTo(points.at(-1));
+
+        mesh(
+          this.group,
+          box,
+          deckMat,
+          [mid.x, 5.8, mid.z],
+          [len * 0.72, 0.54, 10.2],
+          [0, yaw + Math.PI / 2, 0],
+        );
+
+        for (const step of [0.32, 0.5, 0.68]) {
+          const p = points[Math.floor(step * (points.length - 1))];
+          mesh(
+            this.group,
+            box,
+            deckMat,
+            [p.x, 2.75, p.z],
+            [1.4, 5.5, 1.4],
+            [0, yaw, 0],
+          );
+        }
+      }
+    }
   }
 
   createSignTexture(title, subtitle, accent = this.map.accent) {
@@ -778,6 +945,63 @@ export class World {
 
     this.installInstance("courseChevrons", box, warning, chevrons);
     this.installInstance("courseChevronSupports", box, dark, supports);
+  }
+
+  addDestructibleRoadTowers() {
+    const obstacleMat = this.material({
+      color: this.map.id === "dock" ? 0x7f4d35 : 0x3f4851,
+      roughness: 0.72,
+      metalness: 0.24,
+    });
+
+    const stripeMat = this.basic({
+      color: this.map.id === "mesa" ? 0xffd05a : 0xff465f,
+      transparent: true,
+      opacity: 0.9,
+    });
+
+    const count = Math.min(this.lowPower ? 5 : 9, this.route.length - 3);
+
+    for (let n = 0; n < count; n++) {
+      const i = 2 + ((n * 3) % (this.route.length - 3));
+      const p = this.route[i];
+      const t = tangentAt(this.route, i);
+      const side = new THREE.Vector3(-t.z, 0, t.x);
+      const lane = n % 3 === 0 ? 0 : n % 2 ? -3.2 : 3.2;
+      const pos = p.clone().addScaledVector(side, lane);
+      const yaw = Math.atan2(t.x, t.z);
+      const height = n % 2 ? 4.2 : 3.1;
+
+      const tower = new THREE.Group();
+      tower.position.set(pos.x, 0, pos.z);
+      tower.rotation.y = yaw;
+      tower.userData.worldOwned = true;
+      tower.userData.destructible = true;
+      tower.userData.radius = 2.5;
+      tower.userData.alive = true;
+
+      mesh(tower, box, obstacleMat, [0, height / 2, 0], [2.1, height, 2.1]);
+      mesh(tower, box, stripeMat, [0, height * 0.62, -1.08], [2.25, 0.18, 0.08]);
+      mesh(tower, box, stripeMat, [0, height * 0.3, -1.08], [2.25, 0.18, 0.08]);
+
+      this.group.add(tower);
+      this.destructibles.push(tower);
+    }
+  }
+
+  destroyDestructible(target, force = 1) {
+    if (!target?.userData?.alive) return false;
+
+    target.userData.alive = false;
+    target.visible = false;
+    target.position.y = -20;
+
+    for (const child of target.children) {
+      child.visible = false;
+    }
+
+    void force;
+    return true;
   }
 
   addRoadMarkings(points) {
@@ -4234,6 +4458,17 @@ export class World {
       );
     }
 
+    for (const shortcut of this.shortcutRoads) {
+      const points = shortcut.points;
+
+      for (let i = 0; i < points.length - 1; i++) {
+        nearest = Math.min(
+          nearest,
+          distSegment(position.x, position.z, points[i], points[i + 1]),
+        );
+      }
+    }
+
     return nearest;
   }
 
@@ -4329,6 +4564,7 @@ export class World {
 
     this.markers.length = 0;
     this.traffic.length = 0;
+    this.destructibles.length = 0;
     this.cityLights.length = 0;
   }
 }
