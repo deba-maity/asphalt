@@ -93,6 +93,47 @@ function sampleSmoothClosedRoute(route, count) {
   return points.map((point) => new THREE.Vector3(point.x, 0, point.z));
 }
 
+function catmullPoint(p0, p1, p2, p3, t) {
+  const t2 = t * t;
+  const t3 = t2 * t;
+
+  return new THREE.Vector3(
+    0.5 *
+      ((2 * p1.x) +
+        (-p0.x + p2.x) * t +
+        (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+        (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+    0,
+    0.5 *
+      ((2 * p1.z) +
+        (-p0.z + p2.z) * t +
+        (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) * t2 +
+        (-p0.z + 3 * p1.z - 3 * p2.z + p3.z) * t3),
+  );
+}
+
+function sampleHybridClosedRoute(route, subdivisions, straightSegments = []) {
+  const result = [];
+  const straight = new Set(straightSegments);
+  const n = route.length;
+
+  for (let i = 0; i < n; i++) {
+    const p0 = route[(i - 1 + n) % n];
+    const p1 = route[i];
+    const p2 = route[(i + 1) % n];
+    const p3 = route[(i + 2) % n];
+
+    for (let s = 0; s < subdivisions; s++) {
+      const t = s / subdivisions;
+      result.push(
+        straight.has(i) ? p1.clone().lerp(p2, t) : catmullPoint(p0, p1, p2, p3, t),
+      );
+    }
+  }
+
+  return result;
+}
+
 function createRibbonGeometry(points, halfWidth, y, uvScale = 14) {
   const positions = [];
   const uvs = [];
@@ -254,16 +295,16 @@ export class World {
 
     this.controlRoute = map.route.map(vec);
 
-    const checkpointCount = Math.max(
-      this.controlRoute.length + 8,
-      Math.round(this.controlRoute.length * 1.5),
+    this.route = sampleHybridClosedRoute(
+      this.controlRoute,
+      2,
+      map.straightSegments || [],
     );
 
-    this.route = sampleSmoothClosedRoute(this.controlRoute, checkpointCount);
-
-    this.samples = sampleSmoothClosedRoute(
+    this.samples = sampleHybridClosedRoute(
       this.controlRoute,
-      this.controlRoute.length * (map.id === "neon" ? 22 : 18),
+      map.id === "neon" ? 22 : 18,
+      map.straightSegments || [],
     );
     this.shortcutRoads = [];
     this.destructibles = [];
@@ -580,15 +621,11 @@ export class World {
         ctx.fillRect(0, 0, w, h);
 
         if (isNeon) {
-          const r = seeded(91);
-
-          for (let i = 0; i < 110; i++) {
-            ctx.fillStyle = `rgba(210,240,255,${0.16 + r() * 0.6})`;
-
-            const s = 0.35 + r() * 1.1;
-
-            ctx.fillRect(r() * w, r() * h * 0.58, s, s);
-          }
+          const glow = ctx.createRadialGradient(w * 0.5, h * 0.78, 20, w * 0.5, h * 0.78, w * 0.55);
+          glow.addColorStop(0, "rgba(76,145,190,.16)");
+          glow.addColorStop(1, "rgba(76,145,190,0)");
+          ctx.fillStyle = glow;
+          ctx.fillRect(0, 0, w, h);
         }
       },
       1024,
@@ -1111,8 +1148,8 @@ export class World {
       const p = this.route[i];
       const t = tangentAt(this.route, i);
       const side = new THREE.Vector3(-t.z, 0, t.x);
-      const lane = n % 3 === 0 ? 0 : n % 2 ? -3.2 : 3.2;
-      const pos = p.clone().addScaledVector(side, lane);
+      const roadside = n % 2 ? -16.6 : 16.6;
+      const pos = p.clone().addScaledVector(side, roadside);
       const yaw = Math.atan2(t.x, t.z);
       const style = n % 3;
 
@@ -1130,12 +1167,11 @@ export class World {
         mesh(barrier, box, stripeMat, [-1.55, 1.16, -0.27], [1.25, 0.12, 0.06], [0, 0, 0.42]);
         mesh(barrier, box, stripeMat, [1.55, 1.16, -0.27], [1.25, 0.12, 0.06], [0, 0, -0.42]);
       } else if (style === 1) {
-        mesh(barrier, box, metalMat, [0, 1.0, 0], [4.8, 0.18, 0.16]);
-        mesh(barrier, box, metalMat, [0, 1.55, 0], [4.8, 0.14, 0.12]);
-        for (const x of [-2, -0.7, 0.7, 2]) {
-          mesh(barrier, poleGeo, metalMat, [x, 0.75, 0], [0.75, 1.5, 0.75]);
-        }
-        mesh(barrier, box, stripeMat, [0, 1.95, -0.08], [3.2, 0.28, 0.05]);
+        mesh(barrier, box, metalMat, [0, 4.1, 0], [0.38, 8.2, 0.38]);
+        mesh(barrier, box, metalMat, [0, 7.95, 0], [3.7, 0.14, 0.14]);
+        mesh(barrier, box, metalMat, [-1.35, 5.95, 0], [0.12, 4.0, 0.12], [0, 0, 0.34]);
+        mesh(barrier, box, metalMat, [1.35, 5.95, 0], [0.12, 4.0, 0.12], [0, 0, -0.34]);
+        mesh(barrier, box, stripeMat, [0, 2.0, -0.24], [1.4, 0.2, 0.05]);
       } else {
         for (const x of [-1.6, 0, 1.6]) {
           mesh(barrier, lowCylinderGeo, plasticMat, [x, 0.72, 0], [0.52, 1.44, 0.52]);
@@ -1143,6 +1179,13 @@ export class World {
           mesh(barrier, box, stripeMat, [x, 0.46, -0.48], [0.76, 0.12, 0.05]);
         }
         mesh(barrier, box, metalMat, [0, 1.58, 0], [4.6, 0.12, 0.12]);
+      }
+
+      if (style === 1) {
+        for (const x of [-2.1, 2.1]) {
+          mesh(barrier, lowCylinderGeo, plasticMat, [x, 0.48, 0.45], [0.28, 0.96, 0.28]);
+          mesh(barrier, box, stripeMat, [x, 0.9, 0.2], [0.5, 0.09, 0.05]);
+        }
       }
 
       this.group.add(barrier);

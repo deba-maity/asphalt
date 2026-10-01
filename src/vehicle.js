@@ -7,6 +7,7 @@ const geo = {
   disc: new THREE.CylinderGeometry(0.74, 0.74, 0.05, 18),
   torus: new THREE.TorusGeometry(1, 0.075, 8, 22),
   flame: new THREE.ConeGeometry(0.18, 0.72, 10),
+  sphere: new THREE.SphereGeometry(1, 16, 10),
 };
 
 const shared = {
@@ -356,7 +357,9 @@ function buildBike(root, spec, paint, data, police) {
   const rearZ = wheelBase * 0.48;
 
   part(frame, geo.box, paint, [0, 0.36, -0.28], [0.74, 0.38, 0.86], [-0.12, 0, 0]);
+  part(frame, geo.sphere, paint, [0, 0.43, -0.34], [0.48, 0.25, 0.62], [-0.18, 0, 0]);
   part(frame, geo.box, paint, [0, 0.46, -0.72], [0.52, 0.28, 0.58], [-0.3, 0, 0]);
+  part(frame, geo.sphere, shared.carbon, [0, 0.18, 0.02], [0.34, 0.3, 0.34]);
   part(frame, geo.box, shared.carbon, [0, 0.26, 0.36], [0.58, 0.18, 0.95], [0.08, 0, 0]);
   part(frame, geo.box, shared.rubber, [0, 0.55, 0.42], [0.56, 0.14, 0.9], [-0.08, 0, 0]);
   part(frame, geo.box, shared.carbon, [0, 0.08, -0.02], [0.16, 0.16, wheelBase * 0.8], [
@@ -396,7 +399,17 @@ function buildBike(root, spec, paint, data, police) {
     0,
     0,
   ]);
+  part(frame, geo.sphere, paint, [0, 0.21, rearZ - 0.15], [0.42, 0.08, 0.58], [
+    0.18,
+    0,
+    0,
+  ]);
   part(frame, geo.box, paint, [0, 0.18, frontZ + 0.06], [0.5, 0.09, 0.62], [
+    -0.18,
+    0,
+    0,
+  ]);
+  part(frame, geo.sphere, paint, [0, 0.2, frontZ + 0.08], [0.38, 0.07, 0.48], [
     -0.18,
     0,
     0,
@@ -451,12 +464,22 @@ function createBikeWheel(parent, x, z, r, data, front) {
   parent.add(pivot);
   const spin = new THREE.Group();
   pivot.add(spin);
-  part(spin, geo.tire, shared.tire, [0, 0, 0], [r, 0.16, r], [0, 0, Math.PI / 2]);
+  part(spin, geo.torus, shared.tire, [0, 0, 0], [r, r, 1.25], [0, Math.PI / 2, 0]);
   part(spin, geo.rim, shared.rim, [0, 0, 0], [r * 0.62, 0.18, r * 0.62], [
     0,
     0,
     Math.PI / 2,
   ]);
+  for (let i = 0; i < 5; i++) {
+    part(
+      spin,
+      geo.box,
+      shared.chrome,
+      [0, 0, 0],
+      [r * 1.06, 0.035, 0.035],
+      [0, 0, (i * Math.PI) / 5],
+    );
+  }
   data.wheels.push({ pivot, spin, front });
   return pivot;
 }

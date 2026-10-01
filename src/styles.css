@@ -169,6 +169,44 @@
   box-shadow: none;
 }
 
+.map-selector-head {
+  padding: 12px 14px;
+  background: linear-gradient(90deg, rgba(10, 18, 30, .72), rgba(22, 14, 32, .42));
+  border-left: 3px solid var(--cyan);
+}
+
+.map-selector-head p {
+  max-width: 680px;
+  color: #b7c9d9;
+}
+
+.map-facts {
+  align-items: stretch;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.map-facts b,
+.map-facts span {
+  display: inline-grid;
+  place-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid rgba(132, 218, 255, .16);
+  background: rgba(7, 14, 24, .7);
+  color: #dff7ff;
+}
+
+.map-card.selected .map-facts b,
+.map-card.selected .map-facts span {
+  border-color: color-mix(in srgb, var(--map-a) 58%, white 10%);
+  box-shadow: inset 0 0 16px color-mix(in srgb, var(--map-a) 12%, transparent);
+}
+
+.map-card-copy h2 {
+  text-shadow: 0 10px 24px rgba(0, 0, 0, .65);
+}
+
 @media(max-width:850px) {
   .readouts {
     right: 12px;

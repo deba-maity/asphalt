@@ -726,9 +726,12 @@ export class Game {
     } else {
       a.mesh.position.copy(this.world.route[0]);
 
+      const lane = [-5.8, 5.8, -2.8, 2.8, 0][i % 5];
+      const row = Math.floor(i / 2);
+
       a.mesh.position
-        .addScaledVector(forward, -8 - i * 4)
-        .addScaledVector(side, (i - 1) * 3.2);
+        .addScaledVector(forward, -30 - row * 16 - i * 5)
+        .addScaledVector(side, lane);
     }
 
     this.alignActorToRoad(a);

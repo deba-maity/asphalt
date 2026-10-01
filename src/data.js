@@ -33,6 +33,7 @@ export const maps = [
       [-174, -142],
       [-96, -236],
     ],
+    straightSegments: [0, 1, 8, 9, 17],
     shortcuts: [
       { from: 2, to: 6, side: -1, bend: 64, elevated: true, label: "SKY CUT" },
       { from: 10, to: 13, side: 1, bend: 72, elevated: false, label: "SERVICE CUT" },
@@ -333,6 +334,7 @@ export const maps = [
       [-64, -112],
       [-178, -132],
     ],
+    straightSegments: [0, 1, 5, 8, 14],
     shortcuts: [
       { from: 1, to: 5, side: 1, bend: 86, elevated: true, label: "COAST BRIDGE" },
       { from: 9, to: 12, side: -1, bend: 66, elevated: false, label: "BEACH CUT" },
@@ -367,6 +369,7 @@ export const maps = [
       [38, 42],
       [-72, 118],
     ],
+    straightSegments: [0, 5, 8, 12, 15],
     shortcuts: [
       { from: 2, to: 5, side: -1, bend: 70, elevated: true, label: "GANTRY" },
       { from: 11, to: 15, side: 1, bend: 92, elevated: false, label: "CONTAINER CUT" },
@@ -401,6 +404,7 @@ export const maps = [
       [-126, 112],
       [-232, 38],
     ],
+    straightSegments: [0, 3, 4, 8, 13],
     shortcuts: [
       { from: 2, to: 5, side: 1, bend: 76, elevated: true, label: "CANYON JUMP" },
       { from: 8, to: 12, side: -1, bend: 96, elevated: false, label: "DRY WASH" },
