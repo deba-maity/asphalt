@@ -9,6 +9,16 @@ const lowCylinderGeo = new THREE.CylinderGeometry(1, 1, 1, 10);
 const discGeo = new THREE.CylinderGeometry(1, 1, 0.06, 16);
 const sphereGeo = new THREE.SphereGeometry(1, 10, 8);
 const coneGeo = new THREE.ConeGeometry(1, 1, 8);
+const routeArrowGeo = new THREE.BufferGeometry();
+routeArrowGeo.setAttribute(
+  "position",
+  new THREE.Float32BufferAttribute(
+    [-0.9, 0, -1.25, 0.9, 0, -1.25, 0, 0, 1.35],
+    3,
+  ),
+);
+routeArrowGeo.setIndex([0, 1, 2]);
+routeArrowGeo.computeVertexNormals();
 const vec = (p) => new THREE.Vector3(p[0], 0, p[1]);
 
 const seeded = (n) => {
@@ -345,12 +355,12 @@ export class World {
           pointLights: 0,
         }
       : {
-          buildingCap: map.environment?.maxBuildingsDesktop ?? 68,
+          buildingCap: Math.min(map.environment?.maxBuildingsDesktop ?? 60, 60),
           landmarkCap: 7,
-          windowCap: 3000,
+          windowCap: 2200,
           streetStride: 1,
-          skylineCount: 88,
-          pointLights: 4,
+          skylineCount: 64,
+          pointLights: 2,
         };
 
     this.build();
@@ -693,6 +703,8 @@ export class World {
     g.add(sidewalk);
 
     this.addRoadMarkings(points);
+
+    this.addRouteGuidanceArrows(points);
 
     this.addRoadSurfaceDetails();
 
@@ -1229,6 +1241,36 @@ export class World {
 
     void force;
     return true;
+  }
+
+  addRouteGuidanceArrows(points) {
+    const matrices = [];
+    const q = new THREE.Quaternion();
+    const matrix = new THREE.Matrix4();
+    const yAxis = new THREE.Vector3(0, 1, 0);
+    const step = this.lowPower ? 18 : 12;
+    const material = this.basic({
+      color: this.map.accent,
+      transparent: true,
+      opacity: this.lowPower ? 0.42 : 0.55,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+
+    for (let i = 3; i < points.length; i += step) {
+      const p = points[i];
+      const t = tangentAt(points, i);
+      const yaw = Math.atan2(t.x, t.z);
+
+      matrix.compose(
+        new THREE.Vector3(p.x, this.roadSurfaceY + 0.13, p.z),
+        q.setFromAxisAngle(yAxis, yaw),
+        new THREE.Vector3(2.35, 1, 3.25),
+      );
+      matrices.push(matrix.clone());
+    }
+
+    this.installInstance("routeGuidanceArrows", routeArrowGeo, material, matrices);
   }
 
   addRoadMarkings(points) {
@@ -4350,28 +4392,28 @@ export class World {
     if (m.id === "coast") {
       mesh(
         g,
-        new THREE.PlaneGeometry(620, 320),
+        new THREE.PlaneGeometry(1160, 440),
         this.material({
           color: 0x0b586d,
           roughness: 0.28,
           metalness: 0.48,
         }),
-        [0, -0.24, 225],
+        [0, -0.24, 220],
         [1, 1, 1],
         [-Math.PI / 2, 0, 0],
       );
 
       mesh(
         g,
-        new THREE.PlaneGeometry(620, 54),
+        new THREE.PlaneGeometry(1120, 66),
         regionalMats.sand,
-        [0, -0.19, 78],
+        [0, -0.19, 84],
         [1, 1, 1],
         [-Math.PI / 2, 0, 0],
       );
 
       for (let i = 0; i < 22; i++) {
-        const x = -220 + r() * 440;
+        const x = -500 + r() * 1000;
 
         const z = 100 + r() * 230;
 
@@ -4425,10 +4467,10 @@ export class World {
       this.addMesaSetPieces(regionalMats, r);
     }
 
-    for (let i = 0; i < 58; i++) {
+    for (let i = 0; i < (this.lowPower ? 44 : 64); i++) {
       const angle = r() * TAU;
 
-      const radius = 28 + r() * 180;
+      const radius = 90 + r() * 390;
 
       const x = Math.cos(angle) * radius;
 

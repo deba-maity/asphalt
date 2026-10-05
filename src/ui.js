@@ -181,7 +181,7 @@ export class UI {
   showSettings() { this.game.clearPreview(); const levels = ['easy', 'medium', 'hard'].map(d => `<button class="${this.difficulty === d ? 'active' : ''}" data-action="difficulty" data-id="${d}">${d.toUpperCase()}</button>`).join(''); this.shell('SETTINGS', 'Tune the night', `<div class="settings"><label>RENDER QUALITY <select><option>HIGH — BLOOM ENABLED</option><option>PERFORMANCE</option></select></label><label>AI DIFFICULTY <span class="difficulty-row">${levels}</span></label><label>CONTROL SCHEME <select><option>WASD / ARROW KEYS</option><option>GAMEPAD (AUTO-DETECT)</option></select></label><p>WASD / ARROWS to steer · SPACE handbrake · SHIFT nitro · F gun · R rocket · ESC pause</p></div>`); }
   showCountdown(value) { const node = this.root.querySelector('#countdown'); node.textContent = value; node.classList.toggle('visible', !!value); node.classList.toggle('go', value === 'GO!'); }
   setRunning(running) { if (!running) this.hud.hidden = true; }
-  updateHUD(s) { if (this.hud.hidden) return; const pursuit = ['escape', 'versus', 'friend'].includes(this.mode.id); this.root.querySelector('#speed').textContent = String(s.speed).padStart(3, '0'); this.root.querySelector('#nitro').style.width = `${s.boost}%`; this.root.querySelector('#nitro-text').textContent = Math.round(s.boost); this.root.querySelector('#health').style.width = `${s.health}%`; this.root.querySelector('#health-text').textContent = Math.round(s.health); this.root.querySelector('#timer').textContent = time(s.time); this.root.querySelector('#position').textContent = this.mode.id === 'race' ? `${s.rank} / ${s.actors.filter(a => !a.police).length} • LAP ${Math.min(s.lap, 3)} / 3` : pursuit ? 'ESCAPE RUN' : 'TIME TRIAL'; this.root.querySelector('#checkpoint').textContent = `CHECKPOINT ${s.next} / ${s.total}`; this.root.querySelector('#objective').textContent = pursuit ? 'OUTRUN THE PURSUIT' : 'RACE // HOLD THE LINE'; this.root.querySelector('#wanted').innerHTML = s.wanted ? `<small>HEAT</small>${'<i>◆</i>'.repeat(s.wanted)}` : ''; const routeProgress = this.root.querySelector('#route-progress'); if (routeProgress) routeProgress.style.width = `${Math.max(3, Math.min(100, ((s.next - 1) / Math.max(1, s.total - 1)) * 100))}%`; this.drawMap(s); }
+  updateHUD(s) { if (this.hud.hidden) return; const pursuit = ['escape', 'versus', 'friend'].includes(this.mode.id); this.root.querySelector('#speed').textContent = String(s.speed).padStart(3, '0'); this.root.querySelector('#nitro').style.width = `${s.boost}%`; this.root.querySelector('#nitro-text').textContent = Math.round(s.boost); this.root.querySelector('#health').style.width = `${s.health}%`; this.root.querySelector('#health-text').textContent = Math.round(s.health); this.root.querySelector('#timer').textContent = time(s.time); this.root.querySelector('#position').textContent = this.mode.id === 'race' ? `${s.rank} / ${s.actors.filter(a => !a.police).length} • LAP ${Math.min(s.lap, 3)} / 3` : pursuit ? 'ESCAPE RUN' : 'TIME TRIAL'; this.root.querySelector('#checkpoint').textContent = `CHECKPOINT ${s.next} / ${s.total}`; this.root.querySelector('#drive-state').textContent = s.cue?.label || 'HOLD THE LINE'; this.root.querySelector('#drive-detail').textContent = s.cue?.detail || `CHECKPOINT ${s.next} / ${s.total}`; this.root.querySelector('#objective').textContent = pursuit ? 'OUTRUN THE PURSUIT' : 'RACE // HOLD THE LINE'; this.root.querySelector('#wanted').innerHTML = s.wanted ? `<small>HEAT</small>${'<i>◆</i>'.repeat(s.wanted)}` : ''; const routeProgress = this.root.querySelector('#route-progress'); if (routeProgress) routeProgress.style.width = `${Math.max(3, Math.min(100, ((s.next - 1) / Math.max(1, s.total - 1)) * 100))}%`; this.drawMap(s); }
   drawMap(s) {
     const c = this.mini, ctx = c.getContext('2d'), route = s.map.route, w = c.width, h = c.height;
     ctx.clearRect(0, 0, w, h);
@@ -222,6 +222,20 @@ export class UI {
         ctx.stroke();
       }
     });
+    if (route[s.targetIndex]) {
+      const [tx, ty] = point(route[s.targetIndex]);
+      const px = ox + s.player.mesh.position.x * scale, py = oy + s.player.mesh.position.z * scale;
+      ctx.strokeStyle = '#ffffff';
+      ctx.globalAlpha = .42;
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(tx, ty);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+    }
     for (const a of s.actors) {
       const x = ox + a.mesh.position.x * scale, y = oy + a.mesh.position.z * scale;
       ctx.fillStyle = a === s.player ? '#fff' : a.police ? '#ff4861' : '#8898ae';

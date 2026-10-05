@@ -56,15 +56,19 @@ export class Game {
     this.weaponCooldown = 0;
 
     this.lowPower = LOW_POWER_DEVICE;
+    this.renderScale = this.lowPower ? 0.82 : 1.0;
+    this.minRenderScale = this.lowPower ? 0.62 : 0.78;
+    this.maxRenderScale = this.lowPower ? 0.9 : 1.0;
+    this.frameCost = 1 / 60;
+    this.qualityTimer = 0;
+    this.shadowMapsEnabled = !this.lowPower;
 
     this.renderer = new THREE.WebGLRenderer({
       antialias: false,
       powerPreference: this.lowPower ? "low-power" : "high-performance",
     });
 
-    this.renderer.setPixelRatio(
-      Math.min(devicePixelRatio, this.lowPower ? 0.9 : 1.28),
-    );
+    this.applyRenderScale();
 
     this.renderer.setSize(innerWidth, innerHeight);
 
@@ -72,7 +76,7 @@ export class Game {
 
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    this.renderer.shadowMap.enabled = !this.lowPower;
+    this.renderer.shadowMap.enabled = this.shadowMapsEnabled;
 
     this.renderer.shadowMap.type = this.lowPower
       ? THREE.BasicShadowMap
@@ -106,6 +110,8 @@ export class Game {
       this.camera.aspect = innerWidth / innerHeight;
 
       this.camera.updateProjectionMatrix();
+
+      this.applyRenderScale();
 
       this.renderer.setSize(innerWidth, innerHeight);
 
@@ -648,6 +654,55 @@ export class Game {
       steerInput: 0,
       weaponHeat: 0,
     };
+  }
+
+  applyRenderScale() {
+    if (!this.renderer) return;
+
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, this.renderScale));
+    this.composer?.setSize(innerWidth, innerHeight);
+  }
+
+  updateAdaptiveQuality(dt) {
+    this.frameCost = THREE.MathUtils.lerp(this.frameCost || dt, dt, 0.045);
+
+    if (this.phase !== "play") return;
+
+    this.qualityTimer += dt;
+
+    const sustainedLimit =
+      this.elapsed > 38 ? (this.lowPower ? 0.72 : 0.92) : this.maxRenderScale;
+
+    if (this.renderScale > sustainedLimit) {
+      this.renderScale = Math.max(sustainedLimit, this.renderScale - 0.015);
+      this.applyRenderScale();
+      return;
+    }
+
+    if (this.qualityTimer < 2.2) return;
+
+    this.qualityTimer = 0;
+
+    if (this.frameCost > 0.023 && this.renderScale > this.minRenderScale) {
+      this.renderScale = Math.max(this.minRenderScale, this.renderScale - 0.06);
+      this.applyRenderScale();
+    } else if (
+      this.frameCost < 0.0168 &&
+      this.elapsed < 32 &&
+      this.renderScale < this.maxRenderScale
+    ) {
+      this.renderScale = Math.min(this.maxRenderScale, this.renderScale + 0.03);
+      this.applyRenderScale();
+    }
+  }
+
+  syncPerformanceMode() {
+    const wantsShadowMaps = !this.lowPower && this.phase !== "play";
+
+    if (this.shadowMapsEnabled === wantsShadowMaps) return;
+
+    this.shadowMapsEnabled = wantsShadowMaps;
+    this.renderer.shadowMap.enabled = wantsShadowMaps;
   }
 
   async initPostprocessing() {
@@ -1423,7 +1478,9 @@ export class Game {
   }
 
   renderScene() {
-    if (this.composer) {
+    this.syncPerformanceMode();
+
+    if (this.composer && this.phase !== "play") {
       this.composer.render();
     } else {
       this.renderer.render(this.scene, this.camera);
@@ -1438,6 +1495,7 @@ export class Game {
     requestAnimationFrame(() => this.frame());
 
     const dt = Math.min(this.clock.getDelta(), 0.05);
+    this.updateAdaptiveQuality(dt);
 
     if (this.paused) {
       this.renderScene();
@@ -1580,6 +1638,37 @@ export class Game {
     this.camera.updateProjectionMatrix();
   }
 
+  routeCue() {
+    const p = this.player;
+    const route = this.world.route;
+    const n = route.length;
+    const index = p.next % n;
+    const prev = route[(index - 1 + n) % n];
+    const here = route[index];
+    const next = route[(index + 1) % n];
+    const incoming = here.clone().sub(prev).normalize();
+    const outgoing = next.clone().sub(here).normalize();
+    const cross = incoming.x * outgoing.z - incoming.z * outgoing.x;
+    const dot = clamp(incoming.dot(outgoing), -1, 1);
+    const angle = Math.acos(dot);
+    const distance = Math.max(0, Math.round(p.mesh.position.distanceTo(here)));
+
+    let label = "KEEP STRAIGHT";
+
+    if (angle > 2.25) {
+      label = cross > 0 ? "HAIRPIN LEFT" : "HAIRPIN RIGHT";
+    } else if (angle > 0.86) {
+      label = cross > 0 ? "TURN LEFT" : "TURN RIGHT";
+    } else if (angle > 0.34) {
+      label = cross > 0 ? "EASY LEFT" : "EASY RIGHT";
+    }
+
+    return {
+      label,
+      detail: `${distance}M TO CHECKPOINT ${index || n}`,
+    };
+  }
+
   hudState() {
     const p = this.player;
 
@@ -1619,6 +1708,8 @@ export class Game {
           ? this.heat
           : Math.max(1, Math.ceil((100 - p.health) / 20) + 1)
         : 0,
+
+      cue: this.routeCue(),
 
       rank,
 
