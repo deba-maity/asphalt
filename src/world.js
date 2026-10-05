@@ -153,7 +153,10 @@ function createRibbonGeometry(points, halfWidth, y, uvScale = 14) {
 
     const v = (i / Math.max(1, n - 1)) * uvScale;
 
-    positions.push(left.x, y, left.z, right.x, y, right.z);
+    const py =
+      typeof y === "function" ? y(i, n) : Array.isArray(y) ? y[i] : y;
+
+    positions.push(left.x, py, left.z, right.x, py, right.z);
 
     uvs.push(0, v, 1, v);
   }
@@ -214,7 +217,10 @@ function createOpenRibbonGeometry(points, halfWidth, y, uvScale = 8) {
     const right = p.clone().addScaledVector(side, -halfWidth);
     const v = (i / Math.max(1, n - 1)) * uvScale;
 
-    positions.push(left.x, y, left.z, right.x, y, right.z);
+    const py =
+      typeof y === "function" ? y(i, n) : Array.isArray(y) ? y[i] : y;
+
+    positions.push(left.x, py, left.z, right.x, py, right.z);
     uvs.push(0, v, 1, v);
   }
 
@@ -702,6 +708,8 @@ export class World {
       this.buildBridgeRails(this.route[13], this.route[14]);
     }
 
+    this.buildMapSetPieces();
+
     this.buildShortcutRoads();
 
     this.addCourseDressing();
@@ -759,15 +767,27 @@ export class World {
 
     for (const shortcut of shortcuts) {
       const points = this.createShortcutPoints(shortcut);
+      const elevated = Boolean(shortcut.elevated);
+      const heightProfile = points.map((_, i) => {
+        if (!elevated) return this.roadSurfaceY + 0.043;
+
+        const t = i / Math.max(1, points.length - 1);
+        const ramp = Math.sin(Math.PI * t);
+
+        return this.roadSurfaceY + 0.08 + Math.pow(Math.max(0, ramp), 0.62) * 5.75;
+      });
+
       this.shortcutRoads.push({
         from: shortcut.from,
         to: shortcut.to,
         points,
+        elevated,
+        heightProfile,
         label: shortcut.label,
       });
 
       const road = new THREE.Mesh(
-        this.trackGeometry(createOpenRibbonGeometry(points, 8.2, 0.095, 8)),
+        this.trackGeometry(createOpenRibbonGeometry(points, 8.2, heightProfile, 8)),
         this.roadMat,
       );
       road.receiveShadow = true;
@@ -775,8 +795,8 @@ export class World {
       this.group.add(road);
 
       const edges = [
-        this.createContinuousLine(points, -7.65, 0.05, 0.18),
-        this.createContinuousLine(points, 7.65, 0.05, 0.18),
+        this.createContinuousLine(points, -7.65, 0.05, heightProfile.map((h) => h + 0.085)),
+        this.createContinuousLine(points, 7.65, 0.05, heightProfile.map((h) => h + 0.085)),
       ];
       edges.forEach((edge) => {
         edge.material = glowMat;
@@ -792,18 +812,19 @@ export class World {
 
         for (const sign of [-1, 1]) {
           const rail = p.clone().addScaledVector(side, sign * 8.6);
+          const h = heightProfile[i];
           mesh(
             this.group,
             box,
             railMat,
-            [rail.x, shortcut.elevated ? 2.35 : 0.62, rail.z],
-            [0.28, shortcut.elevated ? 4.1 : 1.24, 1.3],
+            [rail.x, h + 0.72, rail.z],
+            [0.28, elevated ? 1.42 : 1.24, 1.3],
             [0, yaw, 0],
           );
         }
       }
 
-      if (shortcut.elevated) {
+      if (elevated) {
         const mid = points[Math.floor(points.length / 2)];
         const yaw = Math.atan2(
           points.at(-1).x - points[0].x,
@@ -815,19 +836,21 @@ export class World {
           this.group,
           box,
           deckMat,
-          [mid.x, 5.8, mid.z],
+          [mid.x, this.roadSurfaceY + 5.62, mid.z],
           [len * 0.72, 0.54, 10.2],
           [0, yaw + Math.PI / 2, 0],
         );
 
         for (const step of [0.32, 0.5, 0.68]) {
-          const p = points[Math.floor(step * (points.length - 1))];
+          const index = Math.floor(step * (points.length - 1));
+          const p = points[index];
+          const h = heightProfile[index];
           mesh(
             this.group,
             box,
             deckMat,
-            [p.x, 2.75, p.z],
-            [1.4, 5.5, 1.4],
+            [p.x, Math.max(1.6, h * 0.5), p.z],
+            [1.4, Math.max(2.2, h), 1.4],
             [0, yaw, 0],
           );
         }
@@ -1257,7 +1280,10 @@ export class World {
 
       const b = p.clone().addScaledVector(s, laneOffset - width);
 
-      verts.push(a.x, y, a.z, b.x, y, b.z);
+      const py =
+        typeof y === "function" ? y(i, points.length) : Array.isArray(y) ? y[i] : y;
+
+      verts.push(a.x, py, a.z, b.x, py, b.z);
     }
 
     for (let i = 0; i < points.length - 1; i++) {
@@ -1832,6 +1858,43 @@ export class World {
           [0, branchYaw, 0],
         );
       }
+    }
+  }
+
+  buildMapSetPieces() {
+    const plans = {
+      neon: [
+        ["bridge", 1, 2],
+        ["flyover", 18, 19],
+      ],
+      coast: [
+        ["bridge", 2, 5],
+        ["flyover", 5, 6],
+        ["underpass", 14, 15],
+      ],
+      dock: [
+        ["flyover", 3, 5],
+        ["underpass", 11, 12],
+        ["bridge", 15, 16],
+      ],
+      mesa: [
+        ["bridge", 3, 5],
+        ["flyover", 7, 8],
+        ["underpass", 13, 14],
+      ],
+    };
+
+    const entries = plans[this.map.id] || [];
+
+    for (const [type, ai, bi] of entries) {
+      const a = this.route[ai % this.route.length];
+      const b = this.route[bi % this.route.length];
+
+      if (!a || !b) continue;
+
+      if (type === "flyover") this.buildFlyover(a, b);
+      else if (type === "underpass") this.buildUnderpass(a, b);
+      else this.buildBridgeRails(a, b);
     }
   }
 
@@ -4701,8 +4764,38 @@ export class World {
   }
 
   getRoadHeightAt(x, z) {
-    void x;
-    void z;
+    let nearest = Infinity;
+    let height = this.roadSurfaceY;
+
+    for (const shortcut of this.shortcutRoads) {
+      if (!shortcut.heightProfile?.length) continue;
+
+      const points = shortcut.points;
+
+      for (let i = 0; i < points.length - 1; i++) {
+        const a = points[i];
+        const b = points[i + 1];
+        const dx = b.x - a.x;
+        const dz = b.z - a.z;
+        const lenSq = dx * dx + dz * dz || 1;
+        const t = clamp(((x - a.x) * dx + (z - a.z) * dz) / lenSq, 0, 1);
+        const px = a.x + dx * t;
+        const pz = a.z + dz * t;
+        const d = Math.hypot(x - px, z - pz);
+
+        if (d < nearest) {
+          nearest = d;
+          height = THREE.MathUtils.lerp(
+            shortcut.heightProfile[i],
+            shortcut.heightProfile[i + 1],
+            t,
+          );
+        }
+      }
+    }
+
+    if (nearest < 8.9) return height;
+
     return this.roadSurfaceY;
   }
 

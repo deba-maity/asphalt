@@ -1,7 +1,4 @@
 import * as THREE from "three";
-import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { World } from "./world.js";
 import {
   createVehicle,
@@ -66,7 +63,7 @@ export class Game {
     });
 
     this.renderer.setPixelRatio(
-      Math.min(devicePixelRatio, this.lowPower ? 1 : 1.35),
+      Math.min(devicePixelRatio, this.lowPower ? 0.9 : 1.28),
     );
 
     this.renderer.setSize(innerWidth, innerHeight);
@@ -100,20 +97,8 @@ export class Game {
 
     this.composer = null;
 
-    if (!this.lowPower) {
-      this.composer = new EffectComposer(this.renderer);
-
-      this.composer.addPass(new RenderPass(this.scene, this.camera));
-
-      this.composer.addPass(
-        new UnrealBloomPass(
-          new THREE.Vector2(innerWidth, innerHeight),
-          0.52,
-          0.48,
-          0.84,
-        ),
-      );
-    }
+    this.postprocessReady = false;
+    this.initPostprocessing();
 
     this.listen();
 
@@ -665,6 +650,35 @@ export class Game {
     };
   }
 
+  async initPostprocessing() {
+    if (this.lowPower) return;
+
+    try {
+      const [{ EffectComposer }, { RenderPass }, { UnrealBloomPass }] =
+        await Promise.all([
+          import("three/examples/jsm/postprocessing/EffectComposer.js"),
+          import("three/examples/jsm/postprocessing/RenderPass.js"),
+          import("three/examples/jsm/postprocessing/UnrealBloomPass.js"),
+        ]);
+
+      const composer = new EffectComposer(this.renderer);
+      composer.addPass(new RenderPass(this.scene, this.camera));
+      composer.addPass(
+        new UnrealBloomPass(
+          new THREE.Vector2(innerWidth, innerHeight),
+          0.46,
+          0.42,
+          0.86,
+        ),
+      );
+      composer.setSize(innerWidth, innerHeight);
+      this.composer = composer;
+      this.postprocessReady = true;
+    } catch (error) {
+      console.warn("Postprocessing unavailable; using direct renderer.", error);
+    }
+  }
+
   alignActorToRoad(actor) {
     if (!actor?.mesh || !this.world) return;
 
@@ -808,7 +822,11 @@ export class Game {
 
     const monster = p.spec.kind === "monster";
 
-    const max = 12 + p.spec.top * (bike ? 0.46 : monster ? 0.34 : heavy ? 0.32 : 0.42);
+    const maxKmh =
+      p.spec.maxSpeed ||
+      (bike ? 240 : monster ? 155 : heavy ? 185 : 285);
+
+    const max = maxKmh / 5.7;
 
     const acc = 4 + p.spec.accel * (bike ? 0.115 : heavy ? 0.078 : 0.105);
 
@@ -823,14 +841,14 @@ export class Game {
     }
 
     if (boost) {
-      p.speed += 21 * dt;
+      p.speed += (bike ? 25 : heavy ? 16 : monster ? 13 : 23) * dt;
 
       p.boost = Math.max(0, p.boost - 20 * dt);
     } else {
       p.boost = Math.min(100, p.boost + 5.5 * dt);
     }
 
-    p.speed = clamp(p.speed, -max * 0.32, max * (boost ? 1.14 : 1));
+    p.speed = clamp(p.speed, -max * 0.32, max * (boost ? 1.08 : 1));
 
     const steerTarget = (right ? 1 : 0) - (left ? 1 : 0);
 
@@ -1096,9 +1114,13 @@ export class Game {
     a.mesh.rotation.y +=
       clamp(delta, -1.5 * dt, 1.5 * dt) * (a.role === "police" ? 1.5 : 1);
 
+    const specMax = (a.spec.maxSpeed || 260) / 5.7;
+
     const max =
-      (9 + a.spec.top * 0.35) *
-      (a.role === "police" ? 1.02 + (this.heat - 1) * 0.055 : a.skill);
+      specMax *
+      (a.role === "police"
+        ? 0.74 + (this.heat - 1) * 0.04
+        : 0.62 + a.skill * 0.2);
 
     a.speed = THREE.MathUtils.lerp(
       a.speed,

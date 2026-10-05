@@ -348,6 +348,14 @@
   font-size: 29px;
 }
 
+.stats-premium .stat {
+  grid-template-columns: 88px 1fr 48px;
+}
+
+.stats-premium .stat strong {
+  font-size: 11px;
+}
+
 @media(max-width:850px) {
   .hud-top {
     inset: 14px 14px auto;

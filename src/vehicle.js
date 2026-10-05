@@ -221,13 +221,14 @@ function buildCar(root, spec, paint, data, police) {
   const profiles = {
     coupe: { w: 2.05, l: 4.75, h: 0.62, cabin: 0.55, nose: 0.18, wing: false },
     muscle: { w: 2.24, l: 4.95, h: 0.72, cabin: 0.5, nose: 0.03, wing: false },
-    super: { w: 2.16, l: 4.9, h: 0.54, cabin: 0.43, nose: -0.05, wing: true },
-    hyper: { w: 2.2, l: 5.05, h: 0.5, cabin: 0.38, nose: -0.14, wing: true },
+    super: { w: 2.28, l: 5.08, h: 0.52, cabin: 0.4, nose: -0.08, wing: true },
+    hyper: { w: 2.42, l: 5.32, h: 0.46, cabin: 0.34, nose: -0.18, wing: true },
     rally: { w: 2.16, l: 4.58, h: 0.86, cabin: 0.56, nose: 0.1, wing: true },
   };
 
   const c = profiles[spec.profile] || profiles.coupe;
-  const wheelRadius = spec.profile === "rally" ? 0.56 : 0.5;
+  const wheelRadius =
+    spec.profile === "rally" ? 0.56 : spec.profile === "hyper" ? 0.55 : 0.51;
   const body = new THREE.Group();
   body.position.y = wheelRadius + c.h * 0.45;
   root.add(body);
@@ -248,10 +249,20 @@ function buildCar(root, spec, paint, data, police) {
     0.14,
     c.l * 0.28,
   ]);
+  part(body, geo.box, shared.carbon, [0, -0.34, -c.l * 0.55], [
+    c.w * 1.08,
+    0.08,
+    0.22,
+  ], [-0.06, 0, 0]);
   part(body, geo.box, shared.carbon, [0, -0.24, c.l * 0.47], [
     c.w * 0.88,
     0.18,
     c.l * 0.1,
+  ]);
+  part(body, geo.box, shared.carbon, [0, -0.18, c.l * 0.55], [
+    c.w * 0.76,
+    0.22,
+    0.08,
   ]);
   part(body, geo.box, shared.carbon, [-c.w * 0.52, -0.13, 0.06], [
     0.08,
@@ -315,6 +326,35 @@ function buildCar(root, spec, paint, data, police) {
     0.08,
     0.2,
   ]);
+
+  for (const side of [-1, 1]) {
+    const sx = side * c.w * 0.53;
+    part(body, geo.box, paint, [sx, -0.04, -c.l * 0.31], [
+      0.28,
+      0.22,
+      c.l * 0.25,
+    ], [0, 0, side * 0.08]);
+    part(body, geo.box, paint, [sx, -0.02, c.l * 0.32], [
+      0.3,
+      0.24,
+      c.l * 0.24,
+    ], [0, 0, side * 0.08]);
+    part(body, geo.box, shared.carbon, [sx, 0.08, -c.l * 0.02], [
+      0.08,
+      0.22,
+      c.l * 0.22,
+    ], [0, side * 0.18, 0]);
+    part(body, geo.box, shared.satin, [side * c.w * 0.38, -0.12, -c.l * 0.51], [
+      0.22,
+      0.035,
+      0.08,
+    ]);
+    part(body, geo.box, shared.carbon, [side * c.w * 0.22, -0.06, c.l * 0.56], [
+      0.04,
+      0.26,
+      0.16,
+    ], [0.18, 0, side * 0.05]);
+  }
 
   if (c.wing) {
     part(body, geo.box, shared.carbon, [0, c.cabin + 0.17, c.l * 0.43], [
