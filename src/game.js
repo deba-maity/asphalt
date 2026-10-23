@@ -9,6 +9,7 @@ import {
 import { vehicles } from "./data.js";
 import { Effects } from "./effects.js";
 import { AudioEngine } from "./audio.js";
+import { QUALITY, createEnvironment } from "./rendering.js";
 
 const clamp = THREE.MathUtils.clamp;
 const mod = (a, n) => ((a % n) + n) % n;
@@ -35,8 +36,6 @@ export class Game {
 
     this.callbacks = callbacks;
 
-    this.clock = new THREE.Clock();
-
     this.keys = {};
 
     this.actors = [];
@@ -56,16 +55,22 @@ export class Game {
     this.weaponCooldown = 0;
 
     this.lowPower = LOW_POWER_DEVICE;
-    this.renderScale = this.lowPower ? 0.82 : 1.0;
-    this.minRenderScale = this.lowPower ? 0.62 : 0.78;
-    this.maxRenderScale = this.lowPower ? 0.9 : 1.0;
-    this.frameCost = 1 / 60;
+    this.qualityMode =
+      localStorage.getItem("nightshift-quality") ||
+      (this.lowPower ? "battery" : "balanced");
+    if (!QUALITY[this.qualityMode]) this.qualityMode = "balanced";
+    this.applyQuality(this.qualityMode);
+    this.frameCost = 0;
     this.qualityTimer = 0;
-    this.shadowMapsEnabled = !this.lowPower;
-
+    this.shadowMapsEnabled = false;
+    this.touch = {};
+    this.autoAccelerate = localStorage.getItem("nightshift-auto") !== "false";
+    this.lastFrameTime = 0;
+    this.lastSimulationTime = 0;
+    this.hudTimer = 0;
     this.renderer = new THREE.WebGLRenderer({
       antialias: false,
-      powerPreference: this.lowPower ? "low-power" : "high-performance",
+      powerPreference: "low-power",
     });
 
     this.applyRenderScale();
@@ -99,10 +104,9 @@ export class Game {
       800,
     );
 
-    this.composer = null;
-
-    this.postprocessReady = false;
-    this.initPostprocessing();
+    this.environment = createEnvironment(this.renderer);
+    this.scene.environment = this.environment.texture;
+    this.scene.environmentIntensity = 0.6;
 
     this.listen();
 
@@ -114,14 +118,27 @@ export class Game {
       this.applyRenderScale();
 
       this.renderer.setSize(innerWidth, innerHeight);
-
-      this.composer?.setSize(innerWidth, innerHeight);
     };
 
     addEventListener("resize", this.resize);
   }
 
   listen() {
+    addEventListener("blur", () => {
+      this.keys = {};
+      this.touch = {};
+      if (this.running && !this.paused && this.phase !== "finished")
+        this.togglePause();
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (
+        document.hidden &&
+        this.running &&
+        !this.paused &&
+        this.phase !== "finished"
+      )
+        this.togglePause();
+    });
     addEventListener("keydown", (e) => {
       this.keys[e.code] = true;
 
@@ -151,7 +168,7 @@ export class Game {
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
-      powerPreference: this.lowPower ? "low-power" : "high-performance",
+      powerPreference: "low-power",
     });
 
     renderer.setPixelRatio(Math.min(devicePixelRatio, this.lowPower ? 1 : 1.2));
@@ -162,7 +179,7 @@ export class Game {
 
     renderer.toneMappingExposure = 1.18;
 
-    renderer.shadowMap.enabled = !this.lowPower;
+    renderer.shadowMap.enabled = false;
 
     renderer.shadowMap.type = this.lowPower
       ? THREE.BasicShadowMap
@@ -174,7 +191,10 @@ export class Game {
 
     const scene = new THREE.Scene();
 
-    scene.background = new THREE.Color(0x060a12);
+    scene.background = new THREE.Color(0x080c12);
+    const environment = createEnvironment(renderer);
+    scene.environment = environment.texture;
+    scene.environmentIntensity = 0.65;
 
     const camera = new THREE.PerspectiveCamera(34, 1, 0.05, 120);
 
@@ -188,8 +208,8 @@ export class Game {
 
     const floorMat = new THREE.MeshStandardMaterial({
       color: 0x0c1320,
-      roughness: 0.32,
-      metalness: 0.82,
+      roughness: 0.65,
+      metalness: 0.2,
     });
 
     const floor = new THREE.Mesh(
@@ -204,10 +224,10 @@ export class Game {
     stage.add(floor);
 
     const innerFloorMat = new THREE.MeshStandardMaterial({
-      color: 0x111d31,
-      roughness: 0.22,
-      metalness: 0.65,
-      emissive: 0x07182a,
+      color: 0x182227,
+      roughness: 0.65,
+      metalness: 0.2,
+      emissive: 0x071012,
       emissiveIntensity: 0.35,
     });
 
@@ -223,7 +243,7 @@ export class Game {
     const ring = new THREE.Mesh(
       new THREE.TorusGeometry(4.55, 0.035, 8, 96),
       new THREE.MeshBasicMaterial({
-        color: 0x55dcff,
+        color: 0xc3dfaa,
         transparent: true,
         opacity: 0.72,
       }),
@@ -238,7 +258,7 @@ export class Game {
     const rearGlow = new THREE.Mesh(
       new THREE.CircleGeometry(3.8, 64),
       new THREE.MeshBasicMaterial({
-        color: 0x351b62,
+        color: 0x203c36,
         transparent: true,
         opacity: 0.28,
         depthWrite: false,
@@ -251,11 +271,11 @@ export class Game {
 
     stage.add(rearGlow);
 
-    const hemi = new THREE.HemisphereLight(0xbcecff, 0x100d1b, 1.9);
+    const hemi = new THREE.HemisphereLight(0xc6dce2, 0x121b18, 1.25);
 
     scene.add(hemi);
 
-    const key = new THREE.DirectionalLight(0xeaf8ff, 4.2);
+    const key = new THREE.DirectionalLight(0xfff3df, 2.8);
 
     key.position.set(5.5, 8.5, 6);
 
@@ -279,25 +299,25 @@ export class Game {
 
     scene.add(key);
 
-    const rim = new THREE.DirectionalLight(0x7f55ff, 5.0);
+    const rim = new THREE.DirectionalLight(0xb8cdd9, 2.3);
 
     rim.position.set(-6, 4.5, -5);
 
     scene.add(rim);
 
-    const fill = new THREE.DirectionalLight(0x4de8ff, 2.2);
+    const fill = new THREE.DirectionalLight(0xc5e2d4, 1.4);
 
     fill.position.set(7, 2.5, -5);
 
     scene.add(fill);
 
-    const frontGlow = new THREE.PointLight(0x48dfff, 7, 15, 2);
+    const frontGlow = new THREE.PointLight(0xbde6ff, 2.4, 15, 2);
 
     frontGlow.position.set(0, 1.2, -4.5);
 
     scene.add(frontGlow);
 
-    const backGlow = new THREE.PointLight(0xe948ff, 8, 15, 2);
+    const backGlow = new THREE.PointLight(0xd4ff8c, 2.8, 15, 2);
 
     backGlow.position.set(0, 2.5, 3.6);
 
@@ -348,10 +368,9 @@ export class Game {
 
     stage.position.y -= center.y * 0.06;
 
-    const distance = Math.max(5.4, maxDim * (1.55 / scale));
+    const distance = Math.max(5.4, maxDim * (1.3 / scale));
 
-    const angle =
-      spec.kind === "bike" ? 0.82 : spec.kind === "heavy" ? 0.72 : 0.74;
+    const angle = spec.kind === "bike" ? 0.82 : 0.74;
 
     camera.position.set(
       Math.sin(angle) * distance,
@@ -362,6 +381,7 @@ export class Game {
     camera.lookAt(0, Math.max(0.55, size.y * 0.42), 0);
 
     let active = true;
+    let lastPreviewTime = 0;
 
     let time = 0;
 
@@ -388,30 +408,37 @@ export class Game {
 
     observer.observe(host);
 
-    const cleanupMaterial = (material) => material?.dispose?.();
+    const cleanupMaterial = (material) => {
+      if (!material?.userData?.sharedVehicle) material?.dispose?.();
+    };
 
-    const tick = () => {
+    const tick = (stamp = performance.now()) => {
       if (!active) {
         return;
       }
 
-      time += 0.0085;
+      this.previewFrame = requestAnimationFrame(tick);
+      if (document.hidden || stamp - lastPreviewTime < 1000 / 30 - 0.5) return;
+      const delta = Math.min(
+        (stamp - (lastPreviewTime || stamp - 33)) / 1000,
+        0.1,
+      );
+      lastPreviewTime = stamp;
+      time += delta;
 
-      stage.rotation.y = Math.sin(time * 0.5) * 0.08 + time * 0.34;
+      stage.rotation.y = -2.15 + Math.sin(time * 0.18) * 0.16;
 
       const hover = Math.sin(time * 2.1) * 0.025;
 
       vehicle.position.y += (targetY + hover - vehicle.position.y) * 0.06;
 
-      animateVehicle(vehicle, 0, false, time, 0, false, false);
+      animateVehicle(vehicle, 0, false, time, 0, false, false, delta);
 
       ring.rotation.z = time * 0.28;
 
       ring.material.opacity = 0.53 + Math.sin(time * 2.1) * 0.13;
 
       renderer.render(scene, camera);
-
-      this.previewFrame = requestAnimationFrame(tick);
     };
 
     tick();
@@ -423,10 +450,15 @@ export class Game {
       scene,
 
       dispose: () => {
+        active = false;
+        environment.dispose();
         observer.disconnect();
 
         scene.traverse((o) => {
-          if (o.geometry) {
+          if (
+            o.geometry &&
+            (!o.userData.vehiclePart || o.geometry.userData.disposeWithActor)
+          ) {
             o.geometry.dispose?.();
           }
 
@@ -451,6 +483,7 @@ export class Game {
       this.preview.renderer.domElement.remove();
 
       this.preview.renderer.dispose();
+      this.preview.renderer.forceContextLoss();
 
       this.preview = null;
     }
@@ -464,12 +497,17 @@ export class Game {
     this.config = config;
 
     this.scene.clear();
+    this.scene.environment = this.environment.texture;
+    this.lastFrameTime = 0;
+    this.lastSimulationTime = 0;
 
     this.actors = [];
 
     this.remotes.clear();
 
     this.world = new World(this.scene, config.map);
+    this.camera.far = QUALITY[this.qualityMode].distance + 100;
+    this.camera.updateProjectionMatrix();
 
     this.effects = new Effects(this.scene);
 
@@ -509,13 +547,17 @@ export class Game {
     this.scene.add(hemi);
 
     const sun = new THREE.DirectionalLight(
-      0xffdcc4,
-      this.lowPower ? 2.65 : 3.1,
+      config.map.id === "neon"
+        ? 0xb8d2f3
+        : config.map.id === "coast"
+          ? 0xffefd1
+          : 0xffba87,
+      config.map.id === "neon" ? 1.4 : 2.5,
     );
 
     sun.position.set(-60, 90, 35);
 
-    sun.castShadow = !this.lowPower;
+    sun.castShadow = false;
 
     if (!this.lowPower) {
       sun.shadow.mapSize.set(1024, 1024);
@@ -551,8 +593,6 @@ export class Game {
 
     this.player.progress = 0;
 
-    this.addPlayerLights();
-
     this.actors.push(this.player);
 
     if (config.mode.id === "race") {
@@ -585,17 +625,21 @@ export class Game {
 
     this.shake = 0;
 
-    this.clock.start();
-
-    this.frame();
+    this.frame(performance.now());
   }
 
   stop() {
     this.running = false;
+    cancelAnimationFrame(this.animationFrame);
+    this.keys = {};
+    this.touch = {};
 
     this.audio.stop();
 
     this.projectiles.length = 0;
+    this.projectileGeo?.dispose();
+    this.bulletMat?.dispose();
+    this.rocketMat?.dispose();
 
     if (this.actorGroup) {
       this.actorGroup.traverse((object) => {
@@ -659,78 +703,46 @@ export class Game {
   applyRenderScale() {
     if (!this.renderer) return;
 
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, this.renderScale));
-    this.composer?.setSize(innerWidth, innerHeight);
+    this.renderer.setPixelRatio(
+      Math.min(devicePixelRatio || 1, this.renderScale),
+    );
   }
 
-  updateAdaptiveQuality(dt) {
-    this.frameCost = THREE.MathUtils.lerp(this.frameCost || dt, dt, 0.045);
-
-    if (this.phase !== "play") return;
-
-    this.qualityTimer += dt;
-
-    const sustainedLimit =
-      this.elapsed > 38 ? (this.lowPower ? 0.72 : 0.92) : this.maxRenderScale;
-
-    if (this.renderScale > sustainedLimit) {
-      this.renderScale = Math.max(sustainedLimit, this.renderScale - 0.015);
-      this.applyRenderScale();
-      return;
-    }
-
-    if (this.qualityTimer < 2.2) return;
-
+  applyQuality(mode) {
+    this.qualityMode = QUALITY[mode] ? mode : "balanced";
+    const profile = QUALITY[this.qualityMode];
+    this.targetFPS = profile.fps;
+    this.renderScale = profile.scale;
+    this.minRenderScale = profile.min;
+    this.maxRenderScale = profile.scale;
     this.qualityTimer = 0;
+    localStorage.setItem("nightshift-quality", this.qualityMode);
+    this.applyRenderScale();
+    if (this.camera) {
+      this.camera.far = profile.distance + 100;
+      this.camera.updateProjectionMatrix();
+    }
+  }
 
-    if (this.frameCost > 0.023 && this.renderScale > this.minRenderScale) {
+  updateAdaptiveQuality(cost, dt) {
+    this.frameCost = THREE.MathUtils.lerp(this.frameCost || cost, cost, 0.06);
+    this.frameInterval = THREE.MathUtils.lerp(
+      this.frameInterval || dt,
+      dt,
+      0.04,
+    );
+    this.qualityTimer += dt;
+    if (this.qualityTimer < 3 || this.phase !== "play") return;
+    this.qualityTimer = 0;
+    // Measure work time, not the deliberate frame limiter's idle time.
+    const budget = 1000 / this.targetFPS;
+    if (
+      (this.frameCost > budget * 0.85 ||
+        this.frameInterval > 1.35 / this.targetFPS) &&
+      this.renderScale > this.minRenderScale
+    ) {
       this.renderScale = Math.max(this.minRenderScale, this.renderScale - 0.06);
       this.applyRenderScale();
-    } else if (
-      this.frameCost < 0.0168 &&
-      this.elapsed < 32 &&
-      this.renderScale < this.maxRenderScale
-    ) {
-      this.renderScale = Math.min(this.maxRenderScale, this.renderScale + 0.03);
-      this.applyRenderScale();
-    }
-  }
-
-  syncPerformanceMode() {
-    const wantsShadowMaps = !this.lowPower && this.phase !== "play";
-
-    if (this.shadowMapsEnabled === wantsShadowMaps) return;
-
-    this.shadowMapsEnabled = wantsShadowMaps;
-    this.renderer.shadowMap.enabled = wantsShadowMaps;
-  }
-
-  async initPostprocessing() {
-    if (this.lowPower) return;
-
-    try {
-      const [{ EffectComposer }, { RenderPass }, { UnrealBloomPass }] =
-        await Promise.all([
-          import("three/examples/jsm/postprocessing/EffectComposer.js"),
-          import("three/examples/jsm/postprocessing/RenderPass.js"),
-          import("three/examples/jsm/postprocessing/UnrealBloomPass.js"),
-        ]);
-
-      const composer = new EffectComposer(this.renderer);
-      composer.addPass(new RenderPass(this.scene, this.camera));
-      composer.addPass(
-        new UnrealBloomPass(
-          new THREE.Vector2(innerWidth, innerHeight),
-          0.46,
-          0.42,
-          0.86,
-        ),
-      );
-      composer.setSize(innerWidth, innerHeight);
-      this.composer = composer;
-      this.postprocessReady = true;
-    } catch (error) {
-      console.warn("Postprocessing unavailable; using direct renderer.", error);
     }
   }
 
@@ -741,33 +753,6 @@ export class Game {
       actor.mesh,
       this.world.getRoadHeightAt(actor.mesh.position.x, actor.mesh.position.z),
     );
-  }
-
-  addPlayerLights() {
-    if (this.lowPower) {
-      return;
-    }
-
-    const headMat = new THREE.MeshBasicMaterial({
-      color: 0xf7fbff,
-    });
-
-    const rearMat = new THREE.MeshBasicMaterial({
-      color: 0xff4b63,
-    });
-
-    const head = new THREE.PointLight(0xdff8ff, 3.2, 28, 2);
-
-    const rear = new THREE.PointLight(0xff405b, 1.4, 14, 2);
-
-    head.position.set(0, 0.85, -2.0);
-
-    rear.position.set(0, 0.55, 2.2);
-
-    this.player.mesh.add(head, rear);
-
-    void headMat;
-    void rearMat;
   }
 
   spawnAI(i, role = "racer") {
@@ -833,11 +818,14 @@ export class Game {
   updatePlayer(dt) {
     const p = this.player;
 
-    const k = this.keys;
+    const k = { ...this.keys, ...this.touch };
 
     const pad = [...(navigator.getGamepads?.() || [])].find(Boolean);
 
-    let gas = k.KeyW || k.ArrowUp;
+    let gas =
+      k.KeyW ||
+      k.ArrowUp ||
+      (this.touch.active && this.autoAccelerate && !k.KeyS && !k.Space);
 
     let brake = k.KeyS || k.ArrowDown;
 
@@ -878,8 +866,7 @@ export class Game {
     const monster = p.spec.kind === "monster";
 
     const maxKmh =
-      p.spec.maxSpeed ||
-      (bike ? 240 : monster ? 155 : heavy ? 185 : 285);
+      p.spec.maxSpeed || (bike ? 240 : monster ? 155 : heavy ? 185 : 285);
 
     const max = maxKmh / 5.7;
 
@@ -887,10 +874,10 @@ export class Game {
 
     const brakeForce = 5 + p.spec.braking * 0.08;
 
-    if (gas) {
-      p.speed += acc * dt;
-    } else if (brake) {
+    if (brake) {
       p.speed -= brakeForce * dt;
+    } else if (gas) {
+      p.speed += acc * dt;
     } else {
       p.speed *= Math.pow(hand ? 0.91 : 0.975, dt * 60);
     }
@@ -941,7 +928,9 @@ export class Game {
       -Math.cos(p.mesh.rotation.y),
     );
     const side = new THREE.Vector3(-forward.z, 0, forward.x);
-    const driftSlip = drifting ? steer * clamp(Math.abs(p.speed) / 38, 0, 1.4) : 0;
+    const driftSlip = drifting
+      ? steer * clamp(Math.abs(p.speed) / 38, 0, 1.4)
+      : 0;
 
     p.mesh.position.addScaledVector(forward, p.speed * dt);
     p.mesh.position.addScaledVector(side, driftSlip * p.speed * dt * 0.42);
@@ -963,7 +952,11 @@ export class Game {
     p.onRoad = roadDistance < 10.5;
 
     if (!p.onRoad && !p.spec.offroadImmune) {
-      const penalty = monster ? 0.975 : bike && p.spec.profile === "dirt" ? 0.965 : 0.93;
+      const penalty = monster
+        ? 0.975
+        : bike && p.spec.profile === "dirt"
+          ? 0.965
+          : 0.93;
 
       p.speed *= Math.pow(penalty, dt * 18);
 
@@ -976,7 +969,16 @@ export class Game {
 
     this.alignActorToRoad(p);
 
-    animateVehicle(p.mesh, p.speed, boost, this.time, -steer, brake, drifting);
+    animateVehicle(
+      p.mesh,
+      p.speed,
+      boost,
+      this.time,
+      -steer,
+      brake,
+      drifting,
+      dt,
+    );
 
     this.handleWeapons(p, gun, rocket, dt);
 
@@ -1078,7 +1080,10 @@ export class Game {
       damage: type === "rocket" ? 55 : 12,
     });
 
-    this.audio.blip(type === "rocket" ? 74 : 220, type === "rocket" ? 0.18 : 0.045);
+    this.audio.blip(
+      type === "rocket" ? 74 : 220,
+      type === "rocket" ? 0.18 : 0.045,
+    );
   }
 
   updateProjectiles(dt) {
@@ -1086,7 +1091,10 @@ export class Game {
       const projectile = this.projectiles[i];
 
       projectile.ttl -= dt;
-      projectile.mesh.position.addScaledVector(projectile.dir, projectile.speed * dt);
+      projectile.mesh.position.addScaledVector(
+        projectile.dir,
+        projectile.speed * dt,
+      );
 
       const hit =
         projectile.ttl <= 0 ||
@@ -1120,7 +1128,10 @@ export class Game {
 
         const away = actor.mesh.position.clone().sub(projectile.mesh.position);
         if (away.lengthSq() < 0.01) away.set(1, 0, 0);
-        actor.mesh.position.addScaledVector(away.normalize(), projectile.type === "rocket" ? 5.2 : 1.4);
+        actor.mesh.position.addScaledVector(
+          away.normalize(),
+          projectile.type === "rocket" ? 5.2 : 1.4,
+        );
 
         if (actor === this.player) {
           this.shake = projectile.type === "rocket" ? 1.6 : 0.55;
@@ -1216,7 +1227,7 @@ export class Game {
       this.shake = 1;
     }
 
-    animateVehicle(a.mesh, a.speed, false, this.time, delta, false, false);
+    animateVehicle(a.mesh, a.speed, false, this.time, delta, false, false, dt);
   }
 
   updateRemote(a, dt) {
@@ -1234,7 +1245,16 @@ export class Game {
 
     this.alignActorToRoad(a);
 
-    animateVehicle(a.mesh, a.target.speed || 0, false, this.time);
+    animateVehicle(
+      a.mesh,
+      a.target.speed || 0,
+      false,
+      this.time,
+      0,
+      false,
+      false,
+      dt,
+    );
   }
 
   collisions(p) {
@@ -1273,7 +1293,8 @@ export class Game {
       if (!obstacle.userData.alive) continue;
 
       const d = p.mesh.position.distanceTo(obstacle.position);
-      const limit = (p.mesh.userData.radius || 2) + (obstacle.userData.radius || 2.4);
+      const limit =
+        (p.mesh.userData.radius || 2) + (obstacle.userData.radius || 2.4);
 
       if (d < limit * 0.72) {
         const smashes = p.spec.canSmash || p.spec.kind === "monster";
@@ -1473,34 +1494,37 @@ export class Game {
     }
 
     this.paused = !this.paused;
+    this.keys = {};
+    this.touch = { active: matchMedia("(pointer: coarse)").matches };
+    this.audio.setMuted(this.paused);
 
     this.callbacks.pause?.(this.paused);
   }
 
   renderScene() {
-    this.syncPerformanceMode();
-
-    if (this.composer && this.phase !== "play") {
-      this.composer.render();
-    } else {
-      this.renderer.render(this.scene, this.camera);
-    }
+    this.renderer.render(this.scene, this.camera);
   }
 
-  frame() {
-    if (!this.running) {
+  frame(timestamp = performance.now()) {
+    if (!this.running) return;
+    this.animationFrame = requestAnimationFrame((t) => this.frame(t));
+    if (this.paused || document.hidden) {
+      this.lastFrameTime = 0;
+      this.lastSimulationTime = 0;
       return;
     }
-
-    requestAnimationFrame(() => this.frame());
-
-    const dt = Math.min(this.clock.getDelta(), 0.05);
-    this.updateAdaptiveQuality(dt);
-
-    if (this.paused) {
-      this.renderScene();
-      return;
-    }
+    const interval = 1000 / this.targetFPS;
+    const elapsed = timestamp - this.lastFrameTime;
+    if (this.lastFrameTime && elapsed < interval - 0.5) return;
+    const dt = this.lastSimulationTime
+      ? Math.min((timestamp - this.lastSimulationTime) / 1000, 0.05)
+      : 1 / this.targetFPS;
+    this.actualFrameDelta = this.lastSimulationTime
+      ? (timestamp - this.lastSimulationTime) / 1000
+      : dt;
+    this.lastSimulationTime = timestamp;
+    this.lastFrameTime = timestamp - (elapsed % interval);
+    const workStart = performance.now();
 
     this.time += dt;
 
@@ -1572,10 +1596,16 @@ export class Game {
 
       if (this.finishTimer < 0) {
         this.stop();
+        return;
       }
     }
 
-    this.world.update(dt, this.time);
+    this.world.update(
+      dt,
+      this.time,
+      this.player.mesh.position,
+      QUALITY[this.qualityMode].distance,
+    );
 
     this.effects?.update(dt);
 
@@ -1583,9 +1613,17 @@ export class Game {
 
     this.updateCamera(dt);
 
-    this.callbacks.hud?.(this.hudState());
+    this.hudTimer += dt;
+    if (this.hudTimer >= 0.08) {
+      this.callbacks.hud?.(this.hudState());
+      this.hudTimer = 0;
+    }
 
     this.renderScene();
+    this.updateAdaptiveQuality(
+      performance.now() - workStart,
+      this.actualFrameDelta || dt,
+    );
   }
 
   updateCamera(dt) {
@@ -1597,7 +1635,7 @@ export class Game {
 
     const drift = this.player.mesh.userData.drifting;
 
-    const back = 6.8 + spd * 0.035;
+    const back = 8.0 + spd * 0.028;
 
     const desired = new THREE.Vector3(
       p.x + Math.sin(h) * back,
