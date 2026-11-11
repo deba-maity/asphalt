@@ -1,0 +1,12 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/campaign_zone.gd" id="1"]
+[ext_resource type="PackedScene" path="res://assets/characters/ledger_archer.tscn" id="a0"]
+[ext_resource type="PackedScene" path="res://assets/characters/ledger_elite.tscn" id="a1"]
+[ext_resource type="PackedScene" path="res://assets/characters/marshal_serit.tscn" id="a2"]
+[ext_resource type="PackedScene" path="res://assets/characters/saren.tscn" id="a3"]
+
+[node name="zone_mill_return" type="Node3D"]
+script = ExtResource("1")
+zone_id = "zone_mill_return"
+actor_resources = Array[PackedScene]([ExtResource("a0"), ExtResource("a1"), ExtResource("a2"), ExtResource("a3")])

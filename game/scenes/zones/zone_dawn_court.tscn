@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/campaign_zone.gd" id="1"]
+[ext_resource type="PackedScene" path="res://assets/characters/halvek.tscn" id="a0"]
+
+[node name="zone_dawn_court" type="Node3D"]
+script = ExtResource("1")
+zone_id = "zone_dawn_court"
+actor_resources = Array[PackedScene]([ExtResource("a0")])

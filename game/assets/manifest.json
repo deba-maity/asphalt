@@ -1,12 +1,113 @@
 {
-  "schema":1,
-  "author":"ASHEN VOW contributors (original work created with Codex assistance)",
-  "assets":[
-    {"id":"asset_characters","source_url":null,"creation_method":"Editable articulated geometry in game/scripts/figure.gd, baked by game/tests/bake_characters.gd","author":"ASHEN VOW contributors","license":"MIT","modifications":"Original design; nine clothing/role variants, runtime scale changes","runtime_files":["characters/rayan.tscn","characters/mira.tscn","characters/isha.tscn","characters/saren.tscn","characters/tova.tscn","characters/oren.tscn","characters/road_bandit.tscn","characters/wood_scout.tscn","characters/foreman.tscn"],"attribution_requirements":"Retain root MIT notice"},
-    {"id":"asset_animation","source_url":null,"creation_method":"Original JSON joint poses plus movement-driven gait and interpolation in figure.gd","author":"ASHEN VOW contributors","license":"MIT","modifications":"Original; no third-party skeleton or animation","runtime_files":["../content/poses.json","../scripts/figure.gd"],"attribution_requirements":"Retain root MIT notice"},
-    {"id":"asset_environment","source_url":null,"creation_method":"Original procedural low-polygon houses, kiln, cart, shrine, props, trees, terrain, grass and mountain meshes in world.gd","author":"ASHEN VOW contributors","license":"MIT","modifications":"Original; repeated static geometry is instanced with MultiMesh","runtime_files":["../scripts/world.gd"],"attribution_requirements":"Retain root MIT notice"},
-    {"id":"asset_audio","source_url":null,"creation_method":"Deterministic original PCM synthesis using tools/generate_audio.py, seed 85171","author":"ASHEN VOW contributors","license":"MIT","modifications":"Original filtered noise and sine synthesis, 22050 Hz mono WAV","runtime_files":["audio/swing.wav","audio/hit.wav","audio/guard.wav","audio/parry.wav","audio/heal.wav","audio/reward.wav","audio/hearth_wind.wav"],"attribution_requirements":"Retain root MIT notice"},
-    {"id":"asset_story","source_url":null,"creation_method":"Original chapter dialogue, world, quests and plot authored for this game","author":"ASHEN VOW contributors","license":"MIT","modifications":"Original","runtime_files":["../content/chapter_01.json"],"attribution_requirements":"Retain root MIT notice"},
-    {"id":"dependency_godot","source_url":"https://godotengine.org/download/archive/4.7.2-stable/","creation_method":"Official standard engine and matching Windows templates","author":"Godot Engine contributors","license":"MIT with bundled third-party notices","modifications":"Unmodified engine","runtime_files":["exported engine executable"],"attribution_requirements":"Retain Godot and applicable bundled dependency notices; docs/GODOT_LICENSE.txt"}
+  "schema": 1,
+  "author": "ASHEN VOW contributors (original work created with Codex assistance)",
+  "assets": [
+    {
+      "id": "asset_characters",
+      "source_url": null,
+      "creation_method": "Editable articulated geometry in game/scripts/figure.gd, baked by game/tests/bake_characters.gd",
+      "author": "ASHEN VOW contributors",
+      "license": "MIT",
+      "modifications": "Original eighteen role variants with shields, bow/quiver, heavy blades, elite headgear and an original three-loop Ledger cord; common articulated rig.",
+      "runtime_files": [
+        "characters/captain_varo.tscn",
+        "characters/foreman.tscn",
+        "characters/halvek.tscn",
+        "characters/isha.tscn",
+        "characters/ledger_archer.tscn",
+        "characters/ledger_brute.tscn",
+        "characters/ledger_elite.tscn",
+        "characters/ledger_guard.tscn",
+        "characters/lieutenant_kesran.tscn",
+        "characters/marshal_serit.tscn",
+        "characters/mira.tscn",
+        "characters/oren.tscn",
+        "characters/rayan.tscn",
+        "characters/road_bandit.tscn",
+        "characters/saren.tscn",
+        "characters/still_warden.tscn",
+        "characters/tova.tscn",
+        "characters/wood_scout.tscn"
+      ],
+      "attribution_requirements": "Retain root MIT notice"
+    },
+    {
+      "id": "asset_animation",
+      "source_url": null,
+      "creation_method": "Original JSON joint poses plus movement-driven gait and interpolation in figure.gd",
+      "author": "ASHEN VOW contributors",
+      "license": "MIT",
+      "modifications": "Original; no third-party skeleton or animation",
+      "runtime_files": [
+        "../content/poses.json",
+        "../scripts/figure.gd"
+      ],
+      "attribution_requirements": "Retain root MIT notice"
+    },
+    {
+      "id": "asset_environment",
+      "source_url": null,
+      "creation_method": "Original procedural environments in world.gd and campaign_zone.gd: village/aftermath, mill/drained return, fortress/bridge, Counting Shore, Dawn Court and memorial; static geometry instanced.",
+      "author": "ASHEN VOW contributors",
+      "license": "MIT",
+      "modifications": "Original; repeated static geometry is instanced with MultiMesh",
+      "runtime_files": [
+        "../scripts/world.gd",
+        "../scripts/campaign_zone.gd"
+      ],
+      "attribution_requirements": "Retain root MIT notice"
+    },
+    {
+      "id": "asset_audio",
+      "source_url": null,
+      "creation_method": "Deterministic original PCM synthesis using tools/generate_audio.py, seed 85171",
+      "author": "ASHEN VOW contributors",
+      "license": "MIT",
+      "modifications": "Original filtered noise and sine synthesis, 22050 Hz mono WAV",
+      "runtime_files": [
+        "audio/swing.wav",
+        "audio/hit.wav",
+        "audio/guard.wav",
+        "audio/parry.wav",
+        "audio/heal.wav",
+        "audio/reward.wav",
+        "audio/hearth_wind.wav"
+      ],
+      "attribution_requirements": "Retain root MIT notice"
+    },
+    {
+      "id": "asset_story",
+      "source_url": null,
+      "creation_method": "Original six-chapter story, quests, dialogue, discoveries and ending; authored in tools/author_campaign.py and committed as JSON and local zone scenes.",
+      "author": "ASHEN VOW contributors",
+      "license": "MIT",
+      "modifications": "Original",
+      "runtime_files": [
+        "../content/chapter_01.json",
+        "../content/campaign.json",
+        "../content/zone_cinder_errand.json",
+        "../content/zone_cinder_home.json",
+        "../content/zone_copper_stair.json",
+        "../content/zone_counting_shore.json",
+        "../content/zone_dawn_approach.json",
+        "../content/zone_dawn_court.json",
+        "../content/zone_memorial.json",
+        "../content/zone_mill_return.json",
+        "../content/zone_sere_mill.json"
+      ],
+      "attribution_requirements": "Retain root MIT notice"
+    },
+    {
+      "id": "dependency_godot",
+      "source_url": "https://godotengine.org/download/archive/4.7.2-stable/",
+      "creation_method": "Official standard engine and matching Windows templates",
+      "author": "Godot Engine contributors",
+      "license": "MIT with bundled third-party notices",
+      "modifications": "Unmodified engine",
+      "runtime_files": [
+        "exported engine executable"
+      ],
+      "attribution_requirements": "Retain Godot and applicable bundled dependency notices; docs/GODOT_LICENSE.txt"
+    }
   ]
 }

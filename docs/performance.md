@@ -1,23 +1,29 @@
-# Performance targets and measurements
+# Performance targets and evidence
 
-## Target laptop — untested
+## Target laptop — no measurements
 
-Windows, Ryzen 5 5500U, 16 GB RAM, integrated AMD Radeon, no dedicated GPU. The reported approximately 496 MB allocation is dedicated allocation, **not** a cap on all usable graphics memory. Shared system memory does not make this a discrete 8 GB card. Display resolution, power profile, driver version and thermals are not yet known. No target-laptop benchmark has been performed.
+Windows, Ryzen 5 5500U, 16 GB RAM, integrated Radeon with shared system memory and approximately 496 MB reported dedicated allocation. That allocation is not a hard total-memory cap, and shared memory does not make this a discrete 8 GB GPU. Display resolution, power profile, driver and thermals remain unconfirmed. No target-laptop performance is claimed.
 
-Initial design: fixed 1280 × 720 viewport scaled to the window, 30 FPS cap, Compatibility/OpenGL renderer, compact connected zones, at most two nearby normal enemies or one foreman, one shadowed directional light, optional shadows, no postprocessing stack or dynamic GI, no high-resolution texture library or ragdolls. Repeated scenery uses MultiMesh; immutable meshes/materials are cached. Models have hard joints and modest geometry. Shader compilation and first-use allocations can still cause initial hitches.
+Design remains 1280 × 720 internal viewport, 30 FPS cap, Compatibility renderer, compact zones, small active encounters, static collision, restrained effects and shadows. No optional 60 FPS mode is offered. Sun shadows can be disabled. All gameplay/resources are offline.
 
-## Development machine — actual execution
+## Development environment and Remote Desktop
 
-Recorded 2026-11-11 using the client-provided date. Windows 11 Pro 10.0.26200, Intel i7-1185G7, approximately 32 GB visible RAM, Intel Iris Xe driver 32.0.101.7085. The process reported OpenGL 3.3 Compatibility. This is a different system from the target and may be reached through Remote Desktop. Presentation and background activity can affect the measurement.
+The inspected development system is Windows 11 Pro, i7-1185G7, approximately 32 GB visible RAM and Intel Iris Xe driver 32.0.101.7085. Pass-one rendered evidence is historical: 28.7 FPS average under a 30 FPS cap, not stable-30 or target-hardware evidence. See [historical record](history/pass1-performance.md).
 
-The retained rendered chapter run averaged **28.7 FPS with a 30 FPS cap**, over 68.6 seconds and 134.2 metres of scripted traversal, including screenshots, UI and dialogue. See [`evidence/playthrough.txt`](evidence/playthrough.txt). This is an engine-frame average, not a GPU benchmark, percentile frametime analysis, or evidence of stable 30 FPS on either machine. Earlier initial geometry/lighting work averaged 27.2 FPS. No 60 FPS mode is offered on these measurements. Headless logic checks are not graphics-performance evidence.
+During pass two the user explicitly said **not to play the game on this Remote Desktop**. Graphical runs were stopped; subsequent verification, scene traversal and exported-executable checks use `--headless` with dummy audio. No headless frame rate is reported as graphics performance. Mouse capture and captured-mouse orbit tests are skipped in the headless suite. No new full-campaign screenshots, listening test or GPU benchmark is claimed.
 
-## Laptop verification procedure
+## Loading and allocation observations
 
-1. Record model, exact CPU/GPU/driver, Windows version, plugged-in/battery mode, power profile, resolution, shadow setting and build hash.
-2. Launch the preview at the default 720p viewport and 30 FPS cap. Warm up by walking around Hearthmere for one minute.
-3. Play every encounter, orbit near buildings, move through trees, use lock-on and effects, return home, and repeat after relaunch.
-4. Use the Godot debugger profiler for a source run, or a local frame capture tool for the exported build. Record average, 1% low, p95/p99 frame times, worst hitch, working set and graphics allocations; measure shadows on and off.
-5. Spend at least ten minutes under sustained load. Check charger/battery and thermal changes. Record genuine observations here. Do not convert the machine's shared-memory limit into a claim of dedicated VRAM.
+[Source transition metrics](evidence/pass2/source-transitions.json) and [packaged metrics](evidence/pass2/packaged-transitions.json) record actual local runs. Fields separate request/poll elapsed time, scene instantiation, `_ready` geometry/scripts, old-zone release-frame time, total swap, node count and engine-reported static memory. These are development CPU/engine observations. Total swap spans frame boundaries and save work; it is not a pure instantiation benchmark. Shader preparation and GPU uploads remain unmeasured.
 
-Further work: split/budget scenery batches by zone if needed, lower foliage counts/shadow distance, profile articulated draw calls, and only add an optional 60 FPS setting when actual hardware measurements justify it.
+Repeated eight-zone alternation left the same-zone scene-node count stable; old-node weak references became null and the same player survived. Source debug runs report approximately 49–52 MB of engine static allocations during later zones; this is not total working set or graphics memory. Release engine static-memory counters return zero when unavailable; **zero does not mean zero memory use**. Exact retained logs supersede these rounded descriptions.
+
+One speculative next-zone set is allowed, with a default metadata estimate budget of 24 MB. Estimates are authoring guidance, not measured hard caps. Default low-memory mode frees old scene nodes and generated caches before constructing the next zone. Normal mode is available through `[streaming] low_memory=false` in settings and is tested separately. No navigation bake runs during ordinary transitions.
+
+## Duration observations
+
+A normal-speed headless New Game-to-credits run took 375 seconds with very fast dialogue and automated combat. Accelerated checks use Godot's documented `--fixed-fps 60`, which disables real-time synchronization; their logs record simulation duration and real wall-clock duration separately. They generally cover about six minutes of simulated campaign time in seconds of wall time. These values establish automated reachability, not a human campaign length. The multi-hour design goal is not met or substantiated by the current short implementation.
+
+## Local target-machine checks still needed
+
+Record target CPU/GPU/driver, build hash, charger/battery, power profile, resolution, shadow setting and thermals. Warm up, then play through every environment and boss phase. Measure sustained average and percentile frame times, worst hitches, working set and graphics allocations using a profiler. Separate resource I/O, instantiation/scripts, shader warm-up and GPU upload/presentation costs. Check repeated zone travel and long sessions. Adjust foliage, shadows, batching and animation draw calls from real observations, rather than inferring a laptop result from these headless or Remote Desktop runs.

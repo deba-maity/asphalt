@@ -1,0 +1,274 @@
+{
+  "id": "ch04_between_ashes",
+  "zone_id": "zone_counting_shore",
+  "title": "The Counting Shore",
+  "theme": "ashes",
+  "length": 83,
+  "npcs": [
+    {
+      "id": "npc_keeper_body",
+      "name": "The Keeper",
+      "position": [
+        4,
+        0,
+        -18
+      ],
+      "asset": "oren"
+    }
+  ],
+  "objects": [
+    {
+      "id": "obj_bowl",
+      "name": "A broken moon",
+      "position": [
+        -4,
+        0,
+        -7
+      ],
+      "dialogue": [
+        [
+          "Isha's memory",
+          "Oren says the moon is a bowl. I think someone dropped it."
+        ],
+        [
+          "Rayan",
+          "I remember the words. Why can't I hear you?"
+        ]
+      ],
+      "flag": "evt_shore_memory",
+      "requires": [],
+      "effect": "",
+      "optional": false,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "npc_keeper",
+      "name": "The Keeper",
+      "position": [
+        4,
+        0,
+        -18
+      ],
+      "dialogue": [
+        [
+          "Keeper",
+          "Your death is behind you. Your anger is not a door."
+        ],
+        [
+          "Rayan",
+          "Give me a road back."
+        ],
+        [
+          "Keeper",
+          "Earn one. I will lend you a step between blows. Returning takes the sound of the voice you came here to keep."
+        ],
+        [
+          "Rayan",
+          "Her words?"
+        ],
+        [
+          "Keeper",
+          "You may keep her words. Never again her voice. Choose with that knowledge."
+        ]
+      ],
+      "flag": "evt_trial_choice",
+      "requires": [
+        "evt_shore_memory"
+      ],
+      "effect": "lend_ashstep",
+      "optional": false,
+      "transition": "",
+      "choice": true
+    },
+    {
+      "id": "obj_trial_help",
+      "name": "The first ash mark",
+      "position": [
+        -4,
+        0,
+        -28
+      ],
+      "dialogue": [
+        [
+          "Ash mark",
+          "F / left trigger: Ashstep. Three Resolve charges. Step as the Warden's gold ring closes; an exact evasion opens a heavy counter. Parrying also opens a counter. Strikes and parries restore Resolve."
+        ]
+      ],
+      "flag": "discovery_ash_mark",
+      "requires": [],
+      "effect": "",
+      "optional": true,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "exit_return",
+      "name": "Choose the living road",
+      "position": [
+        0,
+        0,
+        -78
+      ],
+      "dialogue": [
+        [
+          "Keeper",
+          "The trial is yours. The price remains."
+        ],
+        [
+          "Rayan",
+          "Isha told me to keep the last crust. I can carry that, even in silence."
+        ],
+        [
+          "Keeper",
+          "Then go. This road opens once."
+        ]
+      ],
+      "flag": "",
+      "requires": [
+        "evt_trial_warden_clear",
+        "evt_ashstep_evade",
+        "evt_shore_crossed"
+      ],
+      "effect": "resurrection",
+      "optional": false,
+      "transition": "zone_mill_return",
+      "choice": true
+    }
+  ],
+  "encounters": [
+    {
+      "id": "trial_warden",
+      "flag": "evt_trial_warden_clear",
+      "center": [
+        0,
+        0,
+        -40
+      ],
+      "requires": [
+        "evt_trial_choice"
+      ],
+      "boss": "boss_warden",
+      "reward": 0,
+      "enemies": [
+        {
+          "id": "trial_warden_0",
+          "kind": "still_warden",
+          "position": [
+            0,
+            0,
+            -40
+          ]
+        }
+      ]
+    }
+  ],
+  "quests": [
+    {
+      "id": "q_memory",
+      "text": "Follow the broken moon to a memory.",
+      "target": [
+        -4,
+        0,
+        -7
+      ],
+      "until": "evt_shore_memory",
+      "requires": []
+    },
+    {
+      "id": "q_choice",
+      "text": "Choose the Keeper's trial.",
+      "target": [
+        4,
+        0,
+        -18
+      ],
+      "until": "evt_trial_choice",
+      "requires": [
+        "evt_shore_memory"
+      ]
+    },
+    {
+      "id": "q_ash_tutorial",
+      "text": "F: evade a Warden blow with Ashstep, then heavy-counter.",
+      "target": [
+        0,
+        0,
+        -40
+      ],
+      "until": "evt_ashstep_evade",
+      "requires": [
+        "evt_trial_choice"
+      ]
+    },
+    {
+      "id": "q_trial",
+      "text": "Defeat the Still Warden.",
+      "target": [
+        0,
+        0,
+        -40
+      ],
+      "until": "evt_trial_warden_clear",
+      "requires": [
+        "evt_ashstep_evade"
+      ]
+    },
+    {
+      "id": "q_shore_gate",
+      "text": "Ashstep through the pale veil ahead.",
+      "target": [
+        0,
+        0,
+        -61
+      ],
+      "until": "evt_shore_crossed",
+      "requires": [
+        "evt_trial_warden_clear"
+      ]
+    },
+    {
+      "id": "q_return_life",
+      "text": "Choose the living road and its cost.",
+      "target": [
+        0,
+        0,
+        -78
+      ],
+      "until": "evt_resurrected",
+      "requires": [
+        "evt_shore_crossed"
+      ]
+    }
+  ],
+  "next": "zone_mill_return",
+  "checkpoints": [
+    {
+      "id": "cp_counting_shore",
+      "position": [
+        0,
+        0,
+        7
+      ],
+      "label": "The Counting Shore"
+    },
+    {
+      "id": "cp_before_boss_warden",
+      "position": [
+        0,
+        0,
+        -26
+      ],
+      "label": "Before warden"
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone_counting_shore",
+      "title": "The Counting Shore",
+      "north": -83
+    }
+  ],
+  "ward_z": -61,
+  "ward_flag": "evt_shore_crossed"
+}

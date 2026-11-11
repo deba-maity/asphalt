@@ -1,0 +1,225 @@
+{
+  "id": "ch06_last_dawn",
+  "zone_id": "zone_dawn_approach",
+  "title": "The last bridge",
+  "theme": "dawn",
+  "length": 73,
+  "npcs": [],
+  "objects": [
+    {
+      "id": "obj_last_register",
+      "name": "The last register",
+      "position": [
+        -4,
+        0,
+        -31
+      ],
+      "dialogue": [
+        [
+          "Neri",
+          "Here. Every family paid for the privilege of surviving. Every refusal marked for fire."
+        ],
+        [
+          "Rayan",
+          "Mira copied this so they could leave. Keep it. This has to outlive him."
+        ]
+      ],
+      "flag": "evt_last_register",
+      "requires": [
+        "evt_dawn_bridge_clear"
+      ],
+      "effect": "",
+      "optional": false,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "obj_guard_confession",
+      "name": "A guard's abandoned pack",
+      "position": [
+        5,
+        0,
+        -46
+      ],
+      "dialogue": [
+        [
+          "Unsent letter",
+          "He has barred the court from inside. We guard a man who counts our children too."
+        ]
+      ],
+      "flag": "discovery_guard_letter",
+      "requires": [],
+      "effect": "",
+      "optional": true,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "exit_court",
+      "name": "Enter the Dawn Court",
+      "position": [
+        0,
+        0,
+        -68
+      ],
+      "dialogue": [
+        [
+          "Neri",
+          "I will open the outer gate for the people in the book."
+        ],
+        [
+          "Rayan",
+          "Leave it open when I return."
+        ]
+      ],
+      "flag": "",
+      "requires": [
+        "evt_last_register",
+        "evt_dawn_gate_clear"
+      ],
+      "effect": "",
+      "optional": false,
+      "transition": "zone_dawn_court",
+      "choice": false
+    }
+  ],
+  "encounters": [
+    {
+      "id": "dawn_bridge",
+      "flag": "evt_dawn_bridge_clear",
+      "center": [
+        0,
+        0,
+        -22
+      ],
+      "requires": [],
+      "boss": "",
+      "reward": 0,
+      "enemies": [
+        {
+          "id": "dawn_bridge_0",
+          "kind": "ledger_guard",
+          "position": [
+            -1.5,
+            0,
+            -22
+          ]
+        },
+        {
+          "id": "dawn_bridge_1",
+          "kind": "ledger_archer",
+          "position": [
+            2.5,
+            0,
+            -25
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dawn_gate",
+      "flag": "evt_dawn_gate_clear",
+      "center": [
+        0,
+        0,
+        -54
+      ],
+      "requires": [
+        "evt_last_register"
+      ],
+      "boss": "",
+      "reward": 0,
+      "enemies": [
+        {
+          "id": "dawn_gate_0",
+          "kind": "ledger_elite",
+          "position": [
+            -1.5,
+            0,
+            -54
+          ]
+        },
+        {
+          "id": "dawn_gate_1",
+          "kind": "ledger_brute",
+          "position": [
+            2.5,
+            0,
+            -57
+          ]
+        }
+      ]
+    }
+  ],
+  "quests": [
+    {
+      "id": "q_last_guard",
+      "text": "Take the last bridge.",
+      "target": [
+        0,
+        0,
+        -22
+      ],
+      "until": "evt_dawn_bridge_clear",
+      "requires": []
+    },
+    {
+      "id": "q_register",
+      "text": "Save the original register.",
+      "target": [
+        -4,
+        0,
+        -31
+      ],
+      "until": "evt_last_register",
+      "requires": [
+        "evt_dawn_bridge_clear"
+      ]
+    },
+    {
+      "id": "q_gate_elites",
+      "text": "Clear the inner gate.",
+      "target": [
+        0,
+        0,
+        -54
+      ],
+      "until": "evt_dawn_gate_clear",
+      "requires": [
+        "evt_last_register"
+      ]
+    },
+    {
+      "id": "q_court",
+      "text": "Enter the Dawn Court.",
+      "target": [
+        0,
+        0,
+        -68
+      ],
+      "until": "evt_court_arrival",
+      "requires": [
+        "evt_dawn_gate_clear"
+      ]
+    }
+  ],
+  "next": "zone_dawn_court",
+  "checkpoints": [
+    {
+      "id": "cp_dawn_approach",
+      "position": [
+        0,
+        0,
+        7
+      ],
+      "label": "The last bridge"
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone_dawn_approach",
+      "title": "The last bridge",
+      "north": -73
+    }
+  ]
+}

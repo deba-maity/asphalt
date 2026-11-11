@@ -1,0 +1,64 @@
+PASS: Local transition request accepted
+PASS: Duplicate committed request refused
+PASS: Transition settles without a blocking wait
+PASS: New zone preserves the one player node
+PASS: Previous zone actually freed rather than hidden
+PASS: Coordinator releases PackedScene reference after commit
+PASS: Missing packaged resource detected before unload
+PASS: Failed request presents recoverable loading UI
+PASS: Failed transition retains previous zone/checkpoint
+PASS: Recovery restarts a valid checkpoint with one player
+PASS: Transition settles without a blocking wait
+PASS: Logical cancellation discards stale result without committing it
+PASS: Configured speculative budget refuses oversized preload
+PASS: Transition settles without a blocking wait
+PASS: Failed scene construction rolls progress back after releasing the old zone
+PASS: Construction failure recovers the checkpoint with the same player
+PASS: Repeated zone request 0
+PASS: Transition settles without a blocking wait
+PASS: Unload/reload releases old nodes and retains player 0
+PASS: Exactly one active zone after transition 0
+PASS: Repeated zone request 1
+PASS: Transition settles without a blocking wait
+PASS: Unload/reload releases old nodes and retains player 1
+PASS: Exactly one active zone after transition 1
+PASS: Repeated zone request 2
+PASS: Transition settles without a blocking wait
+PASS: Unload/reload releases old nodes and retains player 2
+PASS: Exactly one active zone after transition 2
+PASS: Repeated zone request 3
+PASS: Transition settles without a blocking wait
+PASS: Unload/reload releases old nodes and retains player 3
+PASS: Exactly one active zone after transition 3
+PASS: Repeated zone request 4
+PASS: Transition settles without a blocking wait
+PASS: Unload/reload releases old nodes and retains player 4
+PASS: Exactly one active zone after transition 4
+PASS: Repeated zone request 5
+PASS: Transition settles without a blocking wait
+PASS: Unload/reload releases old nodes and retains player 5
+PASS: Exactly one active zone after transition 5
+PASS: Repeated zone request 6
+PASS: Transition settles without a blocking wait
+PASS: Unload/reload releases old nodes and retains player 6
+PASS: Exactly one active zone after transition 6
+PASS: Repeated zone request 7
+PASS: Transition settles without a blocking wait
+PASS: Unload/reload releases old nodes and retains player 7
+PASS: Exactly one active zone after transition 7
+PASS: Repeated equal-zone loads do not accumulate scene nodes
+PASS: Ordinary death screen: ch02_night_cinders
+PASS: Ordinary restart preserves correct body/abilities: ch02_night_cinders
+PASS: Ordinary death screen: ch05_returned
+PASS: Ordinary restart preserves correct body/abilities: ch05_returned
+PASS: Skipping story commits objective and restores camera/input
+PASS: One-time story callback is idempotent
+PASS: Story pause retains subtitle/callback state
+PASS: Saving/quitting an unfinished story retains required progress without committing it
+PASS: Optional affordable flask upgrade persists without grinding
+PASS: Defeating Warden before its lesson leaves a nonlethal remnant tutorial, avoiding a soft lock
+PASS: Authored betrayal uses a separate input-locked fall, not ordinary defeat
+PASS: Transition settles without a blocking wait
+PASS: Skipping betrayal twice commits exactly one canonical death
+PASS: Chapter replay leaves campaign Continue save unchanged
+RESULT: 63/63 transition/system checks passed

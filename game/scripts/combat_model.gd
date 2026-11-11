@@ -14,6 +14,11 @@ var swing_serial: int = 0
 var victims: Dictionary = {}
 var damage_events: int = 0
 var parry_flash: float = 0
+var resolve: float = 3.0
+var ash_unlocked: bool = false
+var counter_window: float = 0
+var posture: float = 0
+var story_fall: bool = false
 
 func can_begin() -> bool:
 	return state == "idle" or state == "guard"
@@ -36,6 +41,13 @@ func start_attack(id: String) -> bool:
 	swing_serial += 1
 	victims.clear()
 	state = "attack"
+	elapsed = 0
+	return true
+
+func ashstep() -> bool:
+	if not ash_unlocked or not can_begin() or resolve < 1.0: return false
+	resolve -= 1
+	state = "ashstep"
 	elapsed = 0
 	return true
 
@@ -80,17 +92,25 @@ func claim_hit(target_id: int) -> bool:
 	return true
 
 func invulnerable() -> bool:
+	if state == "ashstep": return elapsed >= .04 and elapsed <= .36
 	return state == "dodge" and elapsed >= float(config.dodge.invulnerable_start) and elapsed <= float(config.dodge.invulnerable_end)
 
-func receive(amount: float, in_front: bool = true, armored: bool = false) -> String:
-	if state in ["dead", "talk", "transition"] or invulnerable():
+func receive(amount: float, in_front: bool = true, armored: bool = false, rules: Dictionary = {}) -> String:
+	if state in ["dead", "talk", "transition"]:
+		return "ignored"
+	if invulnerable() and rules.get("dodgeable",true):
+		if state == "ashstep" and elapsed<=.22:
+			counter_window = 2.5
+			return "ash_evade"
 		return "ignored"
 	if state == "guard" and in_front:
-		if elapsed <= float(config.parry_window) and spend(5):
+		if elapsed <= float(config.parry_window) and rules.get("parryable",true) and spend(5):
 			parry_flash = 0.3
+			if ash_unlocked: counter_window = 2.5
+			resolve = minf(3,resolve+0.75)
 			return "parry"
-		if spend(amount * 1.15):
-			return "guard"
+		posture=minf(100,posture+float(rules.get("posture",10)))
+		if rules.get("blockable",true) and posture<100 and spend(amount*1.15+float(rules.get("stamina_damage",0))): return "guard"
 	health = maxf(0, health - amount)
 	if health <= 0:
 		state = "dead"
@@ -104,7 +124,9 @@ func receive(amount: float, in_front: bool = true, armored: bool = false) -> Str
 func tick(delta: float) -> void:
 	elapsed += delta
 	parry_flash = maxf(0,parry_flash-delta)
+	counter_window = maxf(0,counter_window-delta)
 	regen_delay = maxf(0, regen_delay - delta)
+	if regen_delay<=0 and state=="idle": posture=maxf(0,posture-18*delta)
 	if regen_delay <= 0 and state in ["idle", "guard"]:
 		stamina = minf(100, stamina + float(config.stamina.regeneration) * delta * (0.35 if state == "guard" else 1.0))
 	var done: bool = false
@@ -112,6 +134,8 @@ func tick(delta: float) -> void:
 		done = elapsed >= float(attack.windup) + float(attack.active) + float(attack.recovery)
 	elif state == "dodge":
 		done = elapsed >= float(config.dodge.duration)
+	elif state == "ashstep":
+		done = elapsed >= .5
 	elif state == "hit":
 		done = elapsed >= 0.38
 	elif state == "heal":

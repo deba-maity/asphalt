@@ -1,0 +1,30 @@
+ASHEN VOW pass-two Windows export verification — 2026-11-11 client date
+
+Engine: Godot 4.7.2.stable.official.ed1daf0bf, standard GDScript.
+Template: official matching 4.7.2.stable windows_release_x86_64.exe.
+Renderer configuration: Compatibility. No graphical run performed in this verification.
+
+Build command:
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/build.ps1
+Result: exit 0. Embedded PCK contains the ten zone scenes, eighteen character
+scenes, JSON campaign/combat/quest/dialogue data, audio and command-only validators.
+
+Packaged verification, launched with --headless and hidden helper process:
+exports/windows/AshenVow.exe --headless --fixed-fps 60 -- --campaign-play
+Result: process exit 0; all six chapters from New Game through memorial/credits.
+No teleport, health grant, developer chapter fixture or direct quest-completion
+flag edit is used in that traversal. Fixed time accelerates simulation.
+
+exports/windows/AshenVow.exe --headless -- --campaign-continue
+Result: process exit 0; ending, credits, memorial checkpoint and exactly one
+canonical death/resurrection restored. No parse/runtime errors in either
+process's redirected stderr. See the adjacent complete process transcripts.
+
+The user's Remote Desktop restriction is respected: no game window, audible
+gameplay or desktop input capture was used for these exported-build checks.
+This does not establish visual quality, physical-device usability, rendered
+frame times, human duration or target-laptop performance.
+
+Output: exports/windows/AshenVow.exe with LICENSE, GODOT_LICENSE.txt,
+THIRD_PARTY_NOTICES.txt and build-hash.json. The exact local executable digest
+is retained alongside this file in build-hash.json.

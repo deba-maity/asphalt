@@ -1,0 +1,12 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/campaign_zone.gd" id="1"]
+[ext_resource type="PackedScene" path="res://assets/characters/captain_varo.tscn" id="a0"]
+[ext_resource type="PackedScene" path="res://assets/characters/road_bandit.tscn" id="a1"]
+[ext_resource type="PackedScene" path="res://assets/characters/tova.tscn" id="a2"]
+[ext_resource type="PackedScene" path="res://assets/characters/wood_scout.tscn" id="a3"]
+
+[node name="zone_cinder_home" type="Node3D"]
+script = ExtResource("1")
+zone_id = "zone_cinder_home"
+actor_resources = Array[PackedScene]([ExtResource("a0"), ExtResource("a1"), ExtResource("a2"), ExtResource("a3")])

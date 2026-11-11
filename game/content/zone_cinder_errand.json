@@ -1,0 +1,165 @@
+{
+  "id": "ch02_night_cinders",
+  "zone_id": "zone_cinder_errand",
+  "title": "The morning road",
+  "theme": "morning",
+  "length": 42,
+  "npcs": [
+    {
+      "id": "npc_memory_mira",
+      "name": "Mira",
+      "position": [
+        -4,
+        0,
+        5
+      ],
+      "asset": "mira"
+    },
+    {
+      "id": "npc_memory_isha",
+      "name": "Isha",
+      "position": [
+        -5,
+        0,
+        5
+      ],
+      "asset": "isha"
+    }
+  ],
+  "objects": [
+    {
+      "id": "obj_morning_note",
+      "name": "Mira's errand",
+      "position": [
+        -3,
+        0,
+        5
+      ],
+      "dialogue": [
+        [
+          "Mira",
+          "Edda's fever has broken. Will you fetch willow bark from the south orchard?"
+        ],
+        [
+          "Isha",
+          "I kept the last crust. It is a boat now."
+        ],
+        [
+          "Rayan",
+          "Then don't sail it in the soup."
+        ]
+      ],
+      "flag": "evt_errand_started",
+      "requires": [],
+      "effect": "",
+      "optional": false,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "obj_willow",
+      "name": "Willow bark",
+      "position": [
+        3,
+        0,
+        -29
+      ],
+      "dialogue": [
+        [
+          "Rayan",
+          "Enough for Edda. The orchard keeper has tied it with blue thread, just as Mira asked."
+        ]
+      ],
+      "flag": "evt_willow",
+      "requires": [
+        "evt_errand_started"
+      ],
+      "effect": "",
+      "optional": false,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "exit_home",
+      "name": "Return by the village lane",
+      "position": [
+        0,
+        0,
+        -38
+      ],
+      "dialogue": [
+        [
+          "Rayan",
+          "No cooking smoke. Why is the bell quiet?"
+        ]
+      ],
+      "flag": "",
+      "requires": [
+        "evt_willow"
+      ],
+      "effect": "",
+      "optional": false,
+      "transition": "zone_cinder_home",
+      "choice": false
+    }
+  ],
+  "encounters": [],
+  "quests": [
+    {
+      "id": "q_errand",
+      "text": "Read Mira's morning errand.",
+      "target": [
+        -3,
+        0,
+        5
+      ],
+      "until": "evt_errand_started",
+      "requires": []
+    },
+    {
+      "id": "q_willow",
+      "text": "Fetch bark at the orchard shelter.",
+      "target": [
+        3,
+        0,
+        -29
+      ],
+      "until": "evt_willow",
+      "requires": [
+        "evt_errand_started"
+      ]
+    },
+    {
+      "id": "q_return",
+      "text": "Return to Hearthmere.",
+      "target": [
+        0,
+        0,
+        -38
+      ],
+      "until": "evt_home_arrival",
+      "requires": [
+        "evt_willow"
+      ]
+    }
+  ],
+  "next": "zone_cinder_home",
+  "checkpoints": [
+    {
+      "id": "cp_cinder_errand",
+      "position": [
+        0,
+        0,
+        7
+      ],
+      "label": "The morning road"
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone_cinder_errand",
+      "title": "The morning road",
+      "north": -42
+    }
+  ]
+}

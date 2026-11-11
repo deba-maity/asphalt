@@ -1,0 +1,213 @@
+{
+  "chapters": [
+    {
+      "id": "ch01_bread_steel",
+      "title": "Bread and Steel",
+      "entry": "zone_hearthmere",
+      "number": 1
+    },
+    {
+      "id": "ch02_night_cinders",
+      "title": "Night of Cinders",
+      "entry": "zone_cinder_errand",
+      "number": 2
+    },
+    {
+      "id": "ch03_road_revenge",
+      "title": "The Road of Revenge",
+      "entry": "zone_sere_mill",
+      "number": 3
+    },
+    {
+      "id": "ch04_between_ashes",
+      "title": "Between Ashes",
+      "entry": "zone_counting_shore",
+      "number": 4
+    },
+    {
+      "id": "ch05_returned",
+      "title": "The Returned",
+      "entry": "zone_mill_return",
+      "number": 5
+    },
+    {
+      "id": "ch06_last_dawn",
+      "title": "The Last Dawn",
+      "entry": "zone_dawn_approach",
+      "number": 6
+    }
+  ],
+  "zones": {
+    "zone_hearthmere": {
+      "chapter": "ch01_bread_steel",
+      "scene": "res://scenes/zones/hearthmere.tscn",
+      "data": "res://content/chapter_01.json",
+      "checkpoint": "cp_home",
+      "checkpoints": {
+        "cp_home": [
+          0,
+          0,
+          7
+        ],
+        "cp_road_shrine": [
+          0,
+          0,
+          -34
+        ]
+      },
+      "estimate_mb": 6
+    },
+    "zone_cinder_errand": {
+      "chapter": "ch02_night_cinders",
+      "scene": "res://scenes/zones/zone_cinder_errand.tscn",
+      "data": "res://content/zone_cinder_errand.json",
+      "checkpoint": "cp_cinder_errand",
+      "checkpoints": {
+        "cp_cinder_errand": [
+          0,
+          0,
+          7
+        ]
+      },
+      "estimate_mb": 6
+    },
+    "zone_cinder_home": {
+      "chapter": "ch02_night_cinders",
+      "scene": "res://scenes/zones/zone_cinder_home.tscn",
+      "data": "res://content/zone_cinder_home.json",
+      "checkpoint": "cp_cinder_home",
+      "checkpoints": {
+        "cp_cinder_home": [
+          0,
+          0,
+          7
+        ],
+        "cp_before_boss_varo": [
+          0,
+          0,
+          -35
+        ]
+      },
+      "estimate_mb": 8
+    },
+    "zone_sere_mill": {
+      "chapter": "ch03_road_revenge",
+      "scene": "res://scenes/zones/zone_sere_mill.tscn",
+      "data": "res://content/zone_sere_mill.json",
+      "checkpoint": "cp_sere_mill",
+      "checkpoints": {
+        "cp_sere_mill": [
+          0,
+          0,
+          7
+        ]
+      },
+      "estimate_mb": 8
+    },
+    "zone_copper_stair": {
+      "chapter": "ch03_road_revenge",
+      "scene": "res://scenes/zones/zone_copper_stair.tscn",
+      "data": "res://content/zone_copper_stair.json",
+      "checkpoint": "cp_copper_stair",
+      "checkpoints": {
+        "cp_copper_stair": [
+          0,
+          0,
+          7
+        ],
+        "cp_before_boss_kesran": [
+          0,
+          0,
+          -44
+        ]
+      },
+      "estimate_mb": 8
+    },
+    "zone_counting_shore": {
+      "chapter": "ch04_between_ashes",
+      "scene": "res://scenes/zones/zone_counting_shore.tscn",
+      "data": "res://content/zone_counting_shore.json",
+      "checkpoint": "cp_counting_shore",
+      "checkpoints": {
+        "cp_counting_shore": [
+          0,
+          0,
+          7
+        ],
+        "cp_before_boss_warden": [
+          0,
+          0,
+          -26
+        ]
+      },
+      "estimate_mb": 6
+    },
+    "zone_mill_return": {
+      "chapter": "ch05_returned",
+      "scene": "res://scenes/zones/zone_mill_return.tscn",
+      "data": "res://content/zone_mill_return.json",
+      "checkpoint": "cp_mill_return",
+      "checkpoints": {
+        "cp_mill_return": [
+          0,
+          0,
+          7
+        ],
+        "cp_before_boss_serit": [
+          0,
+          0,
+          -43
+        ]
+      },
+      "estimate_mb": 8
+    },
+    "zone_dawn_approach": {
+      "chapter": "ch06_last_dawn",
+      "scene": "res://scenes/zones/zone_dawn_approach.tscn",
+      "data": "res://content/zone_dawn_approach.json",
+      "checkpoint": "cp_dawn_approach",
+      "checkpoints": {
+        "cp_dawn_approach": [
+          0,
+          0,
+          7
+        ]
+      },
+      "estimate_mb": 8
+    },
+    "zone_dawn_court": {
+      "chapter": "ch06_last_dawn",
+      "scene": "res://scenes/zones/zone_dawn_court.tscn",
+      "data": "res://content/zone_dawn_court.json",
+      "checkpoint": "cp_dawn_court",
+      "checkpoints": {
+        "cp_dawn_court": [
+          0,
+          0,
+          7
+        ],
+        "cp_before_boss_halvek": [
+          0,
+          0,
+          -21
+        ]
+      },
+      "estimate_mb": 5
+    },
+    "zone_memorial": {
+      "chapter": "ch06_last_dawn",
+      "scene": "res://scenes/zones/zone_memorial.tscn",
+      "data": "res://content/zone_memorial.json",
+      "checkpoint": "cp_memorial",
+      "checkpoints": {
+        "cp_memorial": [
+          0,
+          0,
+          7
+        ]
+      },
+      "estimate_mb": 5
+    }
+  },
+  "speculative_budget_mb": 24
+}

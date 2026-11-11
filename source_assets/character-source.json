@@ -7,6 +7,7 @@
   "animation_source": "game/content/poses.json",
   "baker": "game/tests/bake_characters.gd",
   "runtime": "game/assets/characters/*.tscn",
+  "role_variants": "18 runtime scenes. Original guard shields, archer bow/quiver, wide heavy weapons, elite/Warden headgear, and Ledger three-loop cord are authored in figure.gd and baked with the common articulated rig.",
   "units": "one Godot unit = one metre",
   "orientation": "Y up, -Z forward",
   "adult_height_metres": 1.9,

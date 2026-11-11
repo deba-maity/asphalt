@@ -1,0 +1,294 @@
+{
+  "id": "ch05_returned",
+  "zone_id": "zone_mill_return",
+  "title": "Sere Mill · the drained channel",
+  "theme": "returned",
+  "length": 82,
+  "npcs": [
+    {
+      "id": "npc_neri_return_body",
+      "name": "Neri",
+      "position": [
+        4,
+        0,
+        1
+      ],
+      "asset": "saren"
+    }
+  ],
+  "objects": [
+    {
+      "id": "npc_neri_return",
+      "name": "Neri",
+      "position": [
+        4,
+        0,
+        1
+      ],
+      "dialogue": [
+        [
+          "Neri",
+          "I watched them carry you out. I couldn't stop them."
+        ],
+        [
+          "Rayan",
+          "You can help me finish this."
+        ],
+        [
+          "Neri",
+          "Serit's hunters watch for desperate dodges. Don't spend your new step without a way back."
+        ]
+      ],
+      "flag": "evt_return_witness",
+      "requires": [],
+      "effect": "",
+      "optional": false,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "obj_mira_letter",
+      "name": "A lining beneath the millstone",
+      "position": [
+        -5,
+        0,
+        -13
+      ],
+      "dialogue": [
+        [
+          "Mira's letter",
+          "Rayan, if this reaches you first: they were children on a list. I could not put the coat back as if I hadn't seen it. Guard people, not their gates. — M."
+        ],
+        [
+          "Rayan",
+          "You were already on this road before me."
+        ]
+      ],
+      "flag": "discovery_mira_letter",
+      "requires": [],
+      "effect": "",
+      "optional": true,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "obj_marshal_orders",
+      "name": "Serit's marked route",
+      "position": [
+        3,
+        0,
+        -64
+      ],
+      "dialogue": [
+        [
+          "Serit's orders",
+          "Halvek has withdrawn to the Dawn Court. No witnesses past the last bridge. His own guard may not leave."
+        ],
+        [
+          "Neri",
+          "He is closing the book on all of us."
+        ]
+      ],
+      "flag": "evt_serit_route",
+      "requires": [
+        "evt_return_marshal_clear"
+      ],
+      "effect": "",
+      "optional": false,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "exit_dawn",
+      "name": "Take the last bridge road",
+      "position": [
+        0,
+        0,
+        -77
+      ],
+      "dialogue": [
+        [
+          "Rayan",
+          "Then we open it."
+        ]
+      ],
+      "flag": "",
+      "requires": [
+        "evt_serit_route"
+      ],
+      "effect": "complete_chapter",
+      "optional": false,
+      "transition": "zone_dawn_approach",
+      "choice": false
+    }
+  ],
+  "encounters": [
+    {
+      "id": "return_hunters",
+      "flag": "evt_return_hunters_clear",
+      "center": [
+        0,
+        0,
+        -36
+      ],
+      "requires": [
+        "evt_mill_veil_crossed"
+      ],
+      "boss": "",
+      "reward": 0,
+      "enemies": [
+        {
+          "id": "return_hunters_0",
+          "kind": "ledger_elite",
+          "position": [
+            -1.5,
+            0,
+            -36
+          ]
+        },
+        {
+          "id": "return_hunters_1",
+          "kind": "ledger_archer",
+          "position": [
+            2.5,
+            0,
+            -39
+          ]
+        }
+      ]
+    },
+    {
+      "id": "return_marshal",
+      "flag": "evt_return_marshal_clear",
+      "center": [
+        0,
+        0,
+        -57
+      ],
+      "requires": [
+        "evt_return_hunters_clear"
+      ],
+      "boss": "boss_serit",
+      "reward": 30,
+      "enemies": [
+        {
+          "id": "return_marshal_0",
+          "kind": "marshal_serit",
+          "position": [
+            0,
+            0,
+            -57
+          ]
+        }
+      ]
+    }
+  ],
+  "quests": [
+    {
+      "id": "q_return_witness",
+      "text": "Speak to Neri by the drained mill.",
+      "target": [
+        4,
+        0,
+        1
+      ],
+      "until": "evt_return_witness",
+      "requires": []
+    },
+    {
+      "id": "q_return_veil",
+      "text": "Ashstep through the Ledger's ward.",
+      "target": [
+        0,
+        0,
+        -24
+      ],
+      "until": "evt_mill_veil_crossed",
+      "requires": [
+        "evt_return_witness"
+      ]
+    },
+    {
+      "id": "q_hunters",
+      "text": "Break the hunter and bowman. Vary your defense.",
+      "target": [
+        0,
+        0,
+        -36
+      ],
+      "until": "evt_return_hunters_clear",
+      "requires": [
+        "evt_mill_veil_crossed"
+      ]
+    },
+    {
+      "id": "q_serit",
+      "text": "Defeat Marshal Serit at the dry lock.",
+      "target": [
+        0,
+        0,
+        -57
+      ],
+      "until": "evt_return_marshal_clear",
+      "requires": [
+        "evt_return_hunters_clear"
+      ]
+    },
+    {
+      "id": "q_route",
+      "text": "Read the marshal's last orders.",
+      "target": [
+        3,
+        0,
+        -64
+      ],
+      "until": "evt_serit_route",
+      "requires": [
+        "evt_return_marshal_clear"
+      ]
+    },
+    {
+      "id": "q_last_bridge",
+      "text": "Take the road to the Dawn Court.",
+      "target": [
+        0,
+        0,
+        -77
+      ],
+      "until": "ch05_complete",
+      "requires": [
+        "evt_serit_route"
+      ]
+    }
+  ],
+  "next": "zone_dawn_approach",
+  "checkpoints": [
+    {
+      "id": "cp_mill_return",
+      "position": [
+        0,
+        0,
+        7
+      ],
+      "label": "Sere Mill · the drained channel"
+    },
+    {
+      "id": "cp_before_boss_serit",
+      "position": [
+        0,
+        0,
+        -43
+      ],
+      "label": "Before serit"
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone_mill_return",
+      "title": "Sere Mill · the drained channel",
+      "north": -82
+    }
+  ],
+  "ward_z": -24,
+  "ward_flag": "evt_mill_veil_crossed"
+}

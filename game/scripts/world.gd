@@ -13,6 +13,7 @@ var checkpoint_hint: bool = false
 var elapsed: float = 0
 var npc_model: CombatModel = CombatModel.new()
 var rng = RandomNumberGenerator.new()
+var coordinator: EncounterCoordinator
 
 func _ready() -> void:
 	rng.seed = 85171
@@ -30,6 +31,39 @@ func _ready() -> void:
 
 func can_play() -> bool:
 	return ui != null and ui.mode == "play" and hero != null and hero.model.state != "dead"
+
+func prepare_hero() -> void:
+	if is_instance_valid(ui.main.player):
+		hero = ui.main.player
+		hero.reparent(self)
+		hero.model = CombatModel.new()
+		hero.collision_layer = 2
+		hero.hurtbox.collision_layer = 8
+		hero.last_state = "idle"
+	else:
+		hero = Fighter.new()
+		hero.player = true
+		hero.world = self
+		add_child(hero)
+		hero.feedback.connect(ui.toast)
+		ui.main.player = hero
+	hero.visible = true
+	hero.set_physics_process(true)
+	hero.world = self
+	hero.position = Session.checkpoint_position()
+	hero.velocity = Vector3.ZERO
+	hero.camera_focus = Vector3.ZERO
+	hero.yaw.rotation.y = 0
+	hero.pitch.rotation.x = -0.31
+	hero.pitch.spring_length = 5.6
+	hero.model.max_health = Session.data.max_health
+	hero.model.health = maxf(1,Session.data.health)
+	hero.model.resolve = Session.data.resolve
+	hero.model.ash_unlocked = "ashstep" in Session.data.unlocks
+	hero.slain.connect(_hero_died)
+	coordinator = EncounterCoordinator.new()
+	coordinator.world = self
+	add_child(coordinator)
 
 func solid_box(size: Vector3, at: Vector3, color: Color, visible_mesh: bool = true) -> StaticBody3D:
 	var body = StaticBody3D.new()
@@ -268,15 +302,7 @@ func build_road() -> void:
 	Figure.cylinder(self,0.65,0.65,0.12,Vector3(3,0.06,-61),Color("444c47"),8)
 
 func spawn_actors() -> void:
-	hero = Fighter.new()
-	hero.player = true
-	hero.world = self
-	hero.position = Session.checkpoint_position()
-	add_child(hero)
-	hero.model.max_health = Session.data.max_health
-	hero.model.health = maxf(1,Session.data.health)
-	hero.slain.connect(_hero_died)
-	hero.feedback.connect(func(text): ui.toast(text))
+	prepare_hero()
 	for npc in Session.chapter.npcs:
 		var root = Node3D.new()
 		root.position = Vector3(npc.position[0],0,npc.position[2])
@@ -311,9 +337,11 @@ func refresh_objective() -> void:
 	marker.position = Vector3(p[0],2.9,p[2])
 
 func _process(delta: float) -> void:
+	if is_queued_for_deletion() or (hero!=null and hero.world!=self): return
 	elapsed += delta
 	if hero == null or ui == null:
 		return
+	if not Session.running: return
 	marker.position.y = 2.8+sin(elapsed*2)*0.18
 	marker.rotation.y += delta
 	for id in npcs:
@@ -325,6 +353,10 @@ func _process(delta: float) -> void:
 		if can_play():
 			ui.announce("THE ALDER ROAD" if zone == "zone_alder_road" else "HEARTHMERE")
 	if can_play():
+		for enemy in enemies.duplicate():
+			if is_instance_valid(enemy) and enemy.model.state=="dead" and enemy.model.elapsed>4:
+				enemies.erase(enemy)
+				enemy.queue_free()
 		ui.update_hud(hero,nearest_interaction())
 		if hero.position.z < -30 and not Session.flag("learn_checkpoint"):
 			ui.toast("The roadside shrine restores health and draughts. E to rest and save.")
@@ -367,7 +399,9 @@ func interact() -> void:
 	learn("interact")
 	var id: String = point.id
 	if id == "npc_mira":
-		if not Session.flag("evt_family_morning"):
+		if Session.flag("ch01_complete"):
+			ui.show_ending()
+		elif not Session.flag("evt_family_morning"):
 			talk("morning",id,func(): Session.mark("evt_family_morning"))
 		elif Session.flag("purchase_honeybread") and not Session.flag("ch01_complete"):
 			talk("supper",id,finish_chapter)
@@ -412,6 +446,8 @@ func talk(key: String, id: String, completion: Callable = Callable(), choice: bo
 	if not hero.model.freeze("talk"):
 		return
 	hero.velocity = Vector3.ZERO
+	var saved_yaw = hero.yaw.rotation.y
+	var saved_pitch = hero.pitch.rotation.x
 	for point in interactables:
 		if point.id == id:
 			hero.face(point.position)
@@ -426,6 +462,8 @@ func talk(key: String, id: String, completion: Callable = Callable(), choice: bo
 		hero.model.elapsed = 0
 		hero.pitch.spring_length = 5.6
 		hero.camera_focus = Vector3.ZERO
+		hero.yaw.rotation.y = saved_yaw
+		hero.pitch.rotation.x = saved_pitch
 		if accepted and completion.is_valid():
 			completion.call(),choice)
 
@@ -433,7 +471,8 @@ func finish_chapter() -> void:
 	Session.data.checkpoint = "cp_home"
 	Session.data.zone = "zone_hearthmere"
 	Session.data.health = hero.model.health
-	Session.mark("evt_family_supper")
+	Session.data.flags["evt_family_supper"] = true
+	Session.complete_chapter("ch01_bread_steel")
 	Session.mark("ch01_complete")
 	ui.show_ending()
 
@@ -453,5 +492,25 @@ func _hero_died(_fighter: Fighter) -> void:
 	ui.show_death()
 
 func save_current() -> void:
-	Session.data.health = maxf(1,hero.model.health)
+	if hero.model.state=="dead":
+		Session.data.health=Session.data.max_health
+		Session.data.heals=Session.data.max_heals
+		Session.data.resolve=3.0
+	else:
+		Session.data.health = maxf(1,hero.model.health)
+		Session.data.resolve = hero.model.resolve
 	Session.save()
+
+func spawn_projectile(owner_actor: Fighter) -> void:
+	if get_tree().get_nodes_in_group("projectiles").size() >= 6: return
+	var bolt = LedgerProjectile.new()
+	bolt.source = owner_actor
+	bolt.world = self
+	bolt.position = owner_actor.position+Vector3(0,1.0,0)
+	bolt.direction = (hero.position+Vector3.UP-bolt.position).normalized()
+	bolt.damage = owner_actor.model.attack.damage
+	add_child(bolt)
+
+func on_ash_evade() -> void:
+	if not Session.flag("evt_ashstep_evade"): Session.mark("evt_ashstep_evade")
+	ui.toast("Perfect Ashstep · Heavy attack now becomes an opening counter.")

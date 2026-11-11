@@ -1,0 +1,67 @@
+Fresh validation save. Uses normal movement, interaction, damage windows and story callbacks; no teleport or invincibility.
+Campaign traversal starts at New Game. No debug jumps, teleports, health grants or encounter flag edits.
+Morning family interaction completed.
+Protection contract accepted.
+Encounter complete: evt_cart_clear
+Shrine checkpoint activated, health and draughts restored.
+Encounter complete: evt_ambush_clear
+Encounter complete: evt_foreman_clear
+Paid exactly 30 crowns.
+Bought honeybread for 8 crowns.
+Opening chapter completed from fresh save through movement, 5 enemies, payment, purchase and family supper.
+Distance walked 134.0m; simulated 68.1s. Headless run: no rendered FPS measurement.
+Pause froze player position; resumed successfully.
+Chapter one complete; take the next-day chapter-card action.
+Entered zone_cinder_errand / mortal
+Objective: q_errand
+Objective: q_willow
+Objective: q_return
+Entered zone_cinder_home / mortal
+Objective: q_bird
+Objective: q_edda
+Objective: q_raiders
+Objective: q_varo
+Objective: q_case
+Objective: q_leave_home
+Entered zone_sere_mill / mortal
+Objective: q_mill_guard
+Objective: q_rescue
+Objective: q_ferry
+Objective: q_list
+Objective: q_boat
+Entered zone_copper_stair / mortal
+Objective: q_avel
+Objective: q_stair_patrol
+Objective: q_kesran
+Objective: q_passage
+Entered zone_counting_shore / between
+Objective: q_memory
+Objective: q_choice
+Objective: q_ash_tutorial
+Objective: q_trial
+Objective: q_shore_gate
+Objective: q_return_life
+Entered zone_mill_return / returned
+Objective: q_return_witness
+Objective: q_return_veil
+Objective: q_hunters
+Objective: q_serit
+Objective: q_route
+Objective: q_last_bridge
+Entered zone_dawn_approach / returned
+Objective: q_last_guard
+Objective: q_register
+Objective: q_gate_elites
+Objective: q_court
+Entered zone_dawn_court / returned
+Objective: q_halvek_words
+Objective: q_halvek
+Objective: q_broken_ledger
+Objective: q_home_again
+Entered zone_memorial / returned
+Objective: q_bowl
+Objective: q_bird_rest
+Objective: q_memorial
+PASS: all six chapters, canonical death/resurrection, five later named confrontations, memorial and credits.
+Observed scripted traversal 381.9s, including fast dialogue and loading. Not a human playtime estimate.
+Wall-clock 10.74s; display backend headless. Accelerated fixed-FPS runs report simulation time separately; no graphics performance inferred.

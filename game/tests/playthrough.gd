@@ -128,7 +128,8 @@ func _process(delta: float) -> void:
 			if Session.flag("ch01_complete"):
 				capture("06_chapter_complete")
 				record("Opening chapter completed from fresh save through movement, 5 enemies, payment, purchase and family supper.")
-				record("Distance walked: %.1fm; elapsed %.1fs; development-run average %.1f FPS (30 FPS cap; not target-laptop evidence)." % [hero.total_distance,elapsed,frames/maxf(total_frame_seconds,0.001)])
+				if DisplayServer.get_name()=="headless": record("Distance walked %.1fm; simulated %.1fs. Headless run: no rendered FPS measurement." % [hero.total_distance,elapsed])
+				else: record("Distance walked: %.1fm; elapsed %.1fs; development-run average %.1f FPS (30 FPS cap; not target-laptop evidence)." % [hero.total_distance,elapsed,frames/maxf(total_frame_seconds,0.001)])
 				next_stage()
 		14:
 			if stage_time > 0.8:

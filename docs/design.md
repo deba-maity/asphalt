@@ -1,25 +1,36 @@
-# Design and chapter outline
+# Campaign design — implemented content
 
-The ordinary life must matter before it is lost. Rayan is competent, human, and paid modestly. Hearthmere's clay houses, honeybread, buckles and family jokes establish the scale of his world. Black cords on the road crew foreshadow an organization without turning this opening into exposition. Dialogue carries the story without voice acting. Combat has no gore or dismemberment.
+The original opening's people, place names and ordinary details remain: Mira adjusts Rayan's buckle, Isha asks for something other than a stone, Tova saves a honeybread loaf, and Oren promises a bowl that will not leak. The later story follows those particulars rather than substituting generic memories. The family loss is shown through an altered village, folded cloth, objects and Edda's testimony. There is no explicit image of the family's deaths.
 
-## Implemented: ch01_bread_steel — Bread and Steel
+## Journey and identifiers
 
-One compact connected environment: `zone_hearthmere` and `zone_alder_road`. No loading wait between them. The journey is family → work → fallen cart → shrine → alder ambush → kiln foreman → pay → bread → family supper. Two enemies in each normal encounter; one foreman. The foreman cycles sweep, sweep, overhead slam, with a long punishable final recovery. Heavy attacks interrupt him; light attacks do not interrupt his attacking armor. Gold rings and body poses telegraph enemy windups. Guard works from the front; a parry costs stamina and staggers the attacker. A dodge's middle protects the player; its recovery is vulnerable.
-
-The shrine is optional. Checkpoint restart resets unfinished encounters; cleared encounters, pay, purchases and family events persist. Returning to town takes less than half a minute on foot; there is no repeat ambush or artificial waiting. The ending displays completion and saves `ch01_complete` and `evt_family_supper`. No later-campaign button appears.
-
-## Planned narrative — not implemented
-
-| ID | Chapter | Purpose |
+| Chapter ID | Active zones | Main authored actions |
 |---|---|---|
-| ch02_unlit_hearth | The Unlit Hearth | A return to an attacked settlement. Quiet aftermath, covered household objects, testimony from neighbor Edda; no explicit images of the family's deaths. The black cords lead to the Cinder Ledger, an organization selling protection through terror. |
-| ch03_levy_of_ash | Levy of Ash | Travel through Sere Fen with a survivor. Protect a ferry and follow an intermediary. First later boss and meaningful equipment choice. |
-| ch04_last_breath | The Copper Stair | Enter the Ledger's counting city. Revenge isolates Rayan; an ambush kills him. |
-| ch05_counting_shore | The Counting Shore | An otherworldly trial offers return at the cost of a precious memory. The player gains vow-step and guard-break capabilities through playable trials. His family cannot be restored. |
-| ch06_debts_at_dawn | Debts at Dawn | Return through changed territory, dismantle the Ledger's power and confront Halvek. End with Rayan choosing to protect others while carrying his grief. A last crust left at the family marker echoes chapter one. |
+| ch01_bread_steel | zone_hearthmere (also preserves legacy zone_alder_road alias) | Existing paid job, road fights, foreman, pay, purchase, supper; then a functional next-day action. |
+| ch02_night_cinders | zone_cinder_errand, zone_cinder_home | Willow-bark errand; changed settlement, Isha's bird, Edda, optional sewing basket, remaining raiders, Captain Varo, dispatch and departure. |
+| ch03_road_revenge | zone_sere_mill, zone_copper_stair | Guard/bow combinations, Neri rescue and revelation, tempered edge, optional flask, ferry register, occupied approach, Kesran, Avel's betrayal. |
+| ch04_between_ashes | zone_counting_shore | Broken-moon memory, Keeper's informed choice, Ashstep lesson, Warden, veil traversal and the single return to life. |
+| ch05_returned | zone_mill_return | Changed mill geometry, drained channel, ward, hunter/bow combination, optional Mira letter, Serit and his orders. |
+| ch06_last_dawn | zone_dawn_approach, zone_dawn_court, zone_memorial | Bridge/gate combinations, register, Halvek's explanation and two phases, broken seal, bowl/bird memorial, last crust, credits. |
 
-These are design commitments to refine in pass two, not scenes, quests or unlocks currently available. Only `sword_basics` is a permanent unlock in the initial save.
+The six-chapter order follows the pass-two brief. Unimplemented chapter names proposed in the pass-one design were never persistence keys. Existing chapter-one keys remain compatible. `tools/author_campaign.py` is the editable source for later dialogue/quests/objects/encounters and local scene manifests. Generated content is committed.
 
-## Scope and presentation
+## Opponents and progression
 
-Original stylized historical fantasy with subdued cloth, timber, clay, stone, and long late-day shadows. Third-person melee, readable attacks and a small active-enemy count. No endless arena, multiplayer, loot treadmill, backend, live service or copied franchise material. AI opponents pursue in sight within their small notice radius; this first road does not require a navigation mesh. Later environments will need path navigation and encounter activation.
+Five behavior families are implemented: aggressive thieves/scouts, patient guarding swordsmen, slow heavy attackers with punishable recovery, ranged bowmen with swept projectiles, and elites that guard repeated light attacks and lunge after evasive movement. Authored pairings include guard/bow and elite/bow, with readable escape space. Only one attack lease is active; waiting opponents guard or reposition, and age-based selection prevents indefinite passivity.
+
+Named confrontations: Varo repeats lunges before a delayed feint; Kesran guards and answers a committed attack; the Still Warden uses unguardable rings and echoes; Serit changes distance to throw and cleave; Halvek changes from shield stance to seal attacks after a protected, announced phase transition. The opening foreman's original two-sweep/overhead pattern remains.
+
+Neri teaches `tempered_edge` without payment: heavy strikes break patient guards. The optional deeper flask costs 20 crowns and raises stock to four. The opening guarantees 30 crowns before the required 8-crown loaf; Varo supplies another 20, so the optional purchase is affordable without repetition. Later first-clear rewards are finite. Required story passage never depends on optional shopping or grinding.
+
+Ashstep is temporarily lent in the trial and retained after resurrection. F/LT spends one of three Resolve charges for a short enhanced step. Its invulnerability is 0.04–0.36 seconds; an actual defensive contact by 0.22 seconds opens a 2.5-second heavy-counter opportunity. A parry also opens a counter. Hits/parries restore Resolve; resting refills it. The commitment and recovery, limited resource, reactive elites and physical ward crossings create decisions beyond higher damage. A nonlethal Warden remnant keeps the mandatory lesson available if a player defeats the boss first.
+
+## Death, cost and resolution
+
+Ordinary combat death uses checkpoint restart. Kesran's fight is winnable. Afterwards, Avel's skippable betrayal and a brief input-locked fall send Rayan to the Counting Shore; no unwinnable health bar stands in for the event. The canonical death is committed once with the realm checkpoint. The Keeper states the return's cost before acceptance: Rayan keeps Isha's words but loses the sound of her voice. The trial and veil must be completed before returning. Later ordinary deaths preserve that returned body and its abilities.
+
+Mira found a register hidden in Neri's damaged coat and copied names of families marked for Ledger violence. Halvek ordered the witnesses killed to preserve the organization through fear. Neri and the saved register make his actions known after his defeat. The memorial resolves the price without undoing it: Rayan remembers the soup joke and last crust, cannot recover Isha's laughter, and returns to protecting travelers. Credits and a useful memorial Continue conclude the campaign.
+
+## Duration and remaining design work
+
+This implementation supplies a beginning, middle, resurrection, climax and ending with real completion paths. Its authored content is currently short. A normal-speed headless traversal took 375 seconds with immediate dialogue advancement and automated combat. No human multi-hour claim is made. A compact two-to-three-hour target would need substantially more optional journeys, relationships, discoveries and encounter layouts. Repeated enemies, idle waiting and empty distance are not an acceptable way to reach it. Human pacing and that expansion remain future work.

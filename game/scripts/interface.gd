@@ -30,6 +30,9 @@ var speaker_id: String = ""
 var lock_label: Label
 var tutorial_timer: float = 0
 var theme: Theme
+var chapter_label: Label
+var loading_progress: ProgressBar
+var story_paused: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -127,7 +130,7 @@ func build_hud() -> void:
 	left.add_child(stamina)
 	status = text(left,"",16)
 	var right = column(panel(hud,Vector2(883,26),Vector2(369,145)))
-	text(right,"01   /   BREAD AND STEEL",17,GOLD)
+	chapter_label = text(right,"01   /   BREAD AND STEEL",17,GOLD)
 	objective_text = text(right,"",18)
 	objective_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	objective_text.custom_minimum_size.x = 325
@@ -153,22 +156,25 @@ func build_hud() -> void:
 	hud.visible = false
 
 func show_menu() -> void:
+	Session.running=false
+	Session.return_to_main_save()
 	mode = "menu"
 	hud.visible = false
 	get_tree().paused = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	clear_overlay()
 	shade(0.50)
-	var c = column(panel(overlay,Vector2(68,52),Vector2(520,575)),12)
+	var c = column(panel(overlay,Vector2(68,32),Vector2(520,650)),8)
 	text(c,"A  W A Y F A R E R ' S  S T O R Y",17,GOLD)
-	var title = text(c,"ASHEN\nVOW",70)
+	var title = text(c,"ASHEN\nVOW",60)
 	var serif = SystemFont.new()
 	serif.font_names = PackedStringArray(["Georgia","Liberation Serif"])
 	title.add_theme_font_override("font",serif)
-	text(c,"01  /  BREAD AND STEEL",21,GOLD)
-	text(c,"An ordinary day's work. A reason to return.",18)
+	text(c,"A ROAD THROUGH ASHES",21,GOLD)
+	text(c,"Six chapters · One costly road home",18)
 	if not Session.loaded.is_empty():
-		button(c,"Continue opening chapter",func(): main.start_game(false)).grab_focus()
+		button(c,"Continue · "+Campaign.chapter(Session.loaded.chapter).title,func(): main.start_game(false)).grab_focus()
+		button(c,"Chapter select · separate replay saves",show_chapter_select)
 	button(c,"Begin a new journey",func():
 		if Session.loaded.is_empty():
 			main.start_game(true)
@@ -176,7 +182,7 @@ func show_menu() -> void:
 			confirm_new()).grab_focus()
 	button(c,"Controls & settings",func(): show_settings("menu"))
 	button(c,"Quit",func(): main.finish())
-	text(c,"PASS ONE  ·  Original stylized prototype\nOffline single-player  /  Godot 4.7.2",14,Color("b7b5a9"))
+	text(c,"Original campaign · Offline single-player\nGodot 4.7.2 · Art and animation in development",14,Color("b7b5a9"))
 	if not Session.save_warning.is_empty():
 		var warning = text(overlay,Session.save_warning,17,GOLD)
 		warning.position = Vector2(620,560)
@@ -211,7 +217,7 @@ func show_pause() -> void:
 	shade()
 	var c = column(panel(overlay,Vector2(425,150),Vector2(430,420)),13)
 	text(c,"A moment of quiet",32,GOLD)
-	text(c,"BREAD AND STEEL",17)
+	text(c,Campaign.chapter(Session.data.chapter).title.to_upper(),17)
 	button(c,"Return to the road",play).grab_focus()
 	button(c,"Journal & controls",show_journal)
 	button(c,"Settings",func(): show_settings("pause"))
@@ -266,18 +272,44 @@ func show_journal() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	clear_overlay()
 	shade()
-	var c = column(panel(overlay,Vector2(230,65),Vector2(820,590)),14)
+	var c = column(panel(overlay,Vector2(230,65),Vector2(820,590)),9)
 	text(c,"The wayfarer's journal",32,GOLD)
 	text(c,Session.objective().text,21)
 	var completed: Array[String] = []
 	for e in Session.chapter.encounters:
 		if Session.flag(e.flag): completed.append(e.id.trim_prefix("enc_").replace("_"," "))
-	text(c,"Road cleared: "+(", ".join(completed) if not completed.is_empty() else "None yet"),17,GOLD)
-	text(c,"A day's pay: 30 crowns. Honeybread: 8 crowns.\nThe shrine restores health and three draughts; it saves your checkpoint.\nA fallen swordsman wakes there. Unfinished encounters reset.\nThe foreman follows two sweeps with an overhead blow.\nGuard as an attack lands to parry; dodges protect you briefly.\nHeavy blows interrupt the foreman. Rest to recover stamina.",18)
-	text(c,Preferences.HELP,17)
+	text(c,"%d crowns · %d/%d chapters complete" % [Session.data.currency,Session.data.completed_chapters.size(),6],17,GOLD)
+	var notes="Rest restores health, draughts and Resolve; unfinished fights reset.\nHeavy attacks break guards after Neri's whetstone lesson.\nAshstep: F / left trigger. Three Resolve charges; land hits or parry to refill.\nA precise Ashstep evasion opens a heavy counter. Elites punish careless steps."
+	if Session.data.chapter=="ch01_bread_steel": notes="A day's pay: 30 crowns. Honeybread: 8 crowns.\nThe foreman follows two sweeps with an overhead blow.\nGuard as a blow lands to parry; dodge through a blow's active window.\nRest restores health and draughts. Unfinished fights reset."
+	text(c,notes,17)
+	text(c,Preferences.HELP,16)
+	button(c,"Read remembered conversations & discoveries",show_records)
 	button(c,"Close journal",play).grab_focus()
 
+func show_records() -> void:
+	mode="journal"
+	get_tree().paused=true
+	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
+	clear_overlay()
+	shade()
+	var c=column(panel(overlay,Vector2(230,55),Vector2(820,620)),12)
+	text(c,"What the road has kept",30,GOLD)
+	var scroll=ScrollContainer.new()
+	scroll.custom_minimum_size=Vector2(780,460)
+	c.add_child(scroll)
+	var records=column(scroll,16)
+	var entries=Session.recorded_entries()
+	if entries.is_empty(): text(records,"Conversations and discoveries will be recorded here.",18)
+	for entry in entries:
+		text(records,entry.name,21,GOLD)
+		for line in entry.lines:
+			var l=text(records,line[0]+": "+line[1],18)
+			l.custom_minimum_size.x=740
+			l.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	button(c,"Back to objectives",show_journal).grab_focus()
+
 func show_dialogue(lines: Array, id: String, callback: Callable, choice: bool) -> void:
+	story_paused=false
 	mode = "dialogue"
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	dialogue_lines = lines
@@ -311,9 +343,17 @@ func refresh_dialogue() -> void:
 	dialogue_text.text = dialogue_lines[dialogue_index][1]
 	var last = dialogue_index == dialogue_lines.size()-1
 	dialogue_cancel.visible = dialogue_choice and last
-	dialogue_next.text = ("Accept / buy  [E / Enter]" if dialogue_choice else "Finish  [E / Enter]") if last else "Continue  [E / Enter]"
+	var agreement="Accept"
+	match speaker_id:
+		"npc_saren": agreement="Accept contract"
+		"npc_tova": agreement="Buy · 8 crowns"
+		"npc_keeper": agreement="Accept the trial"
+		"exit_return": agreement="Return · accept the cost"
+		"obj_mill_bench": agreement="Buy flask · 20 crowns"
+	dialogue_next.text = ((agreement+"  [E / Enter]") if dialogue_choice else "Finish  [E / Enter]") if last else "Continue  [E / Enter]"
 
 func advance_dialogue() -> void:
+	if story_paused: return
 	if dialogue_index < dialogue_lines.size()-1:
 		dialogue_index += 1
 		refresh_dialogue()
@@ -321,7 +361,10 @@ func advance_dialogue() -> void:
 		close_dialogue(true)
 
 func close_dialogue(accepted: bool) -> void:
+	get_tree().paused=false
+	story_paused=false
 	var callback = dialogue_callback
+	dialogue_callback=Callable()
 	play()
 	if callback.is_valid():
 		callback.call(accepted)
@@ -346,7 +389,8 @@ func show_ending() -> void:
 	var c = column(panel(overlay,Vector2(330,155),Vector2(620,400)),18)
 	text(c,"BREAD AND STEEL",34,GOLD)
 	text(c,"Chapter one complete",27)
-	text(c,"A warm loaf. Twenty-two crowns left.\nFor tonight, enough.\n\nYour homecoming has been saved.\nThe later journey will continue in future implementation passes.",21)
+	text(c,"A warm loaf. Twenty-two crowns left.\nFor tonight, enough.\n\nYour homecoming has been saved.",21)
+	button(c,"Begin the next day",func(): main.travel("zone_cinder_errand"))
 	button(c,"Stay in Hearthmere",play).grab_focus()
 	button(c,"Return to title",func(): Session.running = false; show_menu())
 	Sound.play("reward")
@@ -374,9 +418,12 @@ func refresh_tutorial() -> void:
 			break
 
 func update_hud(actor: Fighter, nearby: Dictionary) -> void:
+	var current=Campaign.chapter(Session.data.chapter)
+	chapter_label.text="%02d / %s" % [int(current.number),current.title.to_upper()]
 	health.value = actor.model.health/actor.model.max_health*100
 	stamina.value = actor.model.stamina
 	status.text = "%d health  ·  %d draughts  ·  %d crowns" % [actor.model.health,Session.data.heals,Session.data.currency]
+	if actor.model.ash_unlocked: status.text="%d HP · %d flasks · Resolve %.1f/3" % [actor.model.health,Session.data.heals,actor.model.resolve]
 	var objective = Session.objective()
 	var target = Vector3(objective.target[0],0,objective.target[2])
 	var distance = actor.position.distance_to(target)
@@ -406,7 +453,13 @@ func _input(event: InputEvent) -> void:
 			Preferences.save()
 			if get_tree().paused: show_pause()
 			else: show_menu()
-		elif mode == "dialogue": advance_dialogue()
+		elif mode == "dialogue":
+			story_paused=not story_paused
+			get_tree().paused=story_paused
+			dialogue_name.text="PAUSED · Esc / Start to resume" if story_paused else dialogue_lines[dialogue_index][0]
+		elif mode=="cinematic":
+			story_paused=not story_paused
+			get_tree().paused=story_paused
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("journal") and mode in ["play","journal"]:
 		if mode == "play": show_journal()
@@ -416,4 +469,79 @@ func _input(event: InputEvent) -> void:
 		if event is InputEventJoypadButton and mode != "play": return
 		if mode == "play": world.interact()
 		elif mode == "dialogue": advance_dialogue()
+		elif mode=="cinematic": main.finish_story_death(main.story_token)
 		get_viewport().set_input_as_handled()
+
+func show_story_death() -> void:
+	mode="cinematic"
+	story_paused=false
+	hud.visible=false
+	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
+	clear_overlay()
+	shade(.25)
+	var c=column(panel(overlay,Vector2(230,505),Vector2(820,170)),12)
+	text(c,"The battle was won. The bowstrings answer behind him.",23,GOLD)
+	text(c,"Avel's betrayal closes the living road behind him.",19)
+	button(c,"Let the road fade · E / A",func(): main.finish_story_death(main.story_token)).grab_focus()
+
+func show_loading(title: String) -> void:
+	mode="loading"
+	hud.visible=false
+	get_tree().paused=false
+	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
+	clear_overlay()
+	shade(.98)
+	var c=column(panel(overlay,Vector2(340,250),Vector2(600,195)),16)
+	text(c,title,29,GOLD)
+	text(c,"Following the next road…",18)
+	loading_progress=ProgressBar.new()
+	loading_progress.custom_minimum_size=Vector2(550,14)
+	loading_progress.show_percentage=false
+	c.add_child(loading_progress)
+
+func show_transition_failure(message: String) -> void:
+	mode="load_failure"
+	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
+	clear_overlay()
+	shade()
+	var c=column(panel(overlay,Vector2(290,200),Vector2(700,290)))
+	text(c,"The next road could not be opened",27,GOLD)
+	var l=text(c,message,18)
+	l.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size.x=650
+	button(c,"Return to the saved checkpoint",func(): main.transitions.recover()).grab_focus()
+	button(c,"Save & quit",func(): main.finish())
+
+func show_chapter_select() -> void:
+	mode="chapter_select"
+	clear_overlay()
+	shade()
+	var c=column(panel(overlay,Vector2(340,72),Vector2(600,580)),12)
+	text(c,"Walk an earlier road",29,GOLD)
+	text(c,"Replays use a separate save. Continue keeps your campaign.",16)
+	var unlocked=1
+	for id in Session.loaded.get("completed_chapters",[]): unlocked=maxi(unlocked,int(Campaign.chapter(id).number)+1)
+	for entry in Campaign.manifest().chapters:
+		if entry.number<=unlocked:
+			var id: String=entry.id
+			button(c,"%02d · %s" % [entry.number,entry.title],func(): main.replay_chapter(id))
+	button(c,"Back",show_menu).grab_focus()
+
+func show_credits() -> void:
+	mode="credits"
+	hud.visible=false
+	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
+	clear_overlay()
+	shade(.7)
+	var c=column(panel(overlay,Vector2(260,52),Vector2(760,620)),12)
+	text(c,"ASHEN VOW",38,GOLD)
+	text(c,"The road remains open",24)
+	text(c,"For Mira and Isha, remembered in the small things.\n\nOriginal game, story, models and audio: ASHEN VOW contributors\nCreated with Codex assistance · Original work: MIT\n\nGodot Engine contributors · Godot 4.7.2\nEngine and component notices accompany this game.\nThank you for walking this road.",18)
+	button(c,"Continue at the memorial",func(): finish_credits(); play()).grab_focus()
+	button(c,"Return to title",func(): finish_credits(); show_menu())
+	button(c,"Skip credits",func(): finish_credits(); show_menu())
+
+func finish_credits() -> void:
+	if not Session.data.ending: return
+	Session.data.credits=true
+	Session.save()

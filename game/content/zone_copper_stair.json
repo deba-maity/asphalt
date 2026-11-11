@@ -1,0 +1,234 @@
+{
+  "id": "ch03_road_revenge",
+  "zone_id": "zone_copper_stair",
+  "title": "The Copper Stair",
+  "theme": "fortress",
+  "length": 81,
+  "npcs": [
+    {
+      "id": "npc_avel_body",
+      "name": "Avel",
+      "position": [
+        4,
+        0,
+        1
+      ],
+      "asset": "saren"
+    }
+  ],
+  "objects": [
+    {
+      "id": "npc_avel",
+      "name": "Avel · gate captain",
+      "position": [
+        4,
+        0,
+        1
+      ],
+      "dialogue": [
+        [
+          "Avel",
+          "Kesran holds the inner gate. Defeat him and I can open the road to Halvek."
+        ],
+        [
+          "Rayan",
+          "Why would you help?"
+        ],
+        [
+          "Avel",
+          "A man grows tired of signing orders he cannot bear to read."
+        ]
+      ],
+      "flag": "evt_avel_promise",
+      "requires": [],
+      "effect": "",
+      "optional": false,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "obj_betrayal",
+      "name": "The inner passage",
+      "position": [
+        0,
+        0,
+        -74
+      ],
+      "dialogue": [
+        [
+          "Kesran",
+          "You think Halvek fears your sword? He fears a name he cannot erase."
+        ],
+        [
+          "Avel",
+          "Lower your blade, Rayan. The passage is open."
+        ],
+        [
+          "Rayan",
+          "You said Neri could come."
+        ],
+        [
+          "Avel",
+          "I said I could open a road."
+        ],
+        [
+          "Narration",
+          "The bowstrings answer behind him. The fight is already won. The betrayal is not another battle."
+        ],
+        [
+          "Rayan",
+          "Mira. I was coming home."
+        ]
+      ],
+      "flag": "",
+      "requires": [
+        "evt_stair_lieutenant_clear"
+      ],
+      "effect": "story_death",
+      "optional": false,
+      "transition": "zone_counting_shore",
+      "choice": false
+    }
+  ],
+  "encounters": [
+    {
+      "id": "stair_patrol",
+      "flag": "evt_stair_patrol_clear",
+      "center": [
+        0,
+        0,
+        -22
+      ],
+      "requires": [
+        "evt_avel_promise"
+      ],
+      "boss": "",
+      "reward": 0,
+      "enemies": [
+        {
+          "id": "stair_patrol_0",
+          "kind": "ledger_guard",
+          "position": [
+            -1.5,
+            0,
+            -22
+          ]
+        },
+        {
+          "id": "stair_patrol_1",
+          "kind": "ledger_brute",
+          "position": [
+            2.5,
+            0,
+            -25
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stair_lieutenant",
+      "flag": "evt_stair_lieutenant_clear",
+      "center": [
+        0,
+        0,
+        -58
+      ],
+      "requires": [
+        "evt_stair_patrol_clear"
+      ],
+      "boss": "boss_kesran",
+      "reward": 25,
+      "enemies": [
+        {
+          "id": "stair_lieutenant_0",
+          "kind": "lieutenant_kesran",
+          "position": [
+            0,
+            0,
+            -58
+          ]
+        }
+      ]
+    }
+  ],
+  "quests": [
+    {
+      "id": "q_avel",
+      "text": "Hear Avel at the gate.",
+      "target": [
+        4,
+        0,
+        1
+      ],
+      "until": "evt_avel_promise",
+      "requires": []
+    },
+    {
+      "id": "q_stair_patrol",
+      "text": "Clear the occupied stair approach.",
+      "target": [
+        0,
+        0,
+        -22
+      ],
+      "until": "evt_stair_patrol_clear",
+      "requires": [
+        "evt_avel_promise"
+      ]
+    },
+    {
+      "id": "q_kesran",
+      "text": "Defeat Lieutenant Kesran. This fight can be won.",
+      "target": [
+        0,
+        0,
+        -58
+      ],
+      "until": "evt_stair_lieutenant_clear",
+      "requires": [
+        "evt_stair_patrol_clear"
+      ]
+    },
+    {
+      "id": "q_passage",
+      "text": "Meet Avel at the opened passage.",
+      "target": [
+        0,
+        0,
+        -74
+      ],
+      "until": "evt_story_death",
+      "requires": [
+        "evt_stair_lieutenant_clear"
+      ]
+    }
+  ],
+  "next": "zone_counting_shore",
+  "checkpoints": [
+    {
+      "id": "cp_copper_stair",
+      "position": [
+        0,
+        0,
+        7
+      ],
+      "label": "The Copper Stair"
+    },
+    {
+      "id": "cp_before_boss_kesran",
+      "position": [
+        0,
+        0,
+        -44
+      ],
+      "label": "Before kesran"
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone_copper_stair",
+      "title": "The Copper Stair",
+      "north": -81
+    }
+  ]
+}

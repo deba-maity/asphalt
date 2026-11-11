@@ -9,6 +9,7 @@ var blade: MeshInstance3D
 var weapon: Node3D
 @export var cloth: Color = Color("4b6975")
 @export var armed: bool = true
+@export var role: String = "rayan"
 var child: bool = false
 var dead_blend: float = 0
 static var materials: Dictionary = {}
@@ -116,6 +117,33 @@ func _ready() -> void:
 		var scarf = box(torso,Vector3(0.62,0.1,0.40),Vector3(0,0.47,0.01),Color("bd9561"))
 		scarf.rotation.z = -0.08
 		box(torso,Vector3(0.18,0.55,0.045),Vector3(-0.18,0.18,0.22),Color("a58054"))
+	if role in ["ledger_guard","lieutenant_kesran","halvek"]:
+		var shield=cylinder(joints.hand_l,.32,.32,.09,Vector3(0,.12,-.13),Color("6e7f82"),8)
+		shield.rotation.x=PI/2
+	if role=="ledger_archer":
+		var bow=Node3D.new()
+		joints.hand_l.add_child(bow)
+		for side in [-1,1]:
+			var limb=box(bow,Vector3(.055,.46,.06),Vector3(0,side*.22,0),Color("90704e"))
+			limb.rotation.z=side*.25
+		box(bow,Vector3(.018,.90,.018),Vector3(.07,0,0),Color("ddd0b0"))
+		box(torso,Vector3(.2,.7,.25),Vector3(.15,.2,.25),Color("504d40"))
+	if role in ["ledger_brute","marshal_serit"]: blade.scale.x=2.3
+	if role in ["ledger_elite","still_warden"]:
+		cylinder(head,.18,.17,.2,Vector3(0,.09,.015),Color("454b5b"),8)
+	if armed and role!="rayan":
+		for i in 3:
+			var cord=MeshInstance3D.new()
+			var ring=TorusMesh.new()
+			ring.inner_radius=.025
+			ring.outer_radius=.042
+			ring.rings=8
+			ring.ring_segments=4
+			cord.mesh=ring
+			cord.material_override=material(Color("262b30"))
+			cord.rotation.x=PI/2
+			cord.position=Vector3(-.07+i*.07,.34,-.26)
+			torso.add_child(cord)
 
 func pose_values(id: String) -> Dictionary:
 	var result = poses.idle.duplicate(true)
@@ -124,7 +152,7 @@ func pose_values(id: String) -> Dictionary:
 	return result
 
 func animate(delta: float, model: CombatModel, speed: float, interaction: bool = false) -> void:
-	weapon.visible = armed and model.state != "talk"
+	weapon.visible = armed and model.state != "talk" and role!="ledger_archer"
 	phase += delta * speed * (4.0 if speed < 4.5 else 3.05)
 	var pose = pose_values("idle")
 	if speed > 0.1 and model.state == "idle":
@@ -138,7 +166,7 @@ func animate(delta: float, model: CombatModel, speed: float, interaction: bool =
 		pose.arm_r = [wave*19+10,0,8]
 		pose.torso = [4, wave*4,0]
 	elif model.state == "attack":
-		var heavy = model.attack_id in ["heavy","foreman_slam"]
+		var heavy = model.attack.get("pose","")=="heavy" or model.attack_id in ["heavy","foreman_slam"]
 		var first = pose_values("heavy_windup" if heavy else "light_windup")
 		var second = pose_values("heavy_strike" if heavy else "light_strike")
 		var strike = clampf((model.elapsed-float(model.attack.windup))/float(model.attack.active),0,1)
@@ -146,12 +174,19 @@ func animate(delta: float, model: CombatModel, speed: float, interaction: bool =
 			var a = first.get(key,[0,0,0])
 			var b = second[key]
 			pose[key] = [lerpf(a[0],b[0],strike),lerpf(a[1],b[1],strike),lerpf(a[2],b[2],strike)]
+		if model.attack.get("pose","")=="bow":
+			pose=pose_values("guard")
+			pose.arm_l=[95,0,-35]
+			pose.arm_r=[85,0,45]
 	elif model.state in ["guard","dodge","hit","heal","dead","talk"]:
 		pose = pose_values(model.state)
+	elif model.state=="ashstep":
+		pose=pose_values("dodge")
 	elif interaction:
 		pose = pose_values("talk")
 	if model.parry_flash > 0:
 		pose = pose_values("parry")
+	if model.story_fall: pose=pose_values("dead")
 	var rate = 1-exp(-delta*16)
 	for key in joints:
 		if key in ["hips","weapon"] or key.begins_with("hand"):
@@ -159,7 +194,7 @@ func animate(delta: float, model: CombatModel, speed: float, interaction: bool =
 		var a = pose.get(key,[0,0,0])
 		var target = Vector3(deg_to_rad(a[0]),deg_to_rad(a[1]),deg_to_rad(a[2]))
 		joints[key].rotation = joints[key].rotation.lerp(target,rate)
-	dead_blend = move_toward(dead_blend,1.0 if model.state == "dead" else 0.0,delta*2)
+	dead_blend = move_toward(dead_blend,1.0 if model.state == "dead" or model.story_fall else 0.0,delta*2)
 	rotation.z = dead_blend*1.47
 	position.y = -dead_blend*0.68
 	hips.position.y = 0.91 + (absf(sin(phase))*0.028 if speed > 0.1 else sin(Time.get_ticks_msec()*0.002)*0.012)

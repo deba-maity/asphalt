@@ -29,10 +29,17 @@ var use_test_direction: bool = false
 var total_distance: float = 0
 var last_state: String = "idle"
 var camera_focus: Vector3 = Vector3.ZERO
+var wait_age: float = 0
+var fired_serial: int = -1
+var phase: int = 1
+var phase_time: float = 0
+var repeated_lights: int = 0
+var light_memory: float = 0
+var ash_trail: MeshInstance3D
 
 func _ready() -> void:
 	collision_layer = 2 if player else 4
-	collision_mask = 1 | (4 if player else 2)
+	collision_mask = (1 | 4 | 32) if player else (1 | 2)
 	var capsule = CapsuleShape3D.new()
 	capsule.radius = 0.30
 	capsule.height = 1.8
@@ -100,6 +107,9 @@ func _ready() -> void:
 	tell_ring.position.y = 0.04
 	tell_ring.visible = false
 	add_child(tell_ring)
+	if player:
+		ash_trail = Figure.cylinder(self,.52,.34,.10,Vector3(0,.18,0),Color("9dd8df"),12)
+		ash_trail.visible = false
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not player or world == null or not world.can_play():
@@ -117,8 +127,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		try_dodge()
 	if event.is_action_pressed("heal"):
 		try_heal()
+	if event.is_action_pressed("ashstep"):
+		try_ashstep()
 
 func try_attack(id: String) -> bool:
+	if player and id == "heavy" and model.ash_unlocked and model.counter_window>0: id="opening_counter"
 	var ok = model.start_attack(id)
 	if ok:
 		if is_instance_valid(target):
@@ -126,9 +139,24 @@ func try_attack(id: String) -> bool:
 		Sound.play("swing")
 		if player:
 			world.learn(id)
+			repeated_lights = repeated_lights+1 if id == "light" else 0
+			light_memory = 2.5
+			if id == "opening_counter":
+				model.counter_window=0
+				feedback.emit("Opening counter · commit, then recover.")
 	elif player and model.can_begin():
 		feedback.emit("Not enough stamina — let it recover.")
 	return ok
+
+func try_ashstep() -> bool:
+	if not model.ashstep():
+		if model.ash_unlocked: feedback.emit("Ashstep needs one Resolve. Land strikes or parry to recover it.")
+		return false
+	dodge_vector = desired_direction()
+	if dodge_vector.length()<.1: dodge_vector = -global_basis.z
+	Sound.play("heal")
+	world.learn("ashstep")
+	return true
 
 func try_dodge() -> bool:
 	if not model.dodge():
@@ -186,12 +214,21 @@ func _physics_process(delta: float) -> void:
 	if world == null:
 		return
 	model.tick(delta)
+	light_memory = maxf(0,light_memory-delta)
+	if light_memory<=0: repeated_lights=0
 	if player:
+		if Session.running: Session.data.resolve=model.resolve
+		collision_mask = 1|4|(0 if model.state=="ashstep" and model.invulnerable() else 32)
+		ash_trail.visible = model.state=="ashstep" or model.counter_window>0
 		update_player(delta)
 	else:
 		update_enemy(delta)
 	if model.active() and world.can_play():
-		apply_hits()
+		if model.attack.get("projectile",false):
+			if fired_serial != model.swing_serial:
+				fired_serial=model.swing_serial
+				world.spawn_projectile(self)
+		else: apply_hits()
 	if not is_on_floor():
 		velocity.y -= 22*delta
 	else:
@@ -239,9 +276,12 @@ func update_player(delta: float) -> void:
 	elif model.state == "dodge":
 		direction = dodge_vector
 		speed = float(model.config.dodge.speed)*(1-model.elapsed/float(model.config.dodge.duration)*0.55)
+	elif model.state == "ashstep":
+		direction = dodge_vector
+		speed = 11.5
 	elif model.state != "idle":
 		speed = 0
-	if direction.length() > 0.1 and speed > 0 and model.state != "dodge" and not is_instance_valid(target):
+	if direction.length() > 0.1 and speed > 0 and model.state not in ["dodge","ashstep"] and not is_instance_valid(target):
 		rotation.y = lerp_angle(rotation.y,atan2(-direction.x,-direction.z),1-exp(-delta*14))
 	velocity.x = direction.x*speed
 	velocity.z = direction.z*speed
@@ -251,28 +291,66 @@ func update_player(delta: float) -> void:
 func update_enemy(delta: float) -> void:
 	velocity.x = 0
 	velocity.z = 0
-	if model.state in ["dead","talk","transition"] or not ai_enabled or not world.can_play():
+	if model.state in ["dead","talk"] or not ai_enabled or not world.can_play():
+		return
+	if model.state == "transition":
+		phase_time -= delta
+		if phase_time<=0: model.state="idle"
 		return
 	var hero: Fighter = world.hero
-	if hero.model.state == "dead" or not Session.flag("evt_contract"):
+	if hero.model.state == "dead" or (Session.data.chapter == "ch01_bread_steel" and not Session.flag("evt_contract")):
+		return
+	if world.coordinator != null and self not in world.coordinator.active: return
+	var behavior: String = definition.get("behavior","aggressive")
+	if behavior == "halvek" and phase == 1 and model.health <= model.max_health*.58:
+		phase=2
+		model.state="transition"
+		model.elapsed=0
+		phase_time=1.8
+		world.ui.announce("HALVEK · THE SEAL BREAKS")
+		world.ui.toast("His shield stance is gone. The overhead seal cannot be guarded; evade or Ashstep.",5)
 		return
 	var diff = hero.global_position-global_position
 	var distance = diff.length()
 	if distance > float(definition.notice) or not clear_sight(hero):
 		return
-	if model.state != "attack":
+	if model.state != "attack" or model.elapsed < float(model.attack.get("tracking",0.12)):
 		face(hero.global_position)
+	if model.state=="attack" and model.attack_id=="elite_catch" and model.elapsed<float(model.attack.tracking):
+		velocity.x=-global_basis.z.x*3.3
+		velocity.z=-global_basis.z.z*3.3
 	ai_cooldown -= delta
-	if model.state == "idle":
-		if distance > (2.35 if kind == "foreman" else 1.7):
+	if model.can_begin():
+		if behavior=="elite" and hero.model.state in ["dodge","ashstep"] and distance<4.5 and world.coordinator.may_attack(self):
+			try_attack("elite_catch")
+			ai_cooldown=.4
+			return
+		var ranged = behavior=="ranged" or (behavior=="serit" and sequence%3==1)
+		var preferred = 8.5 if ranged else (2.35 if behavior in ["heavy","warden","halvek","serit"] or kind=="foreman" else 1.7)
+		if ranged and distance<4.0:
+			model.guard(false)
+			velocity.x=-diff.normalized().x*float(definition.speed)*.6
+			velocity.z=-diff.normalized().z*float(definition.speed)*.6
+		elif distance > preferred:
+			model.guard(false)
 			var direction = diff.normalized()
 			velocity.x = direction.x*float(definition.speed)
 			velocity.z = direction.z*float(definition.speed)
-		elif ai_cooldown <= 0:
-			var attack_name: String = definition.attacks[sequence % definition.attacks.size()]
+		elif ai_cooldown <= 0 and world.coordinator.may_attack(self):
+			var patterns: Array = definition.phase2 if behavior=="halvek" and phase==2 else definition.attacks
+			var attack_name: String = patterns[sequence % patterns.size()]
+			if behavior=="elite" and hero.model.state in ["dodge","ashstep"]: attack_name="elite_catch"
+			if behavior=="kesran" and hero.model.state=="attack": attack_name="kesran_return"
 			sequence += 1
 			try_attack(attack_name)
-			ai_cooldown = 0.45
+			ai_cooldown = .5 if behavior in ["guard","kesran"] else .30
+		else:
+			var patient = behavior in ["guard","kesran"] or (behavior=="elite" and hero.repeated_lights>=2) or (behavior=="halvek" and phase==1)
+			model.guard(patient)
+			if not patient and distance<4 and world.coordinator.lease != self:
+				var tangent = Vector3(-diff.z,0,diff.x).normalized()
+				velocity.x=tangent.x*.65
+				velocity.z=tangent.z*.65
 
 func apply_hits() -> void:
 	var query = PhysicsShapeQueryParameters3D.new()
@@ -296,8 +374,17 @@ func apply_hits() -> void:
 
 func take_damage(amount: float, attacker: Fighter) -> String:
 	var in_front = (-global_basis.z).dot((attacker.global_position-global_position).normalized()) > 0.0
-	var armor = not player and kind == "foreman" and model.state == "attack" and attacker.model.attack_id != "heavy"
-	var result = model.receive(amount,in_front,armor)
+	var heavy_hit = attacker.model.attack_id in ["heavy","opening_counter"]
+	var armor = not player and (kind == "foreman" or definition.get("behavior","") in ["heavy","warden","serit","halvek"]) and model.state == "attack" and not heavy_hit
+	if not player and model.state=="guard" and heavy_hit and ("tempered_edge" in Session.data.unlocks or attacker.model.attack_id=="opening_counter"):
+		model.state="hit"
+		model.elapsed=-.45
+		world.ui.toast("Guard broken · tempered edge")
+	var rules: Dictionary = attacker.model.attack if not attacker.model.attack.is_empty() else {}
+	var result = model.receive(amount,in_front,armor,rules)
+	if result == "ash_evade":
+		world.on_ash_evade()
+		Sound.play("parry")
 	if result == "parry":
 		attacker.model.state = "hit"
 		attacker.model.elapsed = -0.65
@@ -311,4 +398,8 @@ func take_damage(amount: float, attacker: Fighter) -> String:
 		Sound.play("hit")
 		if player:
 			Session.data.health = model.health
+		elif attacker.player:
+			attacker.model.resolve = minf(3,attacker.model.resolve+.25)
+			Session.data.resolve=attacker.model.resolve
+	if player: Session.data.resolve=model.resolve
 	return result

@@ -20,6 +20,7 @@ func run() -> void:
 	for definition in definitions:
 		var figure = Figure.new()
 		figure.name = definition.id
+		figure.role = definition.id
 		figure.cloth = Color(definition.color)
 		figure.armed = definition.armed
 		root.add_child(figure)

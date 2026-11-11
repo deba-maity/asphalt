@@ -1,0 +1,306 @@
+{
+  "id": "ch03_road_revenge",
+  "zone_id": "zone_sere_mill",
+  "title": "Sere Fen · riverside mill",
+  "theme": "mill",
+  "length": 79,
+  "npcs": [
+    {
+      "id": "npc_neri_body",
+      "name": "Neri",
+      "position": [
+        -4,
+        0,
+        -30
+      ],
+      "asset": "saren"
+    }
+  ],
+  "objects": [
+    {
+      "id": "obj_mill_notice",
+      "name": "The mill gate",
+      "position": [
+        3,
+        0,
+        1
+      ],
+      "dialogue": [
+        [
+          "Confiscation order",
+          "Every boat, every road, every name entered in the Ledger. Unregistered passage is theft."
+        ]
+      ],
+      "flag": "discovery_levy",
+      "requires": [],
+      "effect": "",
+      "optional": true,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "npc_neri",
+      "name": "Neri · imprisoned courier",
+      "position": [
+        -4,
+        0,
+        -30
+      ],
+      "dialogue": [
+        [
+          "Neri",
+          "Mira mended my coat. Found the register sewn inside. She copied the names of families scheduled for a 'cleansing'."
+        ],
+        [
+          "Rayan",
+          "Why didn't she tell me?"
+        ],
+        [
+          "Neri",
+          "She was trying to get them out before you had to fight anyone. Your wife wasn't waiting to be saved."
+        ],
+        [
+          "Neri",
+          "Take this whetstone. Turn the heavy edge across a guard, not into it."
+        ]
+      ],
+      "flag": "evt_neri_rescued",
+      "requires": [
+        "evt_mill_guard_clear"
+      ],
+      "effect": "tempered_edge",
+      "optional": false,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "obj_mill_bench",
+      "name": "Oren's repair kit · 20 crowns",
+      "position": [
+        5,
+        0,
+        -36
+      ],
+      "dialogue": [
+        [
+          "Oren's note",
+          "A deeper draught bottle. If you're still on that road, take what you need. Pay Tova when you can."
+        ]
+      ],
+      "flag": "purchase_deep_flask",
+      "requires": [
+        "evt_neri_rescued"
+      ],
+      "effect": "deep_flask",
+      "optional": true,
+      "transition": "",
+      "choice": true
+    },
+    {
+      "id": "obj_ferry_ledger",
+      "name": "Ferry witness list",
+      "position": [
+        -5,
+        0,
+        -59
+      ],
+      "dialogue": [
+        [
+          "Register",
+          "Hearthmere: copies outstanding. Family of Mira, seamstress. Witness disposal authorized by Halvek."
+        ],
+        [
+          "Rayan",
+          "Not a levy. A sentence, written before they came."
+        ]
+      ],
+      "flag": "evt_ferry_list",
+      "requires": [
+        "evt_ferry_watch_clear"
+      ],
+      "effect": "",
+      "optional": false,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "exit_stair",
+      "name": "Boat to the Copper Stair",
+      "position": [
+        0,
+        0,
+        -75
+      ],
+      "dialogue": [
+        [
+          "Neri",
+          "Kesran commands the stair. Avel claims he can get us through after Kesran falls."
+        ],
+        [
+          "Rayan",
+          "Then we go together."
+        ]
+      ],
+      "flag": "",
+      "requires": [
+        "evt_ferry_list"
+      ],
+      "effect": "",
+      "optional": false,
+      "transition": "zone_copper_stair",
+      "choice": false
+    }
+  ],
+  "encounters": [
+    {
+      "id": "mill_guard",
+      "flag": "evt_mill_guard_clear",
+      "center": [
+        0,
+        0,
+        -21
+      ],
+      "requires": [],
+      "boss": "",
+      "reward": 0,
+      "enemies": [
+        {
+          "id": "mill_guard_0",
+          "kind": "ledger_guard",
+          "position": [
+            -1.5,
+            0,
+            -21
+          ]
+        },
+        {
+          "id": "mill_guard_1",
+          "kind": "ledger_archer",
+          "position": [
+            2.5,
+            0,
+            -24
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ferry_watch",
+      "flag": "evt_ferry_watch_clear",
+      "center": [
+        0,
+        0,
+        -51
+      ],
+      "requires": [
+        "evt_neri_rescued"
+      ],
+      "boss": "",
+      "reward": 15,
+      "enemies": [
+        {
+          "id": "ferry_watch_0",
+          "kind": "ledger_brute",
+          "position": [
+            -1.5,
+            0,
+            -51
+          ]
+        },
+        {
+          "id": "ferry_watch_1",
+          "kind": "ledger_guard",
+          "position": [
+            2.5,
+            0,
+            -54
+          ]
+        }
+      ]
+    }
+  ],
+  "quests": [
+    {
+      "id": "q_mill_guard",
+      "text": "Break the mill guard and its bowman.",
+      "target": [
+        0,
+        0,
+        -21
+      ],
+      "until": "evt_mill_guard_clear",
+      "requires": []
+    },
+    {
+      "id": "q_rescue",
+      "text": "Free Neri beside the wheel.",
+      "target": [
+        -4,
+        0,
+        -30
+      ],
+      "until": "evt_neri_rescued",
+      "requires": [
+        "evt_mill_guard_clear"
+      ]
+    },
+    {
+      "id": "q_ferry",
+      "text": "Use heavy attacks to break guards at the ferry.",
+      "target": [
+        0,
+        0,
+        -51
+      ],
+      "until": "evt_ferry_watch_clear",
+      "requires": [
+        "evt_neri_rescued"
+      ]
+    },
+    {
+      "id": "q_list",
+      "text": "Read the ferry witness list.",
+      "target": [
+        -5,
+        0,
+        -59
+      ],
+      "until": "evt_ferry_list",
+      "requires": [
+        "evt_ferry_watch_clear"
+      ]
+    },
+    {
+      "id": "q_boat",
+      "text": "Take the boat to the Copper Stair.",
+      "target": [
+        0,
+        0,
+        -75
+      ],
+      "until": "evt_stair_arrival",
+      "requires": [
+        "evt_ferry_list"
+      ]
+    }
+  ],
+  "next": "zone_copper_stair",
+  "checkpoints": [
+    {
+      "id": "cp_sere_mill",
+      "position": [
+        0,
+        0,
+        7
+      ],
+      "label": "Sere Fen · riverside mill"
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone_sere_mill",
+      "title": "Sere Fen · riverside mill",
+      "north": -79
+    }
+  ]
+}

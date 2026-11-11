@@ -1,0 +1,10 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/campaign_zone.gd" id="1"]
+[ext_resource type="PackedScene" path="res://assets/characters/isha.tscn" id="a0"]
+[ext_resource type="PackedScene" path="res://assets/characters/mira.tscn" id="a1"]
+
+[node name="zone_cinder_errand" type="Node3D"]
+script = ExtResource("1")
+zone_id = "zone_cinder_errand"
+actor_resources = Array[PackedScene]([ExtResource("a0"), ExtResource("a1")])

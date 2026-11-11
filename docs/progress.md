@@ -1,30 +1,32 @@
-# Pass one continuation record
+# Pass-two continuation record
 
-Date: 2026-11-11. Dedicated repository: `C:\Users\debajyothi.m\wuk\ashen-vow`. The supplied workspace was empty; no unrelated application or preexisting user work was modified. No purchase, account, backend, publication or remote repository was needed.
+Date: 2026-11-11, using the supplied client date. Repository: `C:\Users\debajyothi.m\wuk\ashen-vow`. Same Godot 4.7.2 standard/Compatibility project. Pass-one commit `dec13db` and [historical records](history/pass1-progress.md) preserve the previous foundation. No engine switch, unrelated application change, purchase, account, backend or publication occurred.
 
-## Implemented
+## Implemented now
 
-Pinned Godot 4.7.2 stable standard/Compatibility and matching Windows templates; a source project and Windows preview; physical third-person locomotion/orbit/collision/lock-on; coherent combat timings, health/stamina, guard/parry/dodge/heal, death/checkpoints; focused session/settings/audio services; JSON definitions for chapter/combat/quests/dialogue/rewards/checkpoints; UI, journal, tutorial learning and settings; safe validated saves and previous backup; original baked articulated characters, poses, environment and synthesized audio; complete opening chapter with optional details and saved completion. All intended chapter-one beats are functional. See README for the playable route and controls.
+All six requested chapters are reachable through normal play, across ten locally packaged zones. The opening and its original save keys remain. Later content includes the errand/aftermath/survivor/pursuit, Varo, two revenge locations, Neri's rescue and tempered edge, optional deeper flask, Kesran's winnable fight and Avel's skippable betrayal/fall, the Counting Shore and informed resurrection cost, the playable Ashstep lesson and veil, changed mill and reactive elites, Serit, bridge/court, Halvek's two phases, an authored resolution, memorial and credits. Optional household/organization discoveries and remembered dialogue records are functional.
 
-Stable identity: chapter `ch01_bread_steel`; zones `zone_hearthmere`, `zone_alder_road`; checkpoints `cp_home`, `cp_road_shrine`; encounters `enc_fallen_cart`, `enc_alder_ambush`, `enc_foreman`; reward `reward_saren_road`; purchase `purchase_honeybread`; completion `evt_family_supper`, `ch01_complete`. Keep these IDs in save migrations and later chapter manifests.
+Combat now has guarding/heavy/ranged/reactive behaviors, projectiles, an attack-lease coordinator, a three-actor active budget, posture effects and Resolve/counter mechanics. Default low-memory transitions disable/free previous zones before construction, keep one persistent player, and retain at most one budgeted speculative resource set. Missing paths, cancellation, duplicates and construction failures recover safely. Schema-two persistence migrates schema one with a preserved original backup and keeps ordinary death, canonical death, one return, powers and ending distinct. Chapter replay uses a separate store; Continue preserves the campaign.
 
-## Verification
+## Verification and user constraint
 
-`tools/test.ps1 -Rendered`: 31 logic checks + 24 input/system checks, fresh-save rendered traversal, then separate relaunch/Continue. Additional rendered bounds checks cover title/settings/journal at 720p. Reports and nine real screenshots are in `docs/evidence`. `tools/build.ps1` exports using the exact Windows template version; final exported-executable headless and rendered startup smoke tests exited 0. The engine archive SHA-256 matches official GitHub release-asset metadata. Development-machine hardware and observations are recorded in `performance.md`; target-laptop tests remain outstanding.
+The user instructed **not to play the game on the Remote Desktop**. Graphical runs were stopped. Subsequent validation is headless: core/campaign/state/input/layout/transition checks, complete source New Game-to-credits traversal, separate Continue, plus a packaged executable campaign traversal and relaunch. See `docs/evidence/pass2` for exact final reports and stage/memory measurements. No complete rendered or human pass-two playthrough is claimed, and no target-laptop result is inferred. Desktop capture/orbit checks are skipped under headless mode.
 
-## Pass two: implement next
+One normal-speed automated headless traversal took 375 seconds; accelerated runs report simulation and wall time separately. This is a short authored campaign, with immediate dialogue and automated combat in that observation. The desired compact multi-hour scope remains unmet/unmeasured and would require substantial authored expansion. Do not call the current build a multi-hour adventure.
 
-1. Preserve schema-1 saves; add explicit migration fixtures before adding chapters and progression. Build manifest-driven chapter loading with clear failed-load recovery and exactly one player.
-2. Implement the unlit-home aftermath, survivor relationship, Sere Fen journey and later city; add objectives, checkpoints and connected exploration.
-3. Implement Rayan's death, playable resurrection trial, persistent cost and new combat unlocks, later enemies/bosses, rewards and meaningful upgrade choices.
-4. Finish the return confrontation and ending. Test a complete campaign from fresh and continued saves, including reward idempotency across chapters.
+## Stable state to preserve
 
-## Pass three and four
+Campaign definitions and checkpoint mapping: `game/content/campaign.json`. Chapter IDs: `ch01_bread_steel`, `ch02_night_cinders`, `ch03_road_revenge`, `ch04_between_ashes`, `ch05_returned`, `ch06_last_dawn`. Keep old opening keys, `zone_alder_road` alias, and schema-one migration. Canonical flags/counters: `evt_story_death`, `evt_resurrected`, `cost_isha_voice`, `story_deaths=1`, `resurrections=1`. The returned body must never resume an earlier mortal chapter in the main save. Ending: `campaign_complete`, `ending`, `credits`, `zone_memorial`. Named bosses: `boss_varo`, `boss_kesran`, `boss_warden`, `boss_serit`, `boss_halvek`.
 
-Pass three: animation/geometry/lighting/audio polish, planted-foot or better gait handling, combat feel, accessibility options (remapping, subtitle scaling, contrast, assist options), human playtests, target-laptop profiling and long-session/save-failure tests. Pass four: reproducible release automation/CI, release metadata/checksums/ZIPs, optional Android only after feasibility testing, GitHub Pages download website for an identified repository and final documentation. The early Windows preview is not the final pass-four release pipeline.
+## Pass three priorities
 
-## Current limitations
+1. Run the game locally on the intended play machine; perform a human full-campaign review and physical keyboard/mouse/controller tests. Respect the Remote Desktop restriction here.
+2. Refine hard-jointed animation, stride/foot handling, bow/throw/counter poses, weapon clipping, camera/cinematic framing, lighting, environments and audio. Current original fallback assets are functional and simple.
+3. Evaluate combat tuning, normal/elite behavior, encounter composition, Resolve pressure and boss-phase readability from human play, without adding grind.
+4. Improve accessibility: rebinding, subtitle sizing/contrast, assist options and controller UI. Test settings/error paths and long sessions.
+5. Profile the actual Ryzen 5 5500U laptop and separate I/O, activation, shader/GPU and presentation costs. A 30 FPS design target remains unproven there.
+6. Decide the authored scope needed for the multi-hour target: additional relationships, optional journeys, discoveries and distinct encounters. Preserve the complete ending and save migration while expanding.
 
-Only chapter one is playable. No resurrection, later-campaign progression or ending exists. Original fallback animation is hard-jointed and interpolated, without IK, skinning, faces or fingers. Environment/AI/audio are intentionally simple; no navmesh is needed on this road, but later layouts require it. A physical controller, human playthrough, target laptop, extended sessions, accessibility overhaul, Android and distribution website are untested/unimplemented. The observed development FPS is an average under a cap and does not establish stable 30 FPS. Keep those distinctions in future reports.
+## Pass four and remaining release work
 
-No credentials are stored. Runtime assets and source definitions belong in Git; `.godot`, engine/templates, logs and `exports` are ignored. The current repository has no remote. Continue from `README.md`, this record, and the retained test evidence rather than treating planned chapters as implemented content.
+The local Windows preview exports and has headless packaged-campaign evidence. Clean-checkout reproducibility/CI, release ZIPs/checksums/signing decisions, optional Android feasibility/touch support and a GitHub Pages download site remain future work. `site/` is reserved; there is no remote or published website. Runtime assets/data are committed, while engine/templates, `.godot`, developer logs and exports remain ignored.

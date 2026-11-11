@@ -1,0 +1,159 @@
+{
+  "id": "ch06_last_dawn",
+  "zone_id": "zone_memorial",
+  "title": "Hearthmere · after the last dawn",
+  "theme": "memorial",
+  "length": 36,
+  "npcs": [
+    {
+      "id": "npc_oren_memorial",
+      "name": "Oren",
+      "position": [
+        6,
+        0,
+        3
+      ],
+      "asset": "oren"
+    }
+  ],
+  "objects": [
+    {
+      "id": "obj_bowl_memorial",
+      "name": "Oren's clay bowl",
+      "position": [
+        5,
+        0,
+        3
+      ],
+      "dialogue": [
+        [
+          "Oren",
+          "It doesn't leak. I thought that might matter."
+        ],
+        [
+          "Rayan",
+          "It does."
+        ]
+      ],
+      "flag": "evt_bowl_placed",
+      "requires": [],
+      "effect": "",
+      "optional": false,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "obj_bird_memorial",
+      "name": "Set down the wooden bird",
+      "position": [
+        -3,
+        0,
+        -4
+      ],
+      "dialogue": [
+        [
+          "Rayan",
+          "A broken thing can still be a bird."
+        ]
+      ],
+      "flag": "evt_bird_placed",
+      "requires": [
+        "evt_bowl_placed"
+      ],
+      "effect": "",
+      "optional": false,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "obj_memorial",
+      "name": "Mira and Isha's memorial",
+      "position": [
+        0,
+        0,
+        -15
+      ],
+      "dialogue": [
+        [
+          "Narration",
+          "He leaves the last crust in the bowl. He remembers the joke about the soup. He cannot recover the sound of her laughter."
+        ],
+        [
+          "Rayan",
+          "Mira. Isha. I came home."
+        ],
+        [
+          "Narration",
+          "At the gate a traveler asks for the north road. Rayan rises. He knows the way."
+        ]
+      ],
+      "flag": "campaign_complete",
+      "requires": [
+        "evt_bird_placed"
+      ],
+      "effect": "ending",
+      "optional": false,
+      "transition": "",
+      "choice": false
+    }
+  ],
+  "encounters": [],
+  "quests": [
+    {
+      "id": "q_bowl",
+      "text": "Bring Oren's bowl to the memorial.",
+      "target": [
+        5,
+        0,
+        3
+      ],
+      "until": "evt_bowl_placed",
+      "requires": []
+    },
+    {
+      "id": "q_bird_rest",
+      "text": "Set down Isha's wooden bird.",
+      "target": [
+        -3,
+        0,
+        -4
+      ],
+      "until": "evt_bird_placed",
+      "requires": [
+        "evt_bowl_placed"
+      ]
+    },
+    {
+      "id": "q_memorial",
+      "text": "Keep the last crust.",
+      "target": [
+        0,
+        0,
+        -15
+      ],
+      "until": "campaign_complete",
+      "requires": [
+        "evt_bird_placed"
+      ]
+    }
+  ],
+  "next": "",
+  "checkpoints": [
+    {
+      "id": "cp_memorial",
+      "position": [
+        0,
+        0,
+        7
+      ],
+      "label": "Hearthmere · after the last dawn"
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone_memorial",
+      "title": "Hearthmere · after the last dawn",
+      "north": -36
+    }
+  ]
+}

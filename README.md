@@ -1,71 +1,80 @@
-# ASHEN VOW — pass one
+# ASHEN VOW — campaign implementation, pass two
 
-An original offline, single-player, third-person sword adventure. Rayan protects travelers to provide for Mira and Isha. **Bread and Steel**, the complete playable opening chapter, follows a paid job from the family doorstep to a bandit-held woodland road and back to supper. ASHEN VOW is a working title; no trademark clearance is claimed.
+An original offline, single-player, third-person sword adventure. Rayan's modest protection work becomes a pursuit through the Cinder Ledger's roads, an authored betrayal, a costly resurrection, and a final confrontation with Halvek. **All six chapters have playable objectives and a complete ending.** This is a short campaign implementation with basic original art, not a polished or measured multi-hour release. ASHEN VOW remains a working title without trademark clearance.
 
-**Game directory:** `C:\Users\debajyothi.m\wuk\ashen-vow`  
-**Godot project:** [`game/project.godot`](game/project.godot)  
-**Required engine:** Godot **4.7.2 stable**, standard GDScript build, Compatibility renderer. The exact pin is in [`engine-version.json`](engine-version.json), checked against the [official release archive](https://godotengine.org/download/archive/4.7.2-stable/).
+**Repository:** `C:\Users\debajyothi.m\wuk\ashen-vow`
 
-## Play now
+**Project:** [`game/project.godot`](game/project.godot) — open the **game** folder in **Godot 4.7.2 stable, standard GDScript build**, and press F5. Compatibility/OpenGL remains the renderer. The exact engine/template pin and editor ZIP checksum are in [`engine-version.json`](engine-version.json).
 
-On this development machine, double-click **`Launch.cmd`**, or launch **`exports\windows\AshenVow.exe`**. The preview executable runs without installing Godot, Python, Blender, or an account. The engine and matching Windows export templates are already cached locally; build output and tools binaries are ignored by Git.
+## Play and installation
 
-For source editing, open the **`game`** folder in Godot 4.7.2, import `project.godot`, and press **F5** to run the main scene. You can also use the editor command below. On a fresh checkout install the standard Godot build yourself, or run `tools\setup.ps1` to download the pinned Windows editor once. Internet is only needed for tool downloads. Python 3 is optional, for regenerating audio or retrieving Windows templates; gameplay has no Python dependency.
+On the machine where you intend to play, run **`exports\windows\AshenVow.exe`**, or double-click **`Launch.cmd`** for the source project. The exported Windows build needs no Godot installation, Python, Blender, account or connection. Transfer the accompanying license/notice files with it. The cached editor and templates are already present on this development machine; they are ignored build tools rather than committed assets.
 
-Copy into PowerShell:
+**Remote Desktop:** further verification here is headless, without game windows, audio or desktop input capture. Launch the graphical game manually only where you want to play it.
+
+For a fresh source checkout, install the pinned standard Godot build, or use the setup command below. Python 3 is optional for regenerating audio/content/models or fetching matching Windows templates; it is not a gameplay dependency. Tool downloads need internet once. All installed campaign resources are local.
 
 ```powershell
 Set-Location 'C:\Users\debajyothi.m\wuk\ashen-vow'
-.\Launch.cmd
-# Open the project editor:
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\launch.ps1 -Editor
-# Fresh checkout: download/check the editor, then import:
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\setup.ps1
-# Logic checks, then optional rendered systems + full chapter + relaunch:
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\test.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\test.ps1 -Rendered
-# Rebuild the Windows preview with matching templates:
+# Headless checks; -Campaign includes New Game through credits and relaunch:
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\test.ps1 -Campaign
+# Rebuild the Windows executable without opening a game window:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\build.ps1
+# Fresh source setup, only if the pinned editor is absent:
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\setup.ps1
+# Optional, on the machine where you want the graphical editor:
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\launch.ps1 -Editor
 ```
 
-Choose **Begin a new journey**. Speak to Mira, then Saren at the north gate. Follow the gold objective marker through the fallen-cart fight, scout ambush and foreman. The roadside shrine is an optional rest/checkpoint. Return to Saren for 30 crowns, buy Tova's honeybread for 8, then speak to Mira for the family scene and saved chapter ending. Optional conversations with Isha and Oren, the well and abandoned wagon add context. Continue resumes at the saved checkpoint with persistent quest progress; it does not restore an arbitrary position.
+## The playable campaign
 
-## What works
+| Chapter | Playable journey |
+|---|---|
+| 1 · Bread and Steel | Family, paid protection, two road encounters, foreman, 30-crown pay, honeybread and supper. Choose **Begin the next day** on its chapter card, or speak to Mira after continuing an old completed opening save. |
+| 2 · Night of Cinders | Fetch willow bark, return to the altered settlement, search household objects, hear Edda, pursue raiders, defeat Captain Varo and recover his dispatch. |
+| 3 · The Road of Revenge | Riverside mill and Copper Stair; disciplined guards, bowmen and brutes; rescue Neri, learn the tempered edge, defeat Kesran, then face Avel's authored betrayal after the winnable fight. |
+| 4 · Between Ashes | Explore the Counting Shore, choose the Keeper's trial, learn Ashstep against the Still Warden, cross the veil, and accept the cost of returning. |
+| 5 · The Returned | Revisit the drained mill, pass a ward, face reactive elites, optionally find Mira's letter, defeat Marshal Serit and find Halvek's route. |
+| 6 · The Last Dawn | Last bridge, separate Dawn Court, two-phase Halvek fight, broken Ledger, return-home memorial, reflective ending and credits. |
 
-Third-person walk/sprint, mouse/controller orbit, collision-aware camera, visible-enemy lock-on, light/heavy attacks, directional guard, timed parry, dodge invulnerability, stamina, health, healing, death/checkpoint restore; three encounters with two bandit types and a patterned foreman; interactive NPCs, dialogue choices/skip, navigation cues, journal, disappearing tutorial tips, pause, input/audio/shadow settings; validated JSON saves with temporary writes and a previous-save backup. Nine original articulated character scenes, editable authored poses and seven original synthesized sounds are included.
+Follow the gold objective and E prompts. Rest at stone shrines, particularly before bosses. Guard ordinary attacks, use heavy blows to break a guard after Neri's lesson, and evade attacks the prompts identify as unblockable. Conversations can be advanced or skipped; records remain accessible in **Tab → remembered conversations & discoveries**. Optional discoveries and the 20-crown deeper flask provide context and a practical purchase without grinding.
 
-## Controls
+After completion, **Continue** returns to the memorial. **Chapter select** offers unlocked chapters with separate replay saves and appropriate starting abilities; it preserves the campaign Continue file. No developer command is needed to reach any chapter.
+
+## Controls and current systems
 
 | Input | Action |
 |---|---|
-| WASD / mouse | Move / orbit camera |
-| Shift / Space | Sprint / dodge |
-| Left / right mouse | Light / heavy attack |
-| Left Ctrl | Hold guard; press just before impact to parry |
-| Q / E / R | Toggle lock-on / interact or advance / heal |
-| Tab / Escape | Journal and help / pause and resume |
-| Arrows, Enter | Navigate and confirm dialogue/menu choices |
+| WASD / mouse / Shift | Walk / orbit camera / sprint |
+| Left / right mouse | Light / heavy attack; heavy becomes an opening counter when available |
+| Left Ctrl / Space | Directional guard and timed parry / stamina dodge |
+| F | Ashstep, after the Keeper lends it; left trigger on controller |
+| Q / E / R | Lock-on / interact or advance / healing draught |
+| Tab / Escape | Journal / pause; Escape pauses story sequences too |
+| Arrows and Enter | Navigate menus and dialogue choices |
 
-Controller actions are wired: left/right sticks move/orbit; X/Y light/heavy; LB guard; B dodge; RB lock; A interact/confirm; D-pad up heal; stick-click sprint; Back journal; Start pause. A physical controller has **not** been tested. Disconnect releases action states. Settings provide sensitivity, vertical inversion, volume and shadow toggle. The 720p viewport and 30 FPS limit are intentional; 60 FPS is not offered without measurements supporting it. The input map in `preferences.gd` is authoritative.
+Controller mapping: sticks move/orbit, X/Y light/heavy, LB guard, B dodge, RB lock, A interact/confirm, D-pad up heal, left-stick click sprint, LT Ashstep, Back journal, Start pause. A physical controller remains untested. Disconnect releases actions. Sensitivity, inversion, volume and shadows are configurable. The internal viewport is 1280 × 720 with a 30 FPS cap; no 60 FPS preset is claimed.
 
-## Saves and logs
+Combat has active hit windows, once-per-swing damage, interruption/recovery, stamina, posture, health, guard/parry, dodge, healing and checkpoint restart. Ashstep costs one of three Resolve charges; exact defensive timing opens a heavy counter. Hits and parries replenish Resolve. Elites catch careless evasion; later wards and unguardable attacks make positioning matter. An encounter coordinator limits nearby active enemies to three and committed attacks to one. Projectiles and corpse lifetime are bounded. Eighteen original articulated runtime character scenes include bow/shield/heavy/elite variants.
 
-Windows: **`%APPDATA%\AshenVow\`**. `progress.json` contains versioned progress; `progress.backup.json` retains the previous valid save. Invalid primary files are preserved with a `.damaged-*` suffix when a new valid save is written. `settings.cfg` is separate. Godot logs are in `logs\godot.log`. Back up this folder before manually editing progress. Validation uses `validation\`, `validation_systems\`, and `unit_tests\` subfolders, leaving ordinary saves alone. Developer command transcripts are in ignored `tools\logs\`; retained results and real viewport screenshots are in [`docs/evidence`](docs/evidence).
+## Saves, migration and logs
 
-## Validation and limits
+Windows data: **`%APPDATA%\AshenVow\`**. Schema-two `progress.json` records chapter, zone, checkpoint, objective, flags, boss defeats, rewards, purchases, abilities, Resolve, health/heal progression, canonical death/resurrection and ending/credits. Continue returns to a valid checkpoint. Ordinary death refills checkpoint health/draughts/Resolve; it never repeats the canonical resurrection. Cleared encounters stay cleared; unfinished ones reset. Unique rewards and purchases cannot be farmed by reloading.
 
-See [`docs/testing.md`](docs/testing.md) for actual results and screenshots. The opening is tested through a fresh-save scripted **rendered** playthrough and separate keyboard/mouse input-event checks; this is not a claim of a human playtest or target-laptop testing. The development machine is an i7-1185G7 / Intel Iris Xe system. Ryzen 5 5500U performance is unmeasured. These are intentionally simple hard-jointed, low-polygon assets; facial animation, IK, exact foot planting, richer environments and audio mixing need later polish.
+Schema-one opening saves migrate explicitly, preserving flags, currency, purchases and rewards. **`progress.schema1.backup.json`** retains the original before migration. Normal safe replacement retains `progress.backup.json`; damaged files are preserved and explained, and future schemas are refused without silently loading an older backup. Settings remain in `settings.cfg`; Godot logs are in `logs\godot.log`. Replays use `chapter_replay\`. Tests use separate `campaign_validation\`, `transition_validation\`, `validation_systems\` and other fixture folders.
 
-Only chapter one exists. Revenge, family-loss aftermath, Rayan's death, resurrection trial, permanent combat progression, later bosses and the final ending are **planned for pass two**. Pass three covers refinement, accessibility and performance; pass four covers reproducible release packaging, optional Android and a GitHub Pages download site. No website or repository has been published.
+## Verification and limits
 
-## Project guide
+The [test record](docs/testing.md) distinguishes automated execution from visual checks. Headless source and packaged-build traversals reach all six chapters and the ending; relaunch/Continue works. Logic, input-event, migration, duplicate/failing/cancelled transitions, repeated unloading, death states, skip behavior and UI bounds have automated checks. No complete human or rendered pass-two campaign playthrough is claimed. Graphical runs were stopped at the user's Remote Desktop instruction. Historical opening screenshots remain in `docs/evidence`.
 
-- [Design and chapter outline](docs/design.md)
-- [Architecture and ownership](docs/architecture.md)
-- [Asset pipeline, credits and provenance](docs/assets.md) / [machine-readable manifest](game/assets/manifest.json)
-- [Performance targets and measurements](docs/performance.md)
-- [Tests and manual checks](docs/testing.md)
-- [Progress and continuation record](docs/progress.md)
+One normal-speed headless traversal observed **375 seconds**, with fast dialogue and automated combat. Accelerated checks report simulation time and wall time separately. These are not human duration or FPS benchmarks. **The compact multi-hour goal has not been achieved or measured**; expanding it needs additional authored content, not repeated grind. The Ryzen 5 5500U laptop is untested. Hard-jointed animation, terrain detail, audio mix, accessibility, physical devices and human combat/camera assessment remain pass-three work.
+
+- [Design and chapter content](docs/design.md)
+- [Architecture, ownership and loading](docs/architecture.md)
+- [Asset pipeline and provenance](docs/assets.md) / [asset manifest](game/assets/manifest.json)
+- [Performance targets and actual measurements](docs/performance.md)
+- [Validation commands and evidence](docs/testing.md)
+- [Continuation record](docs/progress.md)
 - [Build and release instructions](docs/build-release.md)
 
-Original code, writing and assets use the [MIT license](LICENSE). Godot's notice is retained in [GODOT_LICENSE.txt](docs/GODOT_LICENSE.txt).
+Original code, writing and assets use the [MIT license](LICENSE). Godot and component notices accompany exports. No repository or website has been published; release automation, optional Android and the download site remain pass-four work.

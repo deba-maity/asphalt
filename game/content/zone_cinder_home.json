@@ -1,0 +1,327 @@
+{
+  "id": "ch02_night_cinders",
+  "zone_id": "zone_cinder_home",
+  "title": "Hearthmere · after the bell",
+  "theme": "cinders",
+  "length": 70,
+  "npcs": [
+    {
+      "id": "npc_edda_body",
+      "name": "Edda",
+      "position": [
+        4,
+        0,
+        -5
+      ],
+      "asset": "tova"
+    }
+  ],
+  "objects": [
+    {
+      "id": "obj_bird",
+      "name": "Isha's wooden bird",
+      "position": [
+        -3,
+        0,
+        5
+      ],
+      "dialogue": [
+        [
+          "Rayan",
+          "The wing is tied with her yellow thread. She said a broken thing could still be a bird."
+        ],
+        [
+          "Rayan",
+          "Mira? Isha?"
+        ]
+      ],
+      "flag": "evt_bird_found",
+      "requires": [],
+      "effect": "",
+      "optional": false,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "obj_seam",
+      "name": "Mira's sewing basket",
+      "position": [
+        -5,
+        0,
+        -3
+      ],
+      "dialogue": [
+        [
+          "Rayan",
+          "Names, stitched under the lining. Mira hid a list here. The lining has been cut away."
+        ]
+      ],
+      "flag": "discovery_seam",
+      "requires": [],
+      "effect": "",
+      "optional": true,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "npc_edda",
+      "name": "Edda · survivor",
+      "position": [
+        4,
+        0,
+        -5
+      ],
+      "dialogue": [
+        [
+          "Edda",
+          "I was at the well. Mira put Isha behind her. The captain asked for a courier's list."
+        ],
+        [
+          "Rayan",
+          "Where are they?"
+        ],
+        [
+          "Edda",
+          "At your doorstep. Tova covered them. I'm so sorry."
+        ],
+        [
+          "Rayan",
+          "Who?"
+        ],
+        [
+          "Edda",
+          "The Cinder Ledger. Three black loops. Captain Varo left north, with men still searching the houses."
+        ]
+      ],
+      "flag": "evt_edda_testimony",
+      "requires": [
+        "evt_bird_found"
+      ],
+      "effect": "",
+      "optional": false,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "obj_varo_seal",
+      "name": "Varo's dispatch case",
+      "position": [
+        1,
+        0,
+        -56
+      ],
+      "dialogue": [
+        [
+          "Varo's dispatch",
+          "Deliver the copied register to Lieutenant Kesran at Sere Mill. Seal every witness account. — H."
+        ],
+        [
+          "Rayan",
+          "A register. They killed them for a page."
+        ]
+      ],
+      "flag": "evt_varo_evidence",
+      "requires": [
+        "evt_cinder_captain_clear"
+      ],
+      "effect": "",
+      "optional": false,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "exit_mill",
+      "name": "Leave for Sere Mill",
+      "position": [
+        0,
+        0,
+        -66
+      ],
+      "dialogue": [
+        [
+          "Edda",
+          "I will stay. Someone has to speak their names here."
+        ],
+        [
+          "Rayan",
+          "Mira. Isha. Keep them safe from silence."
+        ]
+      ],
+      "flag": "",
+      "requires": [
+        "evt_varo_evidence"
+      ],
+      "effect": "complete_chapter",
+      "optional": false,
+      "transition": "zone_sere_mill",
+      "choice": false
+    }
+  ],
+  "encounters": [
+    {
+      "id": "cinder_pursuit",
+      "flag": "evt_cinder_pursuit_clear",
+      "center": [
+        0,
+        0,
+        -23
+      ],
+      "requires": [
+        "evt_edda_testimony"
+      ],
+      "boss": "",
+      "reward": 0,
+      "enemies": [
+        {
+          "id": "cinder_pursuit_0",
+          "kind": "road_bandit",
+          "position": [
+            -1.5,
+            0,
+            -23
+          ]
+        },
+        {
+          "id": "cinder_pursuit_1",
+          "kind": "wood_scout",
+          "position": [
+            2.5,
+            0,
+            -26
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cinder_captain",
+      "flag": "evt_cinder_captain_clear",
+      "center": [
+        0,
+        0,
+        -49
+      ],
+      "requires": [
+        "evt_cinder_pursuit_clear"
+      ],
+      "boss": "boss_varo",
+      "reward": 20,
+      "enemies": [
+        {
+          "id": "cinder_captain_0",
+          "kind": "captain_varo",
+          "position": [
+            0,
+            0,
+            -49
+          ]
+        }
+      ]
+    }
+  ],
+  "quests": [
+    {
+      "id": "q_bird",
+      "text": "Search your doorstep.",
+      "target": [
+        -3,
+        0,
+        5
+      ],
+      "until": "evt_bird_found",
+      "requires": []
+    },
+    {
+      "id": "q_edda",
+      "text": "Find Edda by the well.",
+      "target": [
+        4,
+        0,
+        -5
+      ],
+      "until": "evt_edda_testimony",
+      "requires": [
+        "evt_bird_found"
+      ]
+    },
+    {
+      "id": "q_raiders",
+      "text": "Pursue the raiders beyond the gate.",
+      "target": [
+        0,
+        0,
+        -23
+      ],
+      "until": "evt_cinder_pursuit_clear",
+      "requires": [
+        "evt_edda_testimony"
+      ]
+    },
+    {
+      "id": "q_varo",
+      "text": "Defeat Captain Varo at the old road.",
+      "target": [
+        0,
+        0,
+        -49
+      ],
+      "until": "evt_cinder_captain_clear",
+      "requires": [
+        "evt_cinder_pursuit_clear"
+      ]
+    },
+    {
+      "id": "q_case",
+      "text": "Read Varo's sealed dispatch.",
+      "target": [
+        1,
+        0,
+        -56
+      ],
+      "until": "evt_varo_evidence",
+      "requires": [
+        "evt_cinder_captain_clear"
+      ]
+    },
+    {
+      "id": "q_leave_home",
+      "text": "Leave for Sere Mill.",
+      "target": [
+        0,
+        0,
+        -66
+      ],
+      "until": "ch02_complete",
+      "requires": [
+        "evt_varo_evidence"
+      ]
+    }
+  ],
+  "next": "zone_sere_mill",
+  "checkpoints": [
+    {
+      "id": "cp_cinder_home",
+      "position": [
+        0,
+        0,
+        7
+      ],
+      "label": "Hearthmere · after the bell"
+    },
+    {
+      "id": "cp_before_boss_varo",
+      "position": [
+        0,
+        0,
+        -35
+      ],
+      "label": "Before varo"
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone_cinder_home",
+      "title": "Hearthmere · after the bell",
+      "north": -70
+    }
+  ]
+}

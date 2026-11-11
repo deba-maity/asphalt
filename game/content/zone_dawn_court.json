@@ -1,0 +1,208 @@
+{
+  "id": "ch06_last_dawn",
+  "zone_id": "zone_dawn_court",
+  "title": "The Dawn Court",
+  "theme": "court",
+  "length": 69,
+  "npcs": [],
+  "objects": [
+    {
+      "id": "obj_halvek",
+      "name": "Halvek · keeper of the Ledger",
+      "position": [
+        0,
+        0,
+        -9
+      ],
+      "dialogue": [
+        [
+          "Halvek",
+          "Your wife could have handed back a coat. Instead she gave strangers a way out."
+        ],
+        [
+          "Rayan",
+          "You killed a child to recover your list."
+        ],
+        [
+          "Halvek",
+          "An order must be believed. Fear is cheaper than a garrison."
+        ],
+        [
+          "Rayan",
+          "Then see what your savings bought."
+        ]
+      ],
+      "flag": "evt_halvek_confronted",
+      "requires": [],
+      "effect": "",
+      "optional": false,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "obj_court_end",
+      "name": "The broken seal",
+      "position": [
+        0,
+        0,
+        -53
+      ],
+      "dialogue": [
+        [
+          "Halvek",
+          "If you burn the book, no one will know what was owed."
+        ],
+        [
+          "Rayan",
+          "They will know what you did. Neri has the names."
+        ],
+        [
+          "Narration",
+          "Rayan cuts the three-loop seal from the counting table. Beyond the gate, the first travelers step onto an unclaimed road."
+        ]
+      ],
+      "flag": "evt_ledger_broken",
+      "requires": [
+        "evt_final_halvek_clear"
+      ],
+      "effect": "",
+      "optional": false,
+      "transition": "",
+      "choice": false
+    },
+    {
+      "id": "exit_memorial",
+      "name": "Return to Hearthmere",
+      "position": [
+        0,
+        0,
+        -64
+      ],
+      "dialogue": [
+        [
+          "Neri",
+          "Will you hear them again?"
+        ],
+        [
+          "Rayan",
+          "No. That was the price. But I still know what they asked of me."
+        ]
+      ],
+      "flag": "",
+      "requires": [
+        "evt_ledger_broken"
+      ],
+      "effect": "",
+      "optional": false,
+      "transition": "zone_memorial",
+      "choice": false
+    }
+  ],
+  "encounters": [
+    {
+      "id": "final_halvek",
+      "flag": "evt_final_halvek_clear",
+      "center": [
+        0,
+        0,
+        -35
+      ],
+      "requires": [
+        "evt_halvek_confronted"
+      ],
+      "boss": "boss_halvek",
+      "reward": 0,
+      "enemies": [
+        {
+          "id": "final_halvek_0",
+          "kind": "halvek",
+          "position": [
+            0,
+            0,
+            -35
+          ]
+        }
+      ]
+    }
+  ],
+  "quests": [
+    {
+      "id": "q_halvek_words",
+      "text": "Face Halvek at the court entrance.",
+      "target": [
+        0,
+        0,
+        -9
+      ],
+      "until": "evt_halvek_confronted",
+      "requires": []
+    },
+    {
+      "id": "q_halvek",
+      "text": "Defeat Halvek. His broken seal changes his stance.",
+      "target": [
+        0,
+        0,
+        -35
+      ],
+      "until": "evt_final_halvek_clear",
+      "requires": [
+        "evt_halvek_confronted"
+      ]
+    },
+    {
+      "id": "q_broken_ledger",
+      "text": "Cut the Ledger's seal.",
+      "target": [
+        0,
+        0,
+        -53
+      ],
+      "until": "evt_ledger_broken",
+      "requires": [
+        "evt_final_halvek_clear"
+      ]
+    },
+    {
+      "id": "q_home_again",
+      "text": "Return to Hearthmere.",
+      "target": [
+        0,
+        0,
+        -64
+      ],
+      "until": "evt_memorial_arrival",
+      "requires": [
+        "evt_ledger_broken"
+      ]
+    }
+  ],
+  "next": "zone_memorial",
+  "checkpoints": [
+    {
+      "id": "cp_dawn_court",
+      "position": [
+        0,
+        0,
+        7
+      ],
+      "label": "The Dawn Court"
+    },
+    {
+      "id": "cp_before_boss_halvek",
+      "position": [
+        0,
+        0,
+        -21
+      ],
+      "label": "Before halvek"
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone_dawn_court",
+      "title": "The Dawn Court",
+      "north": -69
+    }
+  ]
+}

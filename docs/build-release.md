@@ -1,42 +1,32 @@
-# Build and release
+# Build and release — pass two
 
-Godot 4.7.2 stable **standard**, GDScript, Compatibility. `engine-version.json` is the pin; update engine, scripts, templates, export preset and future CI together if that version changes. Official source: [release archive](https://godotengine.org/download/archive/4.7.2-stable/). Compatibility is the [official low-end/older-hardware rendering baseline](https://docs.godotengine.org/en/stable/tutorials/rendering/renderers.html).
-
-## Local setup and launch
+Use Godot **4.7.2 stable standard**, GDScript, Compatibility, and exactly matching Windows export templates. `engine-version.json` pins version/status/renderer and the official editor ZIP SHA-256. The tagged engine is unmodified. [Official archive](https://godotengine.org/download/archive/4.7.2-stable/) and [renderer guidance](https://docs.godotengine.org/en/stable/tutorials/rendering/renderers.html) remain the references.
 
 ```powershell
 Set-Location 'C:\Users\debajyothi.m\wuk\ashen-vow'
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\setup.ps1
-.\Launch.cmd
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\launch.ps1 -Editor
-```
-
-Setup downloads the tagged win64 standard ZIP, verifies its pinned SHA-256 against the official release-asset digest, extracts under ignored `tools/engine`, verifies `--version`, and imports the project. A user-supplied matching engine can instead open `game/project.godot`. No installation, Python, export templates or internet is required to run an already-built executable. The machine-specific cached editor is not committed.
-
-## Windows preview export
-
-```powershell
-# Python 3 stdlib is needed only to fetch templates automatically.
+# Optional fresh-tool setup; standard editor, verified before extracting:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\setup.ps1 -Templates
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\test.ps1 -Rendered
+# All further verification is headless, suitable for this Remote Desktop:
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\test.ps1 -Campaign
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\build.ps1
-& .\exports\windows\AshenVow.exe
 ```
 
-The template fetcher uses HTTP ZIP ranges to retrieve only debug/release x86-64 Windows templates from the official `Godot_v4.7.2-stable_export_templates.tpz`, verifies each member's ZIP CRC and extracts to ignored `tools/export_templates/4.7.2.stable`. It avoids keeping the full 1.28 GB cross-platform archive. If your proxy does not support ranges, install the **same** version's standard templates through Godot and update the two custom-template paths in the export preset to those local files. Do not substitute a different patch or .NET build.
+The template fetcher uses HTTP ranges on the official 4.7.2 standard template ZIP, retrieves only Windows debug/release x86-64 members and validates their ZIP CRC. Cached engine/templates are ignored. If a proxy prevents ranges, install the same version's standard templates through Godot and update the two custom-template paths. Do not substitute a patch or .NET build.
 
-`game/export_presets.cfg` explicitly includes JSON content and bakes the PCK into the executable. Developer tests are excluded. Build output includes `AshenVow.exe`, root license, Godot license, component notices and a SHA-256 build-hash JSON. The preview is unsigned and intended for local review. It is not published or submitted anywhere. `exports/` is ignored output. Redistribute the accompanying notices with any copy.
+The export preset packs all resources and explicitly includes `content/*.json`. The ten zone scenes hold their relevant actor scene dependencies, and manifest strings use packaged local paths. Developer validation scripts needed for headless packaged traversal are included but have no normal-menu entries; bake/image-capture/notice-generation tools are excluded. The embedded PCK means no loose data download is needed. No runtime network API exists.
 
-To regenerate dependency notices after an engine update:
+Build output: `exports/windows/AshenVow.exe`, root MIT license, Godot license, component notices and `build-hash.json`. The preview is unsigned and approximately 105 MiB. `exports/` is ignored generated output. Ship the notice files with any copy. On the machine where the user intends to play, double-click the executable; neither Godot nor Python is required. No graphical launch is performed here after the user's instruction.
+
+## Packaged headless verification
 
 ```powershell
-& .\tools\engine\Godot_v4.7.2-stable_win64_console.exe --headless --path game --script res://tests/write_notices.gd
+# These flags create separate validation saves and never open a game window.
+& .\exports\windows\AshenVow.exe --headless --fixed-fps 60 -- --campaign-play
+& .\exports\windows\AshenVow.exe --headless -- --campaign-continue
 ```
 
-## Actual build evidence
+The packaged full traversal reaches credits with actual movement, collisions, combat and interactions; the second process verifies the ending and canonical state at the memorial. Reports live under `%APPDATA%/AshenVow/campaign_validation/evidence` and retained copies are in `docs/evidence/pass2`. Fixed FPS advances simulation faster than wall time; it is not a graphics benchmark. Actual final process exits and build hash are recorded in [export evidence](evidence/pass2/export.txt).
 
-The pinned editor imported and exported the Windows preview successfully on the development machine. Runtime-asset inclusion was visible in the export transcript: all nine character scenes, three JSON definitions and seven imported audio resources were packed. Exported-executable smoke results are retained in `docs/evidence/export-smoke.txt`. This early preview does not establish reproducible byte-identical builds, signing, installer behavior, target-laptop performance or release certification.
+Regenerate engine notices after any engine change with the headless `tests/write_notices.gd` tool. Change the engine pin, templates, script paths and future CI together. The current early preview is not a claim of byte-identical reproducible release builds, installer/signing behavior, Android support, target-laptop performance or release certification.
 
-## Later release pass — not implemented
-
-Pass four will add a clean-checkout automated build, dependency verification, CI, release ZIP and checksums, versioned metadata and a download website. `site/` is reserved and empty. GitHub Pages publication requires an identified destination; none has been provided and none was invented. Android remains optional and requires touch UI, renderer/device testing and actual exports. No mobile capability is claimed today.
+Pass four will add a clean-checkout release workflow, CI, archives and public download metadata. Website publication needs an identified repository; none was invented or published. Android remains optional and needs real device, input, renderer and export work. The empty `site/` directory is reserved for that later pass.
