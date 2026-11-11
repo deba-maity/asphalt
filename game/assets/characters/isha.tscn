@@ -1,0 +1,361 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/figure.gd" id="1_jr1se"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_n678p"]
+albedo_color = Color(0.6388235, 0.5082353, 0.28941175, 1)
+roughness = 0.88
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_1f7hd"]
+top_radius = 0.22
+bottom_radius = 0.24
+height = 0.32
+radial_segments = 7
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1r10b"]
+albedo_color = Color(0.34117648, 0.27450982, 0.23529412, 1)
+roughness = 0.88
+
+[sub_resource type="BoxMesh" id="BoxMesh_lrth5"]
+size = Vector3(0.49, 0.08, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_emb8e"]
+albedo_color = Color(0.72156864, 0.6039216, 0.38039216, 1)
+roughness = 0.88
+
+[sub_resource type="BoxMesh" id="BoxMesh_3qyiq"]
+size = Vector3(0.09, 0.08, 0.04)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_osgv1"]
+albedo_color = Color(0.70980394, 0.5647059, 0.32156864, 1)
+roughness = 0.88
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_tqr3q"]
+top_radius = 0.3
+bottom_radius = 0.23
+height = 0.48
+radial_segments = 7
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wicjd"]
+albedo_color = Color(0.39607844, 0.3137255, 0.23529412, 1)
+roughness = 0.88
+
+[sub_resource type="BoxMesh" id="BoxMesh_ofn8u"]
+size = Vector3(0.09, 0.5, 0.34)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vb2mp"]
+albedo_color = Color(0.7647059, 0.5921569, 0.45490196, 1)
+roughness = 0.88
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_583rr"]
+top_radius = 0.085
+bottom_radius = 0.085
+height = 0.12
+radial_segments = 7
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_us8ba"]
+top_radius = 0.155
+bottom_radius = 0.145
+height = 0.29
+radial_segments = 8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_nm8wb"]
+albedo_color = Color(0.2, 0.18431373, 0.19215687, 1)
+roughness = 0.88
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_dyhj0"]
+top_radius = 0.145
+bottom_radius = 0.165
+height = 0.13
+radial_segments = 8
+
+[sub_resource type="BoxMesh" id="BoxMesh_j0pev"]
+size = Vector3(0.25, 0.1, 0.1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0t4nr"]
+albedo_color = Color(0.7835294, 0.62478435, 0.49850982, 1)
+roughness = 0.88
+
+[sub_resource type="BoxMesh" id="BoxMesh_g7px5"]
+size = Vector3(0.065, 0.06, 0.08)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_246wr"]
+albedo_color = Color(0.14901961, 0.16862746, 0.1882353, 1)
+roughness = 0.88
+
+[sub_resource type="BoxMesh" id="BoxMesh_41b77"]
+size = Vector3(0.035, 0.022, 0.015)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_drbox"]
+top_radius = 0.12
+bottom_radius = 0.092
+height = 0.34
+radial_segments = 7
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_t1kp2"]
+top_radius = 0.082
+bottom_radius = 0.062
+height = 0.31
+radial_segments = 7
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dymqk"]
+albedo_color = Color(0.3647059, 0.3137255, 0.2627451, 1)
+roughness = 0.88
+
+[sub_resource type="BoxMesh" id="BoxMesh_5jb6f"]
+size = Vector3(0.15, 0.14, 0.16)
+
+[sub_resource type="BoxMesh" id="BoxMesh_q2tdu"]
+size = Vector3(0.115, 0.13, 0.12)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_fcmkl"]
+albedo_color = Color(0.2901961, 0.20392157, 0.19215687, 1)
+roughness = 0.88
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_hnd30"]
+top_radius = 0.035
+bottom_radius = 0.035
+height = 0.2
+radial_segments = 7
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0qqia"]
+albedo_color = Color(0.73333335, 0.6392157, 0.42745098, 1)
+roughness = 0.88
+
+[sub_resource type="BoxMesh" id="BoxMesh_qtawu"]
+size = Vector3(0.29, 0.045, 0.07)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2syyt"]
+albedo_color = Color(0.7529412, 0.7921569, 0.8117647, 1)
+roughness = 0.88
+
+[sub_resource type="BoxMesh" id="BoxMesh_7hgo2"]
+size = Vector3(0.095, 0.73, 0.027)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5x0es"]
+albedo_color = Color(0.8352941, 0.87058824, 0.8509804, 1)
+roughness = 0.88
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_6ptre"]
+top_radius = 0.052
+bottom_radius = 0.0
+height = 0.16
+radial_segments = 4
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_036xc"]
+albedo_color = Color(0.30588236, 0.31764707, 0.30980393, 1)
+roughness = 0.88
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_r8wcl"]
+top_radius = 0.125
+bottom_radius = 0.1
+height = 0.37
+radial_segments = 7
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gb5kd"]
+albedo_color = Color(0.21568628, 0.20784314, 0.20784314, 1)
+roughness = 0.88
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_3bvs5"]
+top_radius = 0.1
+bottom_radius = 0.085
+height = 0.34
+radial_segments = 7
+
+[sub_resource type="BoxMesh" id="BoxMesh_5g6jd"]
+size = Vector3(0.19, 0.14, 0.3)
+
+[node name="isha" type="Node3D" unique_id=815519768]
+script = ExtResource("1_jr1se")
+cloth = Color(0.70980394, 0.5647059, 0.32156864, 1)
+armed = false
+
+[node name="hips" type="Node3D" parent="." unique_id=733644932]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.91, 0)
+
+[node name="@MeshInstance3D@64" type="MeshInstance3D" parent="hips" unique_id=1128686471]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+material_override = SubResource("StandardMaterial3D_n678p")
+mesh = SubResource("CylinderMesh_1f7hd")
+
+[node name="@MeshInstance3D@65" type="MeshInstance3D" parent="hips" unique_id=1887933018]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.13, 0)
+material_override = SubResource("StandardMaterial3D_1r10b")
+mesh = SubResource("BoxMesh_lrth5")
+
+[node name="@MeshInstance3D@66" type="MeshInstance3D" parent="hips" unique_id=211349539]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.13, -0.17)
+material_override = SubResource("StandardMaterial3D_emb8e")
+mesh = SubResource("BoxMesh_3qyiq")
+
+[node name="torso" type="Node3D" parent="hips" unique_id=1576992428]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.19, 0)
+
+[node name="@MeshInstance3D@67" type="MeshInstance3D" parent="hips/torso" unique_id=1320802650]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.22, 0)
+material_override = SubResource("StandardMaterial3D_osgv1")
+mesh = SubResource("CylinderMesh_tqr3q")
+
+[node name="@MeshInstance3D@68" type="MeshInstance3D" parent="hips/torso" unique_id=1121378059]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.14, 0.24, 0)
+material_override = SubResource("StandardMaterial3D_wicjd")
+mesh = SubResource("BoxMesh_ofn8u")
+
+[node name="head" type="Node3D" parent="hips/torso" unique_id=1574975839]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.62, 0)
+
+[node name="@MeshInstance3D@69" type="MeshInstance3D" parent="hips/torso/head" unique_id=458247345]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.07, 0)
+material_override = SubResource("StandardMaterial3D_vb2mp")
+mesh = SubResource("CylinderMesh_583rr")
+
+[node name="@MeshInstance3D@70" type="MeshInstance3D" parent="hips/torso/head" unique_id=2079174377]
+material_override = SubResource("StandardMaterial3D_vb2mp")
+mesh = SubResource("CylinderMesh_us8ba")
+
+[node name="@MeshInstance3D@71" type="MeshInstance3D" parent="hips/torso/head" unique_id=1960385098]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.13, 0.018)
+material_override = SubResource("StandardMaterial3D_nm8wb")
+mesh = SubResource("CylinderMesh_dyhj0")
+
+[node name="@MeshInstance3D@72" type="MeshInstance3D" parent="hips/torso/head" unique_id=1023578718]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.105, -0.075)
+material_override = SubResource("StandardMaterial3D_vb2mp")
+mesh = SubResource("BoxMesh_j0pev")
+
+[node name="@MeshInstance3D@73" type="MeshInstance3D" parent="hips/torso/head" unique_id=1859679762]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.15)
+material_override = SubResource("StandardMaterial3D_0t4nr")
+mesh = SubResource("BoxMesh_g7px5")
+
+[node name="@MeshInstance3D@74" type="MeshInstance3D" parent="hips/torso/head" unique_id=1669156932]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.065, 0.035, -0.144)
+material_override = SubResource("StandardMaterial3D_246wr")
+mesh = SubResource("BoxMesh_41b77")
+
+[node name="@MeshInstance3D@82" type="MeshInstance3D" parent="hips/torso/head" unique_id=179776635]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.065, 0.035, -0.144)
+material_override = SubResource("StandardMaterial3D_246wr")
+mesh = SubResource("BoxMesh_41b77")
+
+[node name="arm_l" type="Node3D" parent="hips/torso" unique_id=1514828660]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.31, 0.43, 0)
+
+[node name="@MeshInstance3D@75" type="MeshInstance3D" parent="hips/torso/arm_l" unique_id=1516102231]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.17, 0)
+material_override = SubResource("StandardMaterial3D_osgv1")
+mesh = SubResource("CylinderMesh_drbox")
+
+[node name="elbow_l" type="Node3D" parent="hips/torso/arm_l" unique_id=651039548]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.34, 0)
+
+[node name="@MeshInstance3D@76" type="MeshInstance3D" parent="hips/torso/arm_l/elbow_l" unique_id=1284551645]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.155, 0)
+material_override = SubResource("StandardMaterial3D_vb2mp")
+mesh = SubResource("CylinderMesh_t1kp2")
+
+[node name="@MeshInstance3D@77" type="MeshInstance3D" parent="hips/torso/arm_l/elbow_l" unique_id=1653259444]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.14, 0)
+material_override = SubResource("StandardMaterial3D_dymqk")
+mesh = SubResource("BoxMesh_5jb6f")
+
+[node name="hand_l" type="Node3D" parent="hips/torso/arm_l/elbow_l" unique_id=462364339]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.33, 0)
+
+[node name="@MeshInstance3D@78" type="MeshInstance3D" parent="hips/torso/arm_l/elbow_l/hand_l" unique_id=1244908781]
+material_override = SubResource("StandardMaterial3D_vb2mp")
+mesh = SubResource("BoxMesh_q2tdu")
+
+[node name="arm_r" type="Node3D" parent="hips/torso" unique_id=1112821054]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.31, 0.43, 0)
+
+[node name="@MeshInstance3D@83" type="MeshInstance3D" parent="hips/torso/arm_r" unique_id=410552281]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.17, 0)
+material_override = SubResource("StandardMaterial3D_osgv1")
+mesh = SubResource("CylinderMesh_drbox")
+
+[node name="elbow_r" type="Node3D" parent="hips/torso/arm_r" unique_id=2123323872]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.34, 0)
+
+[node name="@MeshInstance3D@84" type="MeshInstance3D" parent="hips/torso/arm_r/elbow_r" unique_id=1054278329]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.155, 0)
+material_override = SubResource("StandardMaterial3D_vb2mp")
+mesh = SubResource("CylinderMesh_t1kp2")
+
+[node name="@MeshInstance3D@85" type="MeshInstance3D" parent="hips/torso/arm_r/elbow_r" unique_id=1395571883]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.14, 0)
+material_override = SubResource("StandardMaterial3D_dymqk")
+mesh = SubResource("BoxMesh_5jb6f")
+
+[node name="hand_r" type="Node3D" parent="hips/torso/arm_r/elbow_r" unique_id=1059156535]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.33, 0)
+
+[node name="@MeshInstance3D@86" type="MeshInstance3D" parent="hips/torso/arm_r/elbow_r/hand_r" unique_id=1257822966]
+material_override = SubResource("StandardMaterial3D_vb2mp")
+mesh = SubResource("BoxMesh_q2tdu")
+
+[node name="weapon" type="Node3D" parent="hips/torso/arm_r/elbow_r/hand_r" unique_id=1012827564]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
+visible = false
+
+[node name="@MeshInstance3D@90" type="MeshInstance3D" parent="hips/torso/arm_r/elbow_r/hand_r/weapon" unique_id=765360617]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.06, 0)
+material_override = SubResource("StandardMaterial3D_fcmkl")
+mesh = SubResource("CylinderMesh_hnd30")
+
+[node name="@MeshInstance3D@91" type="MeshInstance3D" parent="hips/torso/arm_r/elbow_r/hand_r/weapon" unique_id=50228471]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.18, 0)
+material_override = SubResource("StandardMaterial3D_0qqia")
+mesh = SubResource("BoxMesh_qtawu")
+
+[node name="Blade" type="MeshInstance3D" parent="hips/torso/arm_r/elbow_r/hand_r/weapon" unique_id=361045069]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.57, 0)
+material_override = SubResource("StandardMaterial3D_2syyt")
+mesh = SubResource("BoxMesh_7hgo2")
+
+[node name="@MeshInstance3D@93" type="MeshInstance3D" parent="hips/torso/arm_r/elbow_r/hand_r/weapon" unique_id=1487192968]
+transform = Transform3D(0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, 0.70710677, 0, -1.01, 0)
+material_override = SubResource("StandardMaterial3D_5x0es")
+mesh = SubResource("CylinderMesh_6ptre")
+
+[node name="leg_l" type="Node3D" parent="hips" unique_id=962360748]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.135, -0.1, 0)
+
+[node name="@MeshInstance3D@79" type="MeshInstance3D" parent="hips/leg_l" unique_id=1827962786]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.185, 0)
+material_override = SubResource("StandardMaterial3D_036xc")
+mesh = SubResource("CylinderMesh_r8wcl")
+
+[node name="knee_l" type="Node3D" parent="hips/leg_l" unique_id=738524909]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.37, 0)
+
+[node name="@MeshInstance3D@80" type="MeshInstance3D" parent="hips/leg_l/knee_l" unique_id=1029124784]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.17, 0)
+material_override = SubResource("StandardMaterial3D_gb5kd")
+mesh = SubResource("CylinderMesh_3bvs5")
+
+[node name="@MeshInstance3D@81" type="MeshInstance3D" parent="hips/leg_l/knee_l" unique_id=1111385766]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.31, -0.045)
+material_override = SubResource("StandardMaterial3D_gb5kd")
+mesh = SubResource("BoxMesh_5g6jd")
+
+[node name="leg_r" type="Node3D" parent="hips" unique_id=686887792]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.135, -0.1, 0)
+
+[node name="@MeshInstance3D@87" type="MeshInstance3D" parent="hips/leg_r" unique_id=1567185269]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.185, 0)
+material_override = SubResource("StandardMaterial3D_036xc")
+mesh = SubResource("CylinderMesh_r8wcl")
+
+[node name="knee_r" type="Node3D" parent="hips/leg_r" unique_id=499694880]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.37, 0)
+
+[node name="@MeshInstance3D@88" type="MeshInstance3D" parent="hips/leg_r/knee_r" unique_id=1668899240]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.17, 0)
+material_override = SubResource("StandardMaterial3D_gb5kd")
+mesh = SubResource("CylinderMesh_3bvs5")
+
+[node name="@MeshInstance3D@89" type="MeshInstance3D" parent="hips/leg_r/knee_r" unique_id=1384267762]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.31, -0.045)
+material_override = SubResource("StandardMaterial3D_gb5kd")
+mesh = SubResource("BoxMesh_5g6jd")

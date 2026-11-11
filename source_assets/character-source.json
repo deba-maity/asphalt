@@ -1,0 +1,17 @@
+{
+  "format": "ashen-articulated-v1",
+  "author": "ASHEN VOW contributors, created with Codex assistance",
+  "license": "MIT",
+  "method": "Original low-polygon hard-jointed figure; editable GDScript mesh construction and JSON poses. No external skeleton or downloaded animations.",
+  "geometry_source": "game/scripts/figure.gd",
+  "animation_source": "game/content/poses.json",
+  "baker": "game/tests/bake_characters.gd",
+  "runtime": "game/assets/characters/*.tscn",
+  "units": "one Godot unit = one metre",
+  "orientation": "Y up, -Z forward",
+  "adult_height_metres": 1.9,
+  "hierarchy": "hips > torso > head / arm_l > elbow_l > hand_l / arm_r > elbow_r > hand_r > weapon; hips > leg_l > knee_l / leg_r > knee_r",
+  "weapon_attachment": "right hand, local negative Y blade axis; grip centred at hand",
+  "animation_policy": "in-place, physics-driven movement. Authored pose targets interpolated exponentially. Walking and running cycles scale frequency by actual horizontal speed.",
+  "limitations": "Hard joints, no skin deformation, finger motion, facial animation, IK or exact planted-foot solver. These are original stylized fallback assets, not motion capture or production-polished animation."
+}

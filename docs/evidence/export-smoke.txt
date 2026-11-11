@@ -1,0 +1,22 @@
+Date: 2026-11-11 (client date)
+Development machine: Windows 11 Pro, i7-1185G7, Intel Iris Xe.
+
+Command:
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/build.ps1
+Result: exit 0; Windows preview exported with Godot 4.7.2.stable.official.ed1daf0bf
+using the official matching windows_release_x86_64.exe template.
+
+Exported executable launched via Start-Process -Wait -PassThru:
+exports/windows/AshenVow.exe --headless --quit-after 15 --log-file <repo>/tools/logs/export-headless.log
+Result: process exit 0. Log contains engine version, no parse/runtime errors.
+
+exports/windows/AshenVow.exe --quit-after 60 --log-file <repo>/tools/logs/export-rendered.log
+Result: process exit 0. Log reports OpenGL 3.3 Compatibility on Intel Iris Xe,
+without parse/runtime errors. This smoke run loads the title/world for 60 frames;
+the full gameplay traversal is tested separately against the source project.
+
+Preview: exports/windows/AshenVow.exe (embedded PCK).
+License, Godot license and third-party component notices accompany the executable.
+Exact local build SHA-256: exports/windows/build-hash.json.
+
+No target-laptop, signing, installer, Android or release-reproducibility claim.

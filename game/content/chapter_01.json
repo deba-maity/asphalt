@@ -1,0 +1,44 @@
+{
+  "id":"ch01_bread_steel",
+  "title":"Bread and Steel",
+  "zones":[{"id":"zone_hearthmere","title":"Hearthmere","north":-14},{"id":"zone_alder_road","title":"The Alder Road","north":-76}],
+  "checkpoints":[{"id":"cp_home","position":[0,0,7],"label":"The doorstep"},{"id":"cp_road_shrine","position":[0,0,-34],"label":"Roadside shrine"}],
+  "encounters":[
+    {"id":"enc_fallen_cart","flag":"evt_cart_clear","center":[0,0,-24],"enemies":[{"id":"enemy_cart_01","kind":"road_bandit","position":[-1,0,-24]},{"id":"enemy_cart_02","kind":"road_bandit","position":[2,0,-27]}]},
+    {"id":"enc_alder_ambush","flag":"evt_ambush_clear","center":[0,0,-45],"enemies":[{"id":"enemy_scout_01","kind":"wood_scout","position":[-2,0,-45]},{"id":"enemy_scout_02","kind":"wood_scout","position":[2,0,-48]}]},
+    {"id":"enc_foreman","flag":"evt_foreman_clear","center":[0,0,-63],"enemies":[{"id":"enemy_foreman","kind":"foreman","position":[0,0,-63]}]}
+  ],
+  "quests":[
+    {"id":"quest_home","requires":[],"until":"evt_family_morning","text":"Speak with Mira by the doorstep.","target":[-3,0,5]},
+    {"id":"quest_contract","requires":["evt_family_morning"],"until":"evt_contract","text":"Find Saren at the north gate. Take protection work.","target":[3,0,-8]},
+    {"id":"quest_cart","requires":["evt_contract"],"until":"evt_cart_clear","text":"Clear the fallen cart on the Alder Road.","target":[0,0,-24]},
+    {"id":"quest_ambush","requires":["evt_cart_clear"],"until":"evt_ambush_clear","text":"Follow the road. Watch the alder thicket.","target":[0,0,-45]},
+    {"id":"quest_foreman","requires":["evt_ambush_clear"],"until":"evt_foreman_clear","text":"Break the foreman's road levy at the old kiln.","target":[0,0,-63]},
+    {"id":"quest_payment","requires":["evt_foreman_clear"],"until":"evt_paid","text":"Return to Saren at the gate for your pay.","target":[3,0,-8]},
+    {"id":"quest_gift","requires":["evt_paid"],"until":"purchase_honeybread","text":"Buy honeybread from Tova for the family (8 crowns).","target":[-6,0,-1]},
+    {"id":"quest_supper","requires":["purchase_honeybread"],"until":"ch01_complete","text":"Bring the honeybread home. Speak with Mira.","target":[-3,0,5]}
+  ],
+  "reward":{"id":"reward_saren_road","crowns":30},
+  "npcs":[
+    {"id":"npc_mira","name":"Mira","position":[-3,0,5],"color":"697f83","armed":false},
+    {"id":"npc_isha","name":"Isha","position":[-4.5,0,5.5],"color":"b59052","scale":0.64,"armed":false},
+    {"id":"npc_saren","name":"Saren · caravan keeper","position":[3,0,-8],"color":"88856a","armed":false},
+    {"id":"npc_tova","name":"Tova · baker","position":[-6,0,-1],"color":"a16b55","armed":false},
+    {"id":"npc_oren","name":"Oren · potter","position":[7,0,2],"color":"7a8182","armed":false}
+  ],
+  "dialogue": {
+    "morning":[["Mira","Your belt again. Hold still. You can face a knife, but not a buckle."],["Rayan","The buckle fights dirty."],["Isha","Bring me something from the road. Something that isn't a stone."],["Mira","Saren needs a steady sword at the north gate. Come back before the soup forgets you."]],
+    "contract":[["Saren","Two wagons turned back. A crew at the old kiln calls robbery a road levy."],["Rayan","How far?"],["Saren","Past the fallen cart, through the alders. Clear the road and their foreman. Thirty crowns, paid here. The shrine halfway is safe enough to rest."]],
+    "payment":[["Saren","My wagons made it through. Thirty crowns, as promised."],["Rayan","They wore a knot of black cord. All of them."],["Saren","Men find a symbol and start thinking it makes them a kingdom. Go home, Rayan. Tova still has honeybread."]],
+    "bread":[["Tova","Eight crowns for a whole loaf. I saved the one with the crisp edge."],["Rayan","Mira will say it's too much."],["Tova","Then tell her the baker can't count."]],
+    "supper":[["Isha","It smells like summer! Did you find it on a tree?"],["Rayan","A very particular tree. Tova grows it behind her oven."],["Mira","Sit. Tell us the small things first."],["Rayan","A broken cart. A bird nesting in a helmet. A man who thought the road belonged to him."],["Mira","And now?"],["Rayan","Now I'm home."],["Isha","Keep the last crust for tomorrow."],["Mira","We will."]],
+    "isha":[["Isha","Oren says the moon is a bowl. I think someone dropped it."],["Rayan","We should ask for a smaller one. Easier to carry."]],
+    "oren":[["Oren","That old kiln north of the alders used to fire good clay. Shame what lives there now."],["Rayan","Perhaps you'll use it again."],["Oren","Bring me a quiet road and I'll make you a bowl that doesn't leak."]],
+    "mira_repeat":[["Mira","The soup can wait a little. Be careful on the road."]],
+    "saren_repeat":[["Saren","The cart, the thicket, then the kiln. Rest at the shrine if you need to."]],
+    "tova_repeat":[["Tova","A warm loaf has better company at home than on my shelf."]],
+    "shrine":[["Roadside shrine","You wash the dust from your hands. Health and three healing draughts restored. This is your new checkpoint."]],
+    "well":[["Village well","A rope worn smooth by a hundred hands. Someone has left a little wooden bird on the rim."]],
+    "cart":[["Abandoned wagon","The grain sacks are cut open. A black cord has been tied around the axle, tight as a warning."]]
+  }
+}

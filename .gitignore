@@ -1,0 +1,8 @@
+game/.godot/
+tools/engine/
+tools/export_templates/
+tools/*.zip
+tools/*.tpz
+tools/logs/
+exports/
+*.tmp

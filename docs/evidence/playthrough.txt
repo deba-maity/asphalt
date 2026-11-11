@@ -1,0 +1,13 @@
+Fresh validation save. Uses normal movement, interaction, damage windows and story callbacks; no teleport or invincibility.
+Morning family interaction completed.
+Protection contract accepted.
+Encounter complete: evt_cart_clear
+Shrine checkpoint activated, health and draughts restored.
+Encounter complete: evt_ambush_clear
+Encounter complete: evt_foreman_clear
+Paid exactly 30 crowns.
+Bought honeybread for 8 crowns.
+Opening chapter completed from fresh save through movement, 5 enemies, payment, purchase and family supper.
+Distance walked: 134.2m; elapsed 68.6s; development-run average 28.7 FPS (30 FPS cap; not target-laptop evidence).
+Pause froze player position; resumed successfully.
+PASS

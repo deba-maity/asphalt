@@ -1,0 +1,9 @@
+{
+  "version": "4.7.2",
+  "status": "stable",
+  "build": "standard",
+  "windows_zip_sha256": "731980f9608d61333e5baf54a2ef17210acc7a538446c0cb9969f002aca1e953",
+  "renderer": "gl_compatibility",
+  "export_templates": "4.7.2.stable",
+  "archive": "https://godotengine.org/download/archive/4.7.2-stable/"
+}

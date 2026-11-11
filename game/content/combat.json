@@ -1,0 +1,18 @@
+{
+  "attacks": {
+    "light": {"cost":16,"windup":0.16,"active":0.14,"recovery":0.27,"damage":22,"reach":2.35,"arc":0.05},
+    "heavy": {"cost":29,"windup":0.46,"active":0.20,"recovery":0.48,"damage":43,"reach":2.65,"arc":-0.2},
+    "bandit_slash": {"cost":0,"windup":0.75,"active":0.16,"recovery":1.0,"damage":14,"reach":2.1,"arc":0.1},
+    "scout_thrust": {"cost":0,"windup":0.53,"active":0.12,"recovery":1.25,"damage":12,"reach":2.4,"arc":0.4},
+    "foreman_sweep": {"cost":0,"windup":1.05,"active":0.24,"recovery":0.55,"damage":24,"reach":3.1,"arc":-0.5},
+    "foreman_slam": {"cost":0,"windup":1.35,"active":0.22,"recovery":1.65,"damage":33,"reach":3.0,"arc":0.3}
+  },
+  "enemies": {
+    "road_bandit": {"health":60,"speed":2.3,"notice":9,"attacks":["bandit_slash"],"color":"795548","scale":1.0},
+    "wood_scout": {"health":48,"speed":2.9,"notice":9,"attacks":["scout_thrust"],"color":"536856","scale":0.96},
+    "foreman": {"health":210,"speed":1.9,"notice":10,"attacks":["foreman_sweep","foreman_sweep","foreman_slam"],"color":"553b3a","scale":1.18}
+  },
+  "stamina": {"maximum":100,"regeneration":27,"delay":0.65,"dodge_cost":23,"sprint_per_second":12},
+  "dodge": {"duration":0.58,"invulnerable_start":0.06,"invulnerable_end":0.36,"speed":8.5},
+  "parry_window":0.19
+}
