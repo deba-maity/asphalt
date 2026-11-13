@@ -1,32 +1,33 @@
-# Pass-two continuation record
+# Pass-three continuation record
 
-Date: 2026-11-11, using the supplied client date. Repository: `C:\Users\debajyothi.m\wuk\ashen-vow`. Same Godot 4.7.2 standard/Compatibility project. Pass-one commit `dec13db` and [historical records](history/pass1-progress.md) preserve the previous foundation. No engine switch, unrelated application change, purchase, account, backend or publication occurred.
+Date: 2026-11-13 (client date). Repository: `C:\Users\debajyothi.m\wuk\ashen-vow`. Godot **4.7.2 stable standard / Compatibility** remains pinned. Pass-one `dec13db` and pass-two `6cd41be` remain in Git. Earlier records are retained in `docs/history`.
 
-## Implemented now
+## Implemented improvements
 
-All six requested chapters are reachable through normal play, across ten locally packaged zones. The opening and its original save keys remain. Later content includes the errand/aftermath/survivor/pursuit, Varo, two revenge locations, Neri's rescue and tempered edge, optional deeper flask, Kesran's winnable fight and Avel's skippable betrayal/fall, the Counting Shore and informed resurrection cost, the playable Ashstep lesson and veil, changed mill and reactive elites, Serit, bridge/court, Halvek's two phases, an authored resolution, memorial and credits. Optional household/organization discoveries and remembered dialogue records are functional.
+- Preserved the complete six-chapter campaign, original opening, canonical death/resurrection, ending, chapter replay and schema-one/two saves. No unrelated systems or network dependency were introduced.
+- Added a single 160ms recent-recovery input buffer with a captured dodge direction. Windup/active attacks stay committed. Story, hit, death, menus, focus loss and controller disconnect clear intent. Returning from menus/dialogue requires a short release interval so closing clicks cannot attack.
+- Fixed projectile rule ownership: a shot keeps its attack rules after its shooter changes state; a parried shot cannot revive a dead shooter. Cached melee query shapes avoid repeated shape allocation.
+- Added Story and Standard difficulty, with 40% less incoming damage and a wider parry on Story. All progression/endings remain available. Directional guard/posture and existing enemy behavior budgets remain.
+- Added readable threat/counter text, bounded impact rings, optional small camera shake off by default, and reduced impact effects. Lock-on can acquire an opponent behind the player. Camera collision retracts immediately and releases outward slowly; floor snap supports gentle inclines.
+- Replaced velocity-only leg cycling with measured-displacement cycling and an analytic two-link hard-joint leg solution. Lowered the rest hip to correct an approximately 6cm offset. Anticipation, visible swing and recovery share the physics combat clock. Parry response cannot overwrite hit/death/attack pose ownership. These changes still need a rendered review.
+- Added tabbed settings, keyboard/mouse rebinding with conflict checks and updated prompts, 23/27/31 subtitles, sensitivity/inversion, independent audio volumes, window/fullscreen choices, 540p/720p/900p 3D rendering independent of HUD scale, shadows, low-memory transitions and 30/60 FPS caps. The low target stays 720p/30; 60 is experimental and unverified on the laptop.
+- Added original footsteps, periodic ambient loops and synchronized calm/combat music stems; separate Music/Effects/Ambient buses, bounded voice pool, cue variation and deliberate quiet contexts. Small zone changes retain the music clock.
+- Added purposeful original bird/bowl/letter/book/insignia/table/awning/lantern/court props and chapter palette differences. Fixed batching so the animated millwheel's geometry stays owned by its moving parent.
+- Added local benchmark/capture tools: frame distribution and spikes, available engine counters, loading stages, machine/preset metadata, F8 report recording, F9 actual screenshots and a sustained-route PowerShell wrapper with process-memory sampling.
+- Fixed closing during a background transition: keep scripts/services alive, poll the uncancellable task to completion, discard it and then quit. An exit/relaunch fixture now covers that race.
 
-Combat now has guarding/heavy/ranged/reactive behaviors, projectiles, an attack-lease coordinator, a three-actor active budget, posture effects and Resolve/counter mechanics. Default low-memory transitions disable/free previous zones before construction, keep one persistent player, and retain at most one budgeted speculative resource set. Missing paths, cancellation, duplicates and construction failures recover safely. Schema-two persistence migrates schema one with a preserved original backup and keeps ordinary death, canonical death, one return, powers and ending distinct. Chapter replay uses a separate store; Continue preserves the campaign.
+## Actual validation and constraint
 
-## Verification and user constraint
+The user said not to play on this Remote Desktop. **No graphical game window or audio playback was opened in pass three.** Source checks passed at both 30 and 60 Hz simulation, including 216 grouped assertions plus explicit close/relaunch checks and full New Game-to-credits/Continue traversals. Physics remains 60 Hz. Packaged quality checks passed; the exported executable completed **three whole headless campaigns / 27 zone transitions** in a sustained accelerated check and then passed a separate Continue. See `docs/evidence/pass3` for exact logs, hash and measurements.
 
-The user instructed **not to play the game on the Remote Desktop**. Graphical runs were stopped. Subsequent validation is headless: core/campaign/state/input/layout/transition checks, complete source New Game-to-credits traversal, separate Continue, plus a packaged executable campaign traversal and relaunch. See `docs/evidence/pass2` for exact final reports and stage/memory measurements. No complete rendered or human pass-two playthrough is claimed, and no target-laptop result is inferred. Desktop capture/orbit checks are skipped under headless mode.
+The 33.97-second sustained run was accelerated headless development work, not a 15-minute thermal test or a rendered benchmark. GPU timing, graphics memory, actual target-laptop frame times and subjective visual/audio/device quality remain unavailable. No new pass-three screenshots are claimed. Historical pass-one captures are not current-build evidence.
 
-One normal-speed automated headless traversal took 375 seconds; accelerated runs report simulation and wall time separately. This is a short authored campaign, with immediate dialogue and automated combat in that observation. The desired compact multi-hour scope remains unmet/unmeasured and would require substantial authored expansion. Do not call the current build a multi-hour adventure.
+## Unfinished acceptance
 
-## Stable state to preserve
+The campaign remains short; the multi-hour goal is unmet/unmeasured. Hard-jointed art, approximate gait/foot handling and economical environments are not production-polished. Rendered full-campaign review, sound listening, controller/physical-mouse/fullscreen checks, longest-session save/error review and actual Ryzen 5 5500U benchmarking are **required release gates**. Read `known-issues.md` and `benchmark.md`; do not silently relabel them as completed polish.
 
-Campaign definitions and checkpoint mapping: `game/content/campaign.json`. Chapter IDs: `ch01_bread_steel`, `ch02_night_cinders`, `ch03_road_revenge`, `ch04_between_ashes`, `ch05_returned`, `ch06_last_dawn`. Keep old opening keys, `zone_alder_road` alias, and schema-one migration. Canonical flags/counters: `evt_story_death`, `evt_resurrected`, `cost_isha_voice`, `story_deaths=1`, `resurrections=1`. The returned body must never resume an earlier mortal chapter in the main save. Ending: `campaign_complete`, `ending`, `credits`, `zone_memorial`. Named bosses: `boss_varo`, `boss_kesran`, `boss_warden`, `boss_serit`, `boss_halvek`.
+## Next pass
 
-## Pass three priorities
+Pass four can focus on clean-checkout reproducibility, build/CI scripts, archives/checksums, notices, platform checks and a download site for an identified repository. Preserve Godot 4.7.2, schema-one/two migration, stable chapter IDs and the returned-body contract. Obtain real laptop reports/captures and human acceptance before claiming release readiness. Optional Android still needs feasibility, touch UI and device work. No website, remote repository, paid asset, service or account was created.
 
-1. Run the game locally on the intended play machine; perform a human full-campaign review and physical keyboard/mouse/controller tests. Respect the Remote Desktop restriction here.
-2. Refine hard-jointed animation, stride/foot handling, bow/throw/counter poses, weapon clipping, camera/cinematic framing, lighting, environments and audio. Current original fallback assets are functional and simple.
-3. Evaluate combat tuning, normal/elite behavior, encounter composition, Resolve pressure and boss-phase readability from human play, without adding grind.
-4. Improve accessibility: rebinding, subtitle sizing/contrast, assist options and controller UI. Test settings/error paths and long sessions.
-5. Profile the actual Ryzen 5 5500U laptop and separate I/O, activation, shader/GPU and presentation costs. A 30 FPS design target remains unproven there.
-6. Decide the authored scope needed for the multi-hour target: additional relationships, optional journeys, discoveries and distinct encounters. Preserve the complete ending and save migration while expanding.
-
-## Pass four and remaining release work
-
-The local Windows preview exports and has headless packaged-campaign evidence. Clean-checkout reproducibility/CI, release ZIPs/checksums/signing decisions, optional Android feasibility/touch support and a GitHub Pages download site remain future work. `site/` is reserved; there is no remote or published website. Runtime assets/data are committed, while engine/templates, `.godot`, developer logs and exports remain ignored.
+Useful commands: `tools/test.ps1 -Campaign`, `tools/test.ps1 -Campaign -SimulationHz 30`, `tools/build.ps1`. They stay headless. `tools/benchmark.ps1` without `-Headless` is an explicit local user action for the play laptop and must not be run graphically here. Runtime assets/data are committed; engine/templates, `.godot`, logs and exports remain ignored generated output.

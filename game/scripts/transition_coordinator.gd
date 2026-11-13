@@ -65,6 +65,7 @@ func request(id: String, arrival_effect: String = "") -> bool:
 	return true
 
 func _process(_delta: float) -> void:
+	if main.closing: return
 	if state == "loading":
 		var progress: Array = []
 		var status = ResourceLoader.load_threaded_get_status(path,progress)
@@ -92,6 +93,10 @@ func perform() -> void:
 	# Retrieval is complete. Instantiation and scene-tree changes stay on the main thread.
 	var started = Time.get_ticks_usec()
 	var ok: bool = await main.install_zone(scene,destination,effect,low_memory)
+	if main.closing:
+		resource=null
+		reset()
+		return
 	var construction_ms = (Time.get_ticks_usec()-started)/1000.0
 	var measure = {"zone":destination,"background_ms":load_ms,"main_thread_swap_ms":construction_ms,"nodes":main.get_tree().get_node_count(),"static_memory_bytes":OS.get_static_memory_usage(),"low_memory":low_memory}
 	measure.merge(main.last_install_metrics)
@@ -141,3 +146,17 @@ func recover() -> void:
 	if state == "loading": cancel(); return
 	reset()
 	main.restart_checkpoint()
+
+func drain_for_shutdown() -> void:
+	# Keep scripts/services alive until the engine's uncancellable local task
+	# finishes. Quitting mid-parse otherwise races resource/script teardown.
+	while state=="loading":
+		var status=ResourceLoader.load_threaded_get_status(path)
+		if status==ResourceLoader.THREAD_LOAD_LOADED:
+			var discarded=ResourceLoader.load_threaded_get(path)
+			discarded=null
+			reset()
+		elif status in [ResourceLoader.THREAD_LOAD_FAILED,ResourceLoader.THREAD_LOAD_INVALID_RESOURCE]: reset()
+		else: await get_tree().process_frame
+	while state=="transitioning": await get_tree().process_frame
+	resource=null

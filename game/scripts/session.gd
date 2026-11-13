@@ -14,11 +14,12 @@ var original_store: SaveStore
 func _ready() -> void:
 	validation = "--validate-play" in OS.get_cmdline_user_args() or "--validate-continue" in OS.get_cmdline_user_args() or "--validate-systems" in OS.get_cmdline_user_args()
 	for arg in OS.get_cmdline_user_args():
-		if arg.begins_with("--campaign-") or arg == "--test-transitions": validation = true
+		if arg.begins_with("--campaign-") or arg.begins_with("--test-"): validation = true
 	var path = "user://validation" if validation else "user://"
 	if "--validate-systems" in OS.get_cmdline_user_args(): path = "user://validation_systems"
 	if "--campaign-play" in OS.get_cmdline_user_args() or "--campaign-continue" in OS.get_cmdline_user_args(): path = "user://campaign_validation"
 	if "--test-transitions" in OS.get_cmdline_user_args(): path = "user://transition_validation"
+	if "--test-quit-transition" in OS.get_cmdline_user_args() or "--test-resume-transition" in OS.get_cmdline_user_args(): path="user://quit_transition_validation"
 	store = SaveStore.new(path)
 	chapter = Campaign.definition(data.zone)
 	loaded = store.load_game()

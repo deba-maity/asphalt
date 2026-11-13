@@ -1,0 +1,12 @@
+{
+  "machine_role": "target laptop or development machine — fill this in",
+  "laptop_model": "",
+  "cpu_gpu_and_driver": "",
+  "power_source": "charger or battery",
+  "windows_power_mode": "record existing mode; no automatic changes",
+  "display_resolution": "",
+  "preset": "Low: 720p internal, 30 cap, shadows on",
+  "room_and_thermal_observations": "",
+  "remote_desktop": false,
+  "human_observations": "camera comfort, readability, combat and audio"
+}

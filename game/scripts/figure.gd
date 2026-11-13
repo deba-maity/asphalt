@@ -12,6 +12,11 @@ var weapon: Node3D
 @export var role: String = "rayan"
 var child: bool = false
 var dead_blend: float = 0
+var gait_weight: float=0
+var visual_clock: float=0
+var stride_direction: Vector3=Vector3(0,0,-1)
+var pose_cache: Dictionary={}
+static var shared_poses: Dictionary={}
 static var materials: Dictionary = {}
 static var meshes: Dictionary = {}
 
@@ -66,7 +71,8 @@ func pivot(id: String, parent: Node3D, at: Vector3) -> Node3D:
 	return p
 
 func _ready() -> void:
-	poses = JSON.parse_string(FileAccess.get_file_as_string("res://content/poses.json"))
+	if shared_poses.is_empty(): shared_poses=JSON.parse_string(FileAccess.get_file_as_string("res://content/poses.json"))
+	poses=shared_poses
 	if get_child_count()>0:
 		for id in ["hips","torso","head","arm_l","arm_r","elbow_l","elbow_r","hand_l","hand_r","leg_l","leg_r","knee_l","knee_r","weapon"]:
 			joints[id] = find_child(id,true,false)
@@ -146,34 +152,46 @@ func _ready() -> void:
 			torso.add_child(cord)
 
 func pose_values(id: String) -> Dictionary:
+	if pose_cache.has(id): return pose_cache[id].duplicate(true)
 	var result = poses.idle.duplicate(true)
 	if poses.has(id):
 		result.merge(poses[id],true)
+	pose_cache[id]=result.duplicate(true)
 	return result
 
-func animate(delta: float, model: CombatModel, speed: float, interaction: bool = false) -> void:
+func animate(delta: float, model: CombatModel, speed: float, displacement: Vector3=Vector3.ZERO, interaction: bool = false) -> void:
+	visual_clock+=delta
 	weapon.visible = armed and model.state != "talk" and role!="ledger_archer"
-	phase += delta * speed * (4.0 if speed < 4.5 else 3.05)
+	var distance=Vector2(displacement.x,displacement.z).length()
+	# NPCs have no locomotion; old callers may pass speed alone in fixtures.
+	if distance>0.00001: stride_direction=displacement.normalized()
+	phase+=distance*TAU/(1.18 if speed>4.5 else .84)
+	gait_weight=move_toward(gait_weight,1.0 if speed>.1 and model.state in ["idle","guard","dodge","ashstep"] else 0.0,delta*9)
 	var pose = pose_values("idle")
-	if speed > 0.1 and model.state == "idle":
-		var stride = 32.0 if speed < 4.5 else 47.0
-		var wave = sin(phase)
-		pose.leg_l = [wave*stride,0,0]
-		pose.leg_r = [-wave*stride,0,0]
-		pose.knee_l = [-maxf(0,-wave)*48,0,0]
-		pose.knee_r = [-maxf(0,wave)*48,0,0]
-		pose.arm_l = [-wave*24,0,-8]
-		pose.arm_r = [wave*19+10,0,8]
-		pose.torso = [4, wave*4,0]
+	if gait_weight>.01 and model.state in ["idle","guard","dodge","ashstep"]:
+		if model.state in ["guard","dodge","ashstep"]: pose=pose_values("guard" if model.state=="guard" else "dodge")
+		var left=AnimationPolicy.leg(phase,speed>4.5)
+		var right=AnimationPolicy.leg(phase+PI,speed>4.5)
+		var backwards=1.0 if stride_direction.z<=0 else -1.0
+		pose.leg_l=[rad_to_deg(left.x)*backwards*gait_weight,0,-stride_direction.x*12*gait_weight]
+		pose.leg_r=[rad_to_deg(right.x)*backwards*gait_weight,0,-stride_direction.x*12*gait_weight]
+		pose.knee_l=[rad_to_deg(left.y)*gait_weight,0,0]
+		pose.knee_r=[rad_to_deg(right.y)*gait_weight,0,0]
+		if model.state=="idle":
+			pose.arm_l=[-sin(phase)*21,0,-8]
+			pose.arm_r=[sin(phase)*16+10,0,8]
+			pose.torso=[5,sin(phase)*3,0]
 	elif model.state == "attack":
 		var heavy = model.attack.get("pose","")=="heavy" or model.attack_id in ["heavy","foreman_slam"]
 		var first = pose_values("heavy_windup" if heavy else "light_windup")
 		var second = pose_values("heavy_strike" if heavy else "light_strike")
-		var strike = clampf((model.elapsed-float(model.attack.windup))/float(model.attack.active),0,1)
+		var weights=AnimationPolicy.attack_blend(model)
+		var idle=pose_values("idle")
 		for key in second:
 			var a = first.get(key,[0,0,0])
 			var b = second[key]
-			pose[key] = [lerpf(a[0],b[0],strike),lerpf(a[1],b[1],strike),lerpf(a[2],b[2],strike)]
+			var rest=idle.get(key,[0,0,0])
+			pose[key] = [rest[0]*weights.x+a[0]*weights.y+b[0]*weights.z,rest[1]*weights.x+a[1]*weights.y+b[1]*weights.z,rest[2]*weights.x+a[2]*weights.y+b[2]*weights.z]
 		if model.attack.get("pose","")=="bow":
 			pose=pose_values("guard")
 			pose.arm_l=[95,0,-35]
@@ -184,10 +202,10 @@ func animate(delta: float, model: CombatModel, speed: float, interaction: bool =
 		pose=pose_values("dodge")
 	elif interaction:
 		pose = pose_values("talk")
-	if model.parry_flash > 0:
+	if model.parry_flash > 0 and model.state not in ["attack","dead","hit"]:
 		pose = pose_values("parry")
 	if model.story_fall: pose=pose_values("dead")
-	var rate = 1-exp(-delta*16)
+	var rate = 1.0 if model.state=="attack" else 1-exp(-delta*18)
 	for key in joints:
 		if key in ["hips","weapon"] or key.begins_with("hand"):
 			continue
@@ -197,4 +215,4 @@ func animate(delta: float, model: CombatModel, speed: float, interaction: bool =
 	dead_blend = move_toward(dead_blend,1.0 if model.state == "dead" or model.story_fall else 0.0,delta*2)
 	rotation.z = dead_blend*1.47
 	position.y = -dead_blend*0.68
-	hips.position.y = 0.91 + (absf(sin(phase))*0.028 if speed > 0.1 else sin(Time.get_ticks_msec()*0.002)*0.012)
+	hips.position.y = .85-.07*gait_weight + (sin(visual_clock*2)*.006 if gait_weight<.1 else 0.0)

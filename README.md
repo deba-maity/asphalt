@@ -1,6 +1,6 @@
-# ASHEN VOW — campaign implementation, pass two
+# ASHEN VOW — quality implementation, pass three
 
-An original offline, single-player, third-person sword adventure. Rayan's modest protection work becomes a pursuit through the Cinder Ledger's roads, an authored betrayal, a costly resurrection, and a final confrontation with Halvek. **All six chapters have playable objectives and a complete ending.** This is a short campaign implementation with basic original art, not a polished or measured multi-hour release. ASHEN VOW remains a working title without trademark clearance.
+An original offline, single-player, third-person sword adventure. Rayan's modest protection work becomes a pursuit through the Cinder Ledger's roads, an authored betrayal, a costly resurrection, and a final confrontation with Halvek. **All six chapters have playable objectives and a complete ending.** Pass three improves input, combat feedback, animation timing, camera, settings, props and audio, and provides a local benchmark/capture workflow. This remains a short campaign with original economical art and outstanding human/visual acceptance, not a finished multi-hour release. ASHEN VOW remains a working title without trademark clearance.
 
 **Repository:** `C:\Users\debajyothi.m\wuk\ashen-vow`
 
@@ -18,6 +18,8 @@ For a fresh source checkout, install the pinned standard Godot build, or use the
 Set-Location 'C:\Users\debajyothi.m\wuk\ashen-vow'
 # Headless checks; -Campaign includes New Game through credits and relaunch:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\test.ps1 -Campaign
+# Check the 30 Hz display-simulation path as well (physics stays 60 Hz):
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\test.ps1 -Campaign -SimulationHz 30
 # Rebuild the Windows executable without opening a game window:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\build.ps1
 # Fresh source setup, only if the pinned editor is absent:
@@ -53,9 +55,13 @@ After completion, **Continue** returns to the memorial. **Chapter select** offer
 | Tab / Escape | Journal / pause; Escape pauses story sequences too |
 | Arrows and Enter | Navigate menus and dialogue choices |
 
-Controller mapping: sticks move/orbit, X/Y light/heavy, LB guard, B dodge, RB lock, A interact/confirm, D-pad up heal, left-stick click sprint, LT Ashstep, Back journal, Start pause. A physical controller remains untested. Disconnect releases actions. Sensitivity, inversion, volume and shadows are configurable. The internal viewport is 1280 × 720 with a 30 FPS cap; no 60 FPS preset is claimed.
+Controller mapping: sticks move/orbit, X/Y light/heavy, LB guard, B dodge, RB lock, A interact/confirm, D-pad up heal, left-stick click sprint, LT Ashstep, Back journal, Start pause. A physical controller remains untested. Disconnect and focus loss release actions and buffered intent. Keyboard/mouse actions can be rebound in Settings → Controls; help, subtitles and world prompts use the current mapping. Escape is reserved for pause, F8 for benchmark recording and F9 for a real viewport screenshot with metadata.
 
-Combat has active hit windows, once-per-swing damage, interruption/recovery, stamina, posture, health, guard/parry, dodge, healing and checkpoint restart. Ashstep costs one of three Resolve charges; exact defensive timing opens a heavy counter. Hits and parries replenish Resolve. Elites catch careless evasion; later wards and unguardable attacks make positioning matter. An encounter coordinator limits nearby active enemies to three and committed attacks to one. Projectiles and corpse lifetime are bounded. Eighteen original articulated runtime character scenes include bow/shield/heavy/elite variants.
+Settings have four sections: **Play** (Standard/Story difficulty, three subtitle sizes, sensitivity/inversion, optional shake off by default, reduced effects), **Display** (540p/720p/900p 3D resolution, window size/fullscreen, shadows, low-memory transitions and 30/60 FPS caps), **Audio** (master/music/effects/ambient), and **Controls**. HUD remains at a logical 720p size while 3D rendering scales independently. Low baseline is 720p/30 FPS; the optional 60 FPS cap is experimental and carries no performance guarantee. Story reduces incoming damage by 40% and widens parry timing; every story path and ending remains available.
+
+Combat has active hit windows, once-per-swing damage, interruption/recovery, stamina, posture, health, guard/parry, dodge, healing and checkpoint restart. A single 160ms input buffer accepts recent recovery intent and preserves its dodge direction; attacks stay committed through anticipation/active frames. Menu-closing clicks are quarantined. Ashstep costs one of three Resolve charges; exact defensive timing opens a heavy counter. Hits and parries replenish Resolve. Elites catch careless evasion; later wards and unguardable attacks make positioning matter. An encounter coordinator limits nearby active enemies to three and committed attacks to one. Projectiles snapshot their damage rules, and corpses/effects/audio remain bounded. Eighteen original articulated runtime characters share authored pose timing and a displacement-driven leg solution. Camera collision pulls in immediately and releases outward gradually; lock-on can acquire a nearby opponent behind the player.
+
+Fourteen original synthesized clips provide separate calm/combat music stems, wind/river/realm ambience, surface footsteps and combat sounds. Music blends without restarting at every small zone boundary; aftermath and memorial dialogue have deliberate quiet. Detailed bird, bowl, letters, Ledger seals, home table, market awning and route lanterns replace some generic interaction props. These changes are implemented and tested for behavior/resource integrity, but have not had a rendered art or listening review here.
 
 ## Saves, migration and logs
 
@@ -65,15 +71,18 @@ Schema-one opening saves migrate explicitly, preserving flags, currency, purchas
 
 ## Verification and limits
 
-The [test record](docs/testing.md) distinguishes automated execution from visual checks. Headless source and packaged-build traversals reach all six chapters and the ending; relaunch/Continue works. Logic, input-event, migration, duplicate/failing/cancelled transitions, repeated unloading, death states, skip behavior and UI bounds have automated checks. No complete human or rendered pass-two campaign playthrough is claimed. Graphical runs were stopped at the user's Remote Desktop instruction. Historical opening screenshots remain in `docs/evidence`.
+The [test record](docs/testing.md) distinguishes automated execution from visual checks. The source suite passes at 30 and 60 Hz simulation, including the complete campaign and relaunch. Exported-build checks cover quality regressions and repeated full-campaign travel. No game window was opened in pass three. Visual animation/camera review, subjective audio review and physical devices remain untested under the user's Remote Desktop restriction. Historical opening screenshots remain in `docs/evidence`; they are not images of the pass-three build.
 
-One normal-speed headless traversal observed **375 seconds**, with fast dialogue and automated combat. Accelerated checks report simulation time and wall time separately. These are not human duration or FPS benchmarks. **The compact multi-hour goal has not been achieved or measured**; expanding it needs additional authored content, not repeated grind. The Ryzen 5 5500U laptop is untested. Hard-jointed animation, terrain detail, audio mix, accessibility, physical devices and human combat/camera assessment remain pass-three work.
+One pass-two normal-speed headless traversal observed **375 seconds**, with fast dialogue and automated combat. Current accelerated checks report simulation time and wall time separately. These are not human duration or FPS benchmarks. **The compact multi-hour goal has not been achieved or measured**. The Ryzen 5 5500U laptop remains untested; a 30 FPS design target is not a measured result.
+
+For local acceptance, follow the [target-laptop benchmark guide](docs/benchmark.md). On that laptop, fill `benchmark-environment.json` from the example and invoke `tools\benchmark.ps1` for a sustained automated route, or press F8 during manual play. Reports include frame distributions/spikes, available counters and transition stages; F9 captures real game screenshots with machine/preset metadata. The wrapper also samples process memory. **This graphical procedure was prepared for you and has not been run on this Remote Desktop.**
 
 - [Design and chapter content](docs/design.md)
 - [Architecture, ownership and loading](docs/architecture.md)
 - [Asset pipeline and provenance](docs/assets.md) / [asset manifest](game/assets/manifest.json)
 - [Performance targets and actual measurements](docs/performance.md)
 - [Validation commands and evidence](docs/testing.md)
+- [Local laptop benchmark and screenshot procedure](docs/benchmark.md)
 - [Continuation record](docs/progress.md)
 - [Build and release instructions](docs/build-release.md)
 

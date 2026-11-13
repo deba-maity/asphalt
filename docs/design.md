@@ -34,3 +34,9 @@ Mira found a register hidden in Neri's damaged coat and copied names of families
 ## Duration and remaining design work
 
 This implementation supplies a beginning, middle, resurrection, climax and ending with real completion paths. Its authored content is currently short. A normal-speed headless traversal took 375 seconds with immediate dialogue advancement and automated combat. No human multi-hour claim is made. A compact two-to-three-hour target would need substantially more optional journeys, relationships, discoveries and encounter layouts. Repeated enemies, idle waiting and empty distance are not an acceptable way to reach it. Human pacing and that expansion remain future work.
+
+## Pass-three quality additions
+
+The same campaign and stable IDs are preserved. Standard keeps intended combat tuning; Story reduces incoming damage and widens the parry window without locking progression or endings. Input buffers only recent recovery and protects menu exits. Threat/counter text supplements color cues. Small optional impact/shake respects reduced-effect preferences; no global hit-stop changes combat scheduling. A displacement-driven gait and authored swing phases remain one coherent rig style.
+
+Specific family/evidence/memorial props reinforce the bird, bowl, last-crust and Ledger motifs. Calm/combat stems and surface footsteps support exploration; aftermath and memorial dialogue deliberately quiet the score. Settings/rebinding and large subtitles improve access. These are implemented features with headless behavioral checks; full rendered/human acceptance remains outstanding. The short campaign's multi-hour expansion is still an unmet design goal, not an implemented duration claim.

@@ -13,6 +13,6 @@
   "adult_height_metres": 1.9,
   "hierarchy": "hips > torso > head / arm_l > elbow_l > hand_l / arm_r > elbow_r > hand_r > weapon; hips > leg_l > knee_l / leg_r > knee_r",
   "weapon_attachment": "right hand, local negative Y blade axis; grip centred at hand",
-  "animation_policy": "in-place, physics-driven movement. Authored pose targets interpolated exponentially. Walking and running cycles scale frequency by actual horizontal speed.",
+  "animation_policy": "In-place physics-driven movement. Measured horizontal displacement drives a stance/return cycle with analytic two-link hard-jointed legs. Authored anticipation/active/recovery weights share the combat clock; hit/death/attack owns its pose. Exponential blending handles other states. Terrain-aware planted-foot IK is not implemented.",
   "limitations": "Hard joints, no skin deformation, finger motion, facial animation, IK or exact planted-foot solver. These are original stylized fallback assets, not motion capture or production-polished animation."
 }

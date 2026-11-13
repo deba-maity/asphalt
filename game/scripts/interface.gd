@@ -33,6 +33,11 @@ var theme: Theme
 var chapter_label: Label
 var loading_progress: ProgressBar
 var story_paused: bool = false
+var rebinding: String=""
+var rebind_back: String=""
+var rebind_status: Label
+var threat_text: Label
+var help_caption: Label
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -62,7 +67,7 @@ func style(color: Color, border: Color = Color.TRANSPARENT) -> StyleBoxFlat:
 
 func text(parent: Node, value: String, size: int = 20, color: Color = INK) -> Label:
 	var l = Label.new()
-	l.text = value
+	l.text = Preferences.prompt(value)
 	l.add_theme_font_size_override("font_size",size)
 	l.add_theme_color_override("font_color",color)
 	l.theme = theme
@@ -71,7 +76,7 @@ func text(parent: Node, value: String, size: int = 20, color: Color = INK) -> La
 
 func button(parent: Node, value: String, callback: Callable) -> Button:
 	var b = Button.new()
-	b.text = value
+	b.text = Preferences.prompt(value)
 	b.theme = theme
 	b.custom_minimum_size = Vector2(0,45)
 	b.pressed.connect(callback)
@@ -94,6 +99,7 @@ func column(parent: Node, spacing: int = 9) -> VBoxContainer:
 	return c
 
 func clear_overlay() -> void:
+	Preferences.release_input()
 	if is_instance_valid(overlay):
 		overlay.queue_free()
 		remove_child(overlay)
@@ -141,7 +147,8 @@ func build_hud() -> void:
 	tutorial = text(hud,"",17)
 	tutorial.position = Vector2(32,643)
 	tutorial.size = Vector2(980,60)
-	text(hud,"Tab  Journal   ·   Esc  Pause",16,GOLD).position = Vector2(1004,677)
+	help_caption=text(hud,"{journal} Journal · {pause} Pause",16,GOLD)
+	help_caption.position=Vector2(980,677)
 	toast_label = text(hud,"",20)
 	toast_label.position = Vector2(265,594)
 	toast_label.size = Vector2(750,58)
@@ -151,12 +158,17 @@ func build_hud() -> void:
 	announce_label.position = Vector2(350,185)
 	announce_label.size = Vector2(580,60)
 	announce_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	threat_text=text(hud,"",18,GOLD)
+	threat_text.position=Vector2(360,225)
+	threat_text.size=Vector2(560,65)
+	threat_text.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	lock_label = text(hud,"◇",34,GOLD)
 	lock_label.visible = false
 	hud.visible = false
 
 func show_menu() -> void:
 	Session.running=false
+	Sound.context(Session.data.zone,false,true)
 	Session.return_to_main_save()
 	mode = "menu"
 	hud.visible = false
@@ -176,7 +188,7 @@ func show_menu() -> void:
 		button(c,"Continue · "+Campaign.chapter(Session.loaded.chapter).title,func(): main.start_game(false)).grab_focus()
 		button(c,"Chapter select · separate replay saves",show_chapter_select)
 	button(c,"Begin a new journey",func():
-		if Session.loaded.is_empty():
+		if Session.loaded.is_empty() and not FileAccess.file_exists(Session.store.directory+"progress.json"):
 			main.start_game(true)
 		else:
 			confirm_new()).grab_focus()
@@ -199,6 +211,7 @@ func confirm_new() -> void:
 	button(c,"Start a new journey",func(): main.start_game(true))
 
 func play() -> void:
+	Preferences.quarantine()
 	mode = "play"
 	get_tree().paused = false
 	hud.visible = true
@@ -224,47 +237,18 @@ func show_pause() -> void:
 	button(c,"Save & return to title",func(): world.save_current(); Session.running = false; show_menu())
 	button(c,"Save & quit",func(): world.save_current(); main.finish())
 
-func show_settings(back: String) -> void:
-	mode = "settings"
-	clear_overlay()
-	shade()
-	var c = column(panel(overlay,Vector2(300,65),Vector2(680,590)),12)
-	text(c,"Make yourself at home",30,GOLD)
-	text(c,"Mouse sensitivity",18)
-	var slider = HSlider.new()
-	slider.min_value = 0.001
-	slider.max_value = 0.009
-	slider.step = 0.0002
-	slider.value = Preferences.sensitivity
-	slider.value_changed.connect(func(value): Preferences.sensitivity = value)
-	c.add_child(slider)
-	var invert = CheckButton.new()
-	invert.text = "Invert vertical camera"
-	invert.button_pressed = Preferences.invert
-	invert.toggled.connect(func(value): Preferences.invert = value)
-	c.add_child(invert)
-	var shadows = CheckButton.new()
-	shadows.text = "Sun shadows (disable for lower GPU load)"
-	shadows.button_pressed = Preferences.shadows
-	shadows.toggled.connect(func(value):
-		Preferences.shadows = value
-		if world != null:
-			world.sun.shadow_enabled = value)
-	c.add_child(shadows)
-	text(c,"Sound volume",18)
-	var volume = HSlider.new()
-	volume.min_value = 0
-	volume.max_value = 1
-	volume.step = 0.05
-	volume.value = Preferences.volume
-	volume.value_changed.connect(func(value): Preferences.volume = value)
-	c.add_child(volume)
-	text(c,"1280 × 720 internal viewport  ·  30 FPS limit",17,GOLD)
-	text(c,Preferences.HELP,16)
-	button(c,"Save settings & return",func():
-		Preferences.save()
-		if back == "menu": show_menu()
-		else: show_pause()).grab_focus()
+func show_settings(back: String, tab: String="Play") -> void:
+	var settings=SettingsPanel.new()
+	settings.draw(self,back,tab)
+
+func begin_rebind(action: String, back: String) -> void:
+	rebinding=action
+	rebind_back=back
+	clear_overlay(); shade()
+	var c=column(panel(overlay,Vector2(330,235),Vector2(620,230)),15)
+	text(c,"Bind "+action.replace("_"," "),28,GOLD)
+	rebind_status=text(c,"Press a key or mouse button. Escape cancels.",18)
+	button(c,"Cancel",func(): rebinding=""; show_settings(back,"Controls")).grab_focus()
 
 func show_journal() -> void:
 	mode = "journal"
@@ -279,10 +263,10 @@ func show_journal() -> void:
 	for e in Session.chapter.encounters:
 		if Session.flag(e.flag): completed.append(e.id.trim_prefix("enc_").replace("_"," "))
 	text(c,"%d crowns · %d/%d chapters complete" % [Session.data.currency,Session.data.completed_chapters.size(),6],17,GOLD)
-	var notes="Rest restores health, draughts and Resolve; unfinished fights reset.\nHeavy attacks break guards after Neri's whetstone lesson.\nAshstep: F / left trigger. Three Resolve charges; land hits or parry to refill.\nA precise Ashstep evasion opens a heavy counter. Elites punish careless steps."
+	var notes="Rest restores health, draughts and Resolve; unfinished fights reset.\nHeavy attacks break guards after Neri's whetstone lesson.\nAshstep: {ashstep} / left trigger. Three Resolve charges; land hits or parry to refill.\nA precise Ashstep evasion opens a heavy counter. Elites punish careless steps."
 	if Session.data.chapter=="ch01_bread_steel": notes="A day's pay: 30 crowns. Honeybread: 8 crowns.\nThe foreman follows two sweeps with an overhead blow.\nGuard as a blow lands to parry; dodge through a blow's active window.\nRest restores health and draughts. Unfinished fights reset."
 	text(c,notes,17)
-	text(c,Preferences.HELP,16)
+	text(c,Preferences.help_text(),16)
 	button(c,"Read remembered conversations & discoveries",show_records)
 	button(c,"Close journal",play).grab_focus()
 
@@ -318,16 +302,16 @@ func show_dialogue(lines: Array, id: String, callback: Callable, choice: bool) -
 	dialogue_choice = choice
 	speaker_id = id
 	clear_overlay()
-	var c = column(panel(overlay,Vector2(150,443),Vector2(980,236)),11)
+	var c = column(panel(overlay,Vector2(110,405),Vector2(1060,280)),11)
 	dialogue_name = text(c,"",21,GOLD)
-	dialogue_text = text(c,"",23)
+	dialogue_text = text(c,"",Preferences.subtitle_size)
 	dialogue_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dialogue_text.custom_minimum_size = Vector2(930,84)
+	dialogue_text.custom_minimum_size = Vector2(1000,118)
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation",12)
 	c.add_child(row)
-	dialogue_next = button(row,"Continue  [E / Enter]",advance_dialogue)
-	dialogue_next.custom_minimum_size.x = 325
+	dialogue_next = button(row,"Continue  [{interact} / Enter]",advance_dialogue)
+	dialogue_next.custom_minimum_size.x = 380
 	dialogue_cancel = button(row,"Not now",func(): close_dialogue(false))
 	button(row,"Skip conversation",func():
 		if dialogue_choice:
@@ -340,7 +324,7 @@ func show_dialogue(lines: Array, id: String, callback: Callable, choice: bool) -
 
 func refresh_dialogue() -> void:
 	dialogue_name.text = dialogue_lines[dialogue_index][0]
-	dialogue_text.text = dialogue_lines[dialogue_index][1]
+	dialogue_text.text = Preferences.prompt(dialogue_lines[dialogue_index][1])
 	var last = dialogue_index == dialogue_lines.size()-1
 	dialogue_cancel.visible = dialogue_choice and last
 	var agreement="Accept"
@@ -350,7 +334,8 @@ func refresh_dialogue() -> void:
 		"npc_keeper": agreement="Accept the trial"
 		"exit_return": agreement="Return · accept the cost"
 		"obj_mill_bench": agreement="Buy flask · 20 crowns"
-	dialogue_next.text = ((agreement+"  [E / Enter]") if dialogue_choice else "Finish  [E / Enter]") if last else "Continue  [E / Enter]"
+	dialogue_next.text = ((agreement+"  [{interact} / Enter]") if dialogue_choice else "Finish  [{interact} / Enter]") if last else "Continue  [{interact} / Enter]"
+	dialogue_next.text=Preferences.prompt(dialogue_next.text)
 
 func advance_dialogue() -> void:
 	if story_paused: return
@@ -396,7 +381,7 @@ func show_ending() -> void:
 	Sound.play("reward")
 
 func toast(value: String, seconds: float = 4) -> void:
-	toast_label.text = value
+	toast_label.text = Preferences.prompt(value)
 	toast_timer = seconds
 
 func bar_style(color: Color) -> StyleBoxFlat:
@@ -406,18 +391,28 @@ func bar_style(color: Color) -> StyleBoxFlat:
 	return s
 
 func announce(value: String) -> void:
-	announce_label.text = value
+	announce_label.text = Preferences.prompt(value)
 	announce_timer = 3.5
 
 func refresh_tutorial() -> void:
-	var tips = [["move","WASD to walk · Mouse to look · Shift to sprint. Speak to Mira: E."],["interact","Approach a named person or object and press E."],["light","LMB: quick slash · RMB: heavy blow. Attacks spend stamina."],["heavy","RMB: heavy blow · Recover stamina between attacks."],["guard","Hold Ctrl to guard. Press just before impact for a parry."],["dodge","Space: dodge through a blow. The middle of the step is invulnerable."],["heal","R: drink a healing draught. Rest at the shrine to refill."],["lock","Q: lock onto a visible enemy. Q again releases the camera."]]
-	tutorial.text = "Tutorial learned · Tab opens all controls and combat notes."
+	var tips = [["move","{move_forward}/{move_left}/{move_back}/{move_right} to walk · Mouse to look · {sprint} to sprint. Speak to Mira: {interact}."],["interact","Approach a named person or object and press {interact}."],["light","{light}: quick slash · {heavy}: heavy blow. Attacks spend stamina."],["heavy","{heavy}: heavy blow · Recover stamina between attacks."],["guard","Hold {guard} to guard. Press just before impact for a parry."],["dodge","{dodge}: dodge through a blow. The middle of the step is invulnerable."],["heal","{heal}: drink a healing draught. Rest at the shrine to refill."],["lock","{lock_on}: lock onto a visible enemy. {lock_on} again releases the camera."]]
+	tutorial.text = "Tutorial learned · {journal} opens all controls and combat notes."
 	for tip in tips:
 		if not Session.flag("learn_"+tip[0]):
 			tutorial.text = tip[1]
 			break
+	tutorial.text=Preferences.prompt(tutorial.text)
+	help_caption.text=Preferences.prompt("{journal} Journal · {pause} Pause")
 
 func update_hud(actor: Fighter, nearby: Dictionary) -> void:
+	threat_text.text=""
+	for enemy in world.enemies:
+		if not is_instance_valid(enemy) or enemy.model.state=="dead" or enemy.position.distance_to(actor.position)>10: continue
+		if enemy.model.state=="attack" and enemy.model.elapsed<float(enemy.model.attack.windup):
+			var attack=enemy.model.attack
+			threat_text.text="EVADE · cannot guard" if not attack.get("blockable",true) else "Incoming · guard / parry / dodge"
+			break
+	if actor.model.counter_window>0: threat_text.text="OPENING COUNTER · "+Preferences.label_for("heavy")
 	var current=Campaign.chapter(Session.data.chapter)
 	chapter_label.text="%02d / %s" % [int(current.number),current.title.to_upper()]
 	health.value = actor.model.health/actor.model.max_health*100
@@ -433,7 +428,7 @@ func update_hud(actor: Fighter, nearby: Dictionary) -> void:
 	var arrow = "↑" if absf(angle) < 0.6 else ("←" if angle > 0 else "→")
 	if absf(angle)>2.4: arrow="↓"
 	objective_text.text = objective.text+"\n"+arrow+"  %dm" % distance
-	interact_text.text = "E  ·  "+nearby.name if not nearby.is_empty() else ""
+	interact_text.text = Preferences.label_for("interact")+" · "+nearby.name if not nearby.is_empty() else ""
 	lock_label.visible = is_instance_valid(actor.target)
 	if lock_label.visible:
 		var point = actor.target.global_position+Vector3(0,1.25,0)
@@ -446,7 +441,14 @@ func _process(delta: float) -> void:
 	announce_label.modulate.a = minf(1,announce_timer)
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("pause"):
+	if not rebinding.is_empty():
+		if event is InputEventKey and event.pressed and not event.echo:
+			if event.keycode==KEY_ESCAPE: rebinding=""; show_settings(rebind_back,"Controls")
+			else: accept_rebind(event.physical_keycode)
+		elif event is InputEventMouseButton and event.pressed: accept_rebind(-event.button_index)
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("pause") and not event.is_echo():
 		if mode == "play": show_pause()
 		elif mode in ["pause","journal"]: play()
 		elif mode == "settings":
@@ -466,6 +468,7 @@ func _input(event: InputEvent) -> void:
 		else: play()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("interact"):
+		if mode=="play" and not Preferences.gameplay_input_ready(): get_viewport().set_input_as_handled(); return
 		if event is InputEventJoypadButton and mode != "play": return
 		if mode == "play": world.interact()
 		elif mode == "dialogue": advance_dialogue()
@@ -482,9 +485,10 @@ func show_story_death() -> void:
 	var c=column(panel(overlay,Vector2(230,505),Vector2(820,170)),12)
 	text(c,"The battle was won. The bowstrings answer behind him.",23,GOLD)
 	text(c,"Avel's betrayal closes the living road behind him.",19)
-	button(c,"Let the road fade · E / A",func(): main.finish_story_death(main.story_token)).grab_focus()
+	button(c,"Let the road fade · {interact} / A",func(): main.finish_story_death(main.story_token)).grab_focus()
 
 func show_loading(title: String) -> void:
+	Sound.context(Session.data.zone,false,true)
 	mode="loading"
 	hud.visible=false
 	get_tree().paused=false
@@ -545,3 +549,10 @@ func finish_credits() -> void:
 	if not Session.data.ending: return
 	Session.data.credits=true
 	Session.save()
+
+func accept_rebind(code: int) -> void:
+	var reason=Preferences.rebind(rebinding,code)
+	if reason.is_empty():
+		rebinding=""
+		show_settings(rebind_back,"Controls")
+	else: rebind_status.text=reason

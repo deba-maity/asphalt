@@ -1,7 +1,12 @@
 class_name CombatModel
 extends RefCounted
 
-var config: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://content/combat.json"))
+static var shared_config: Dictionary={}
+var config: Dictionary=definitions()
+
+static func definitions() -> Dictionary:
+	if shared_config.is_empty(): shared_config=JSON.parse_string(FileAccess.get_file_as_string("res://content/combat.json"))
+	return shared_config
 var state: String = "idle"
 var elapsed: float = 0.0
 var health: float = 100.0
@@ -19,6 +24,7 @@ var ash_unlocked: bool = false
 var counter_window: float = 0
 var posture: float = 0
 var story_fall: bool = false
+var parry_multiplier: float=1.0
 
 func can_begin() -> bool:
 	return state == "idle" or state == "guard"
@@ -104,7 +110,8 @@ func receive(amount: float, in_front: bool = true, armored: bool = false, rules:
 			return "ash_evade"
 		return "ignored"
 	if state == "guard" and in_front:
-		if elapsed <= float(config.parry_window) and rules.get("parryable",true) and spend(5):
+		var window=float(config.parry_window)*parry_multiplier
+		if elapsed <= window and rules.get("parryable",true) and spend(5):
 			parry_flash = 0.3
 			if ash_unlocked: counter_window = 2.5
 			resolve = minf(3,resolve+0.75)

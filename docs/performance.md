@@ -1,29 +1,36 @@
-# Performance targets and evidence
+# Pass-three performance and budget record
 
-## Target laptop — no measurements
+Primary target: Windows laptop, Ryzen 5 5500U, 16 GB RAM, integrated Radeon and shared memory. The approximately 496 MB dedicated allocation is not a hard total graphics-memory limit, and shared RAM is not a discrete 8 GB GPU. Display resolution, driver, power profile and thermals remain unconfirmed. **No target-laptop measurement exists.**
 
-Windows, Ryzen 5 5500U, 16 GB RAM, integrated Radeon with shared system memory and approximately 496 MB reported dedicated allocation. That allocation is not a hard total-memory cap, and shared memory does not make this a discrete 8 GB GPU. Display resolution, power profile, driver and thermals remain unconfirmed. No target-laptop performance is claimed.
+Low design: 720p internal 3D, fixed-aspect readable HUD, 30 FPS cap, Compatibility renderer, modest shadows, bounded opponents/effects and compact zones. Settings offer a 540p fallback, 900p and an optional 60 FPS cap for local evaluation. These are choices, not performance promises. On resize, 3D scale is recalculated from the actual letterboxed window area so choosing a larger window does not silently discard the internal-resolution target.
 
-Design remains 1280 × 720 internal viewport, 30 FPS cap, Compatibility renderer, compact zones, small active encounters, static collision, restrained effects and shadows. No optional 60 FPS mode is offered. Sun shadows can be disabled. All gameplay/resources are offline.
+## Initial adjustable budgets
 
-## Development environment and Remote Desktop
+| Item | Budget / implementation |
+|---|---|
+| Opponents | At most three admitted nearby, one attack lease; typical authored pair or single boss. |
+| Geometry | Eighteen reusable hard-jointed character variants; target under 5,000 triangles each. Static repeated scenery uses MultiMesh; dynamic wheel stays out of batching. No ragdolls or runtime navmesh bake. |
+| Materials/textures | Small cached flat-color palette, no external high-resolution texture library. Generated geometry/material caches clear on zone replacement. |
+| Lighting | One shadowed sun, 1024 shadow map, 38–45m shadow range; warm home fill unshadowed. Disable sun shadows on lower hardware if measurements justify it. |
+| Effects | No particle systems. One tell ring and short impact per actor, a player ash mark, six projectiles maximum with lifetime limit; dead bodies expire. |
+| Audio | Eight one-shot voices, two synchronized stems and one current ambience; fourteen cues loaded once. Per-cue throttling prevents hit-sound accumulation. |
+| Streaming | One current zone and at most one speculative resource set, 24 MB metadata estimate by default; low-memory unload-before-construction. This estimate is not a measured VRAM cap. |
+| Telemetry | Bounded frame/one-second/spike arrays and last 32 transition records. No telemetry upload or background account service. |
 
-The inspected development system is Windows 11 Pro, i7-1185G7, approximately 32 GB visible RAM and Intel Iris Xe driver 32.0.101.7085. Pass-one rendered evidence is historical: 28.7 FPS average under a 30 FPS cap, not stable-30 or target-hardware evidence. See [historical record](history/pass1-performance.md).
+These are practical starting budgets, not proof that a target frame rate has been met. CPU-only animation and shape/query caching reduce avoidable file parsing and per-hit allocation; those changes still need profiling with rendering enabled.
 
-During pass two the user explicitly said **not to play the game on this Remote Desktop**. Graphical runs were stopped; subsequent verification, scene traversal and exported-executable checks use `--headless` with dummy audio. No headless frame rate is reported as graphics performance. Mouse capture and captured-mouse orbit tests are skipped in the headless suite. No new full-campaign screenshots, listening test or GPU benchmark is claimed.
+## Actual development measurements
 
-## Loading and allocation observations
+Inspected development machine: Windows 11 Pro, i7-1185G7, approximately 32 GB visible RAM, Intel Iris Xe. All pass-three execution is headless in accordance with the Remote Desktop restriction. Old pass-one 28.7 FPS average was a different earlier build and is retained only in [history](history/pass1-performance.md).
 
-[Source transition metrics](evidence/pass2/source-transitions.json) and [packaged metrics](evidence/pass2/packaged-transitions.json) record actual local runs. Fields separate request/poll elapsed time, scene instantiation, `_ready` geometry/scripts, old-zone release-frame time, total swap, node count and engine-reported static memory. These are development CPU/engine observations. Total swap spans frame boundaries and save work; it is not a pure instantiation benchmark. Shader preparation and GPU uploads remain unmeasured.
+The [packaged sustained report](evidence/pass3/headless-sustained-report.json) completed three campaigns / 27 transitions in **33.97 seconds of accelerated headless wall time**. It recorded 68,081 frame-callback intervals; those are CPU loop intervals and must not be converted into a rendered FPS claim. Max observed scene-node count was 999 and max observed resource count 443 across changing zones. Same-zone counts vary with transient corpses, dialogue and UI; the [repeated restart metrics](evidence/pass3/restart-metrics.json) and passing ownership tests establish that old scenes are freed and equal-zone nodes do not accumulate.
 
-Repeated eight-zone alternation left the same-zone scene-node count stable; old-node weak references became null and the same player survived. Source debug runs report approximately 49–52 MB of engine static allocations during later zones; this is not total working set or graphics memory. Release engine static-memory counters return zero when unavailable; **zero does not mean zero memory use**. Exact retained logs supersede these rounded descriptions.
+Metrics separate background request elapsed time, instantiation, `_ready` work, old-zone release and total swap. The report includes a bounded spike list rather than hiding first-use/load spikes. Main-thread activation still has a cost even when I/O occurs in a background thread. The release static-allocation counter is unavailable; the process-memory wrapper is provided for actual laptop working/private bytes. Shader compilation, GPU uploads/timing, visible draw/triangle counts, VRAM/shared-memory driver telemetry and thermal behavior are **unavailable in these headless results**.
 
-One speculative next-zone set is allowed, with a default metadata estimate budget of 24 MB. Estimates are authoring guidance, not measured hard caps. Default low-memory mode frees old scene nodes and generated caches before constructing the next zone. Normal mode is available through `[streaming] low_memory=false` in settings and is tested separately. No navigation bake runs during ordinary transitions.
+## Collecting real evidence
 
-## Duration observations
+Follow [benchmark.md](benchmark.md). F8 records/stops local measurements; F9 captures the real viewport with metadata. The wrapper repeats a complete representative route for at least 15 minutes and samples the game process. Its graphical invocation has not been run here. The captured p50/p95/p99/max, >50ms spikes, loading stages and counters should be reviewed alongside human observations. Engine monitors may update slowly or be unavailable in release, as documented by [Godot Performance](https://docs.godotengine.org/en/stable/classes/class_performance.html); absent values must remain unavailable.
 
-A normal-speed headless New Game-to-credits run took 375 seconds with very fast dialogue and automated combat. Accelerated checks use Godot's documented `--fixed-fps 60`, which disables real-time synchronization; their logs record simulation duration and real wall-clock duration separately. They generally cover about six minutes of simulated campaign time in seconds of wall time. These values establish automated reachability, not a human campaign length. The multi-hour design goal is not met or substantiated by the current short implementation.
+3D bilinear scaling and fixed-aspect window scaling follow the official [Viewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html) and [Window](https://docs.godotengine.org/en/stable/classes/class_window.html) APIs. The project stays within Compatibility features and does not rely on screen-space GI, volumetric fog, TAA or other advanced renderer-only effects.
 
-## Local target-machine checks still needed
-
-Record target CPU/GPU/driver, build hash, charger/battery, power profile, resolution, shadow setting and thermals. Warm up, then play through every environment and boss phase. Measure sustained average and percentile frame times, worst hitches, working set and graphics allocations using a profiler. Separate resource I/O, instantiation/scripts, shader warm-up and GPU upload/presentation costs. Check repeated zone travel and long sessions. Adjust foliage, shadows, batching and animation draw calls from real observations, rather than inferring a laptop result from these headless or Remote Desktop runs.
+Acceptance remains sustained low-preset testing on the real Ryzen laptop, with its actual driver, display, charger/power mode and thermals recorded. No OS power, driver or firmware setting is changed automatically. The short campaign still lacks the authored scope needed to substantiate a multi-hour adventure; automation duration is not a human playtime.

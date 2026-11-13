@@ -34,13 +34,14 @@
     {
       "id": "asset_animation",
       "source_url": null,
-      "creation_method": "Original JSON joint poses plus movement-driven gait and interpolation in figure.gd",
+      "creation_method": "Original pose targets with explicit anticipation/active/recovery weights; analytic hard-jointed leg solution driven by measured displacement; authored in figure.gd and animation_policy.gd.",
       "author": "ASHEN VOW contributors",
       "license": "MIT",
       "modifications": "Original; no third-party skeleton or animation",
       "runtime_files": [
         "../content/poses.json",
-        "../scripts/figure.gd"
+        "../scripts/figure.gd",
+        "../scripts/animation_policy.gd"
       ],
       "attribution_requirements": "Retain root MIT notice"
     },
@@ -50,28 +51,36 @@
       "creation_method": "Original procedural environments in world.gd and campaign_zone.gd: village/aftermath, mill/drained return, fortress/bridge, Counting Shore, Dawn Court and memorial; static geometry instanced.",
       "author": "ASHEN VOW contributors",
       "license": "MIT",
-      "modifications": "Original; repeated static geometry is instanced with MultiMesh",
+      "modifications": "Pass three: purposeful bird/bowl/books/letters, original Ledger insignia, home table, baker awning, route lanterns and court strips. Decorative shapes have no blocking collision.",
       "runtime_files": [
         "../scripts/world.gd",
-        "../scripts/campaign_zone.gd"
+        "../scripts/campaign_zone.gd",
+        "../scripts/scenery_details.gd"
       ],
       "attribution_requirements": "Retain root MIT notice"
     },
     {
       "id": "asset_audio",
       "source_url": null,
-      "creation_method": "Deterministic original PCM synthesis using tools/generate_audio.py, seed 85171",
+      "creation_method": "Original deterministic synthesis in tools/generate_audio.py; fourteen runtime cues, footsteps, periodic ambience and two synchronized original music stems.",
       "author": "ASHEN VOW contributors",
       "license": "MIT",
-      "modifications": "Original filtered noise and sine synthesis, 22050 Hz mono WAV",
+      "modifications": "No third-party samples. Per-voice pitch variation, separate audio buses, quiet contexts and bounded playback.",
       "runtime_files": [
-        "audio/swing.wav",
-        "audio/hit.wav",
+        "audio/amb_ashes.wav",
+        "audio/amb_river.wav",
+        "audio/amb_wind.wav",
         "audio/guard.wav",
-        "audio/parry.wav",
         "audio/heal.wav",
+        "audio/hearth_wind.wav",
+        "audio/hit.wav",
+        "audio/music_calm.wav",
+        "audio/music_combat.wav",
+        "audio/parry.wav",
         "audio/reward.wav",
-        "audio/hearth_wind.wav"
+        "audio/step_earth.wav",
+        "audio/step_stone.wav",
+        "audio/swing.wav"
       ],
       "attribution_requirements": "Retain root MIT notice"
     },

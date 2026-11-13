@@ -1,0 +1,67 @@
+{
+  "classification": "HEADLESS DEVELOPMENT CHECK; not rendered or target-hardware evidence",
+  "wall_seconds": 33.969309,
+  "headless_frame_intervals_NOT_rendered_benchmark": {
+    "max_ms": 76.9,
+    "mean_ms": 0.498780790528923,
+    "p50_ms": 0.422,
+    "p95_ms": 0.805,
+    "p99_ms": 1.263,
+    "samples": 68081
+  },
+  "max_nodes": 999,
+  "max_resources": 443.0,
+  "zone_node_ranges": {
+    "zone_hearthmere": [
+      696,
+      999
+    ],
+    "zone_alder_road": [
+      696,
+      991
+    ],
+    "zone_cinder_errand": [
+      402,
+      410
+    ],
+    "zone_cinder_home": [
+      532,
+      710
+    ],
+    "zone_sere_mill": [
+      298,
+      424
+    ],
+    "zone_copper_stair": [
+      287,
+      407
+    ],
+    "zone_counting_shore": [
+      215,
+      276
+    ],
+    "zone_mill_return": [
+      317,
+      443
+    ],
+    "zone_dawn_approach": [
+      246,
+      548
+    ],
+    "zone_dawn_court": [
+      104,
+      305
+    ],
+    "zone_memorial": [
+      350,
+      359
+    ]
+  },
+  "last_transition_count": 27,
+  "unavailable": [
+    "GPU execution timing",
+    "driver-level VRAM allocation/shared-memory usage",
+    "thermal and power telemetry",
+    "process working set (see wrapper process-memory.csv)"
+  ]
+}

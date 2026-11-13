@@ -6,6 +6,7 @@ var world: ChapterWorld
 var direction: Vector3
 var damage: float = 16
 var age: float = 0
+var rules: Dictionary={}
 
 func _ready() -> void:
 	add_to_group("projectiles")
@@ -25,6 +26,6 @@ func _physics_process(delta: float) -> void:
 	if not hit.is_empty():
 		if hit.collider.has_meta("fighter"):
 			var hero: Fighter = hit.collider.get_meta("fighter")
-			hero.take_damage(damage,source)
+			hero.take_damage(damage,source,rules)
 		queue_free()
 	else: global_position = next

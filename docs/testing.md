@@ -1,41 +1,43 @@
-# Validation — pass two
+# Pass-three validation record
 
-All further verification after the user's Remote Desktop instruction is **headless**. The test runner opens no game window and captures no desktop input. A short partial graphical opening/input check occurred before that instruction; it is not a rendered full-campaign traversal. Pass-one screenshots and its historical report remain available. No complete human pass-two playthrough, physical-controller test, subjective listening test or target-laptop benchmark is claimed.
+All verification in this pass used `--headless` on the development/Remote Desktop machine. No graphical game, audible play, new screenshot, physical-controller session or target-laptop benchmark was performed. Headless layout and animation data checks cannot establish visual quality. The restriction is carried into the README and local benchmark instructions.
 
-## Commands
+## Commands actually run
 
 ```powershell
 Set-Location 'C:\Users\debajyothi.m\wuk\ashen-vow'
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\test.ps1 -Campaign
-# Real-time headless simulation instead of accelerated fixed time:
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\test.ps1 -Campaign -RealTime
-# Individual developer fixtures; these remain outside normal player menus:
-& .\tools\engine\Godot_v4.7.2-stable_win64_console.exe --headless --path game --script res://tests/campaign_logic.gd
-& .\tools\engine\Godot_v4.7.2-stable_win64_console.exe --headless --path game -- --test-transitions
-& .\tools\engine\Godot_v4.7.2-stable_win64_console.exe --headless --fixed-fps 60 --path game -- --campaign-play
-& .\tools\engine\Godot_v4.7.2-stable_win64_console.exe --headless --path game -- --campaign-continue
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\test.ps1 -Campaign -SimulationHz 60
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\test.ps1 -Campaign -SimulationHz 30
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\build.ps1
 ```
 
-The runner imports, runs core logic, campaign logic, layout bounds, input/system fixtures and transitions, then optionally runs the campaign and separate-process Continue. Accelerated runs use fixed simulation time and are not performance benchmarks. Every stage fails its process on a failed assertion. Validation folders are separate from ordinary progress; the campaign harness writes under `%APPDATA%\AshenVow\campaign_validation\evidence`.
+The pinned editor imports first. Core/campaign/layout/input/transition/quality fixtures execute, then a real close-during-loading/relaunch pair, then New Game through credits and a separate Continue process. Fixed simulation mode accelerates wall time, while physics remains 60 Hz. `-RealTime` omits acceleration but still opens no window. Fixtures use separate user-data folders and deterministic default settings. Ordinary player preferences are not loaded or overwritten by validation. Test settings round trips use an explicit fixture path.
 
-## Actual retained evidence
+## Results
 
-See [source transcript](evidence/pass2/source-checks.txt), [campaign](evidence/pass2/source-campaign.txt), [relaunch](evidence/pass2/source-continue.txt), [packaged campaign](evidence/pass2/packaged-campaign.txt), [packaged relaunch](evidence/pass2/packaged-continue.txt), and the two transition metric JSON files. The source suite passed **160 checks**: 31 core, 34 campaign logic, 10 layout bounds, 22 headless input/system, and 63 transition/system checks, plus traversal/relaunch. Two desktop-mouse checks were skipped as described below.
+Both [60 Hz source transcript](evidence/pass3/source-60.txt) and [30 Hz source transcript](evidence/pass3/source-30.txt) passed:
 
-| Group | What is exercised |
-|---|---|
-| Core combat/save logic | Active windows, once-per-swing damage, stamina, state exclusions, guard/parry, dodge, health/death, safe replacement, damaged/future saves, reward/purchase idempotency. |
-| Campaign logic | Schema-one migration and preserved backup, future-schema refusal without rollback, compatible six chapter replay starts, Resolve/counter behavior, posture/defense rules, one canonical death/resurrection, boundary saves and packaged zone/quest definitions. |
-| Headless input/system | Logical keyboard/button events for movement, sprint, attacks, guard/release, dodge, heal, pause, journal, actual camera-wall collision, lock-on, hurtbox damage, dialogue, fatal damage and checkpoint restore. Desktop mouse capture/orbit are explicitly skipped because no graphics window is opened. |
-| Transition/system fixtures | Duplicate request, missing resource, construction failure and checkpoint recovery, stale cancellation, budget refusal, eight unload/reload cycles in both memory modes, player identity, one active zone, node-count stability, ordinary death before/after return, story skip/camera restore, pause/save before completion, optional flask, post-Warden fallback lesson, duplicate betrayal skip, separate replay store. |
-| UI bounds | Title, six-chapter select, settings, journal, remembered records, subtitles, chapter card, credits and recovery panels remain within the logical 1280 × 720 viewport. This is a layout assertion, not visual inspection. |
+| Group | Assertions | Behavior covered |
+|---|---:|---|
+| Existing core | 31 | Damage windows/once-per-swing, stamina, exclusions, defense, death, safe writes/backups, invalid saves, idempotent rewards/purchases. |
+| Existing campaign | 34 | Migration, preserved schema-one backup, refusal of future schemas, chapter starts, canonical states, Resolve/counter/posture, packaged resource definitions. |
+| UI bounds | 28 | Title, chapter select, all four settings sections, journal/records, extra-large longest authored subtitle, chapter card, credits and error UI in the logical 720p area. These are logical bounds, not screenshot review. |
+| Input/system | 22 | Synthetic input events, physical character motion, attacks, guard/dodge/heal, pause/journal, camera wall, lock-on, dialogue, ordinary death/restart. Two desktop mouse tests are explicitly skipped headlessly. |
+| Loading/system | 63 | Duplicate/missing/failed/cancelled requests, budget, repeated unloads in both memory modes, old-node disposal, one player/zone, ordinary/canonical death, skips, optional flask, fallback trial lesson and replay saves. |
+| New quality | 38 | Bounded input/expiry/direction, closing-click protection, disconnect/focus release, Story damage, projectile snapshot/parry ownership, interrupted/dead attack rejection, behind-player lock/release, collision/release camera and real ramp traversal, binding conflicts/current prompts, settings and resolution behavior, buses/resources/music ownership, title silence, 30/60 animation timing and truthful benchmark output. |
 
-The full campaign harness starts New Game, uses physical movement, stamina, real attack windows/hurtboxes and normal interactions, completes the opening, visits all ten zones, defeats the encounters and five later named bosses, performs the actual Ashstep lesson and veil traversal, accepts the canonical return, finishes the memorial and credits, and checks one player plus active/attack budgets. It does not teleport, grant health, set encounter/story completion flags or invoke chapter fixtures during this traversal. Separate isolated fixture tests do place actors or set initial chapter states; these are not counted as a campaign playthrough. Long dialogue is sometimes skipped through the same completion path as the UI.
+That is **216 grouped assertions per simulation-rate suite**, plus successful close-during-loading/relaunch and full campaign/relaunch processes. The close fixture exposed a teardown race: quitting while an uncancellable threaded parse was active caused shutdown errors. The fix drains the request over frames before engine teardown; [close](evidence/pass3/quit-transition-fixed.txt) and [resume](evidence/pass3/resume-transition-fixed.txt) logs show clean execution.
 
-The packaged executable is also traversed **headlessly from New Game through credits**, proving indirectly referenced scenes, actor assets and JSON are in the PCK. A second packaged process continues the completed memorial and verifies exactly one canonical death and resurrection. Static inspection or source-only imports are not substituted for that packaged check.
+The full traversal uses actual movement, collision, attacks, stamina, damage and normal interactions from New Game. It performs the Ashstep evasion/veil, all mandatory encounters, memorial and credits. It does not teleport, grant health, set completion flags or invoke chapter-start fixtures. Separate isolated tests do place actors and choose initial states, and those are not counted as campaign traversal. Dialogue is advanced/skipped quickly, so these results do not establish a human playtime.
 
-## What remains manual
+## Exported executable
 
-On the intended play machine: assess all later art/animation, camera comfort, actual mouse capture, controller focus/disconnection, audio levels, readability, combat feel, phase telegraphs, veil effects and cinematics. Play the full journey at human reading/exploration speed. Try optional discoveries, declining choices, deaths in each boss, save/quit at chapter boundaries and mid-story, window resizing, long sessions and copied-save corruption recovery. Measure the actual Ryzen laptop separately. The multi-hour content target needs additional authored scope; do not extrapolate human duration from automation.
+The Windows export succeeded with the same 4.7.2 standard templates. [Packaged quality](evidence/pass3/packaged-quality.txt) passed 38 checks. [Packaged sustained traversal](evidence/pass3/packaged-sustained.txt) completed three full campaigns and 27 transitions, with a clean [separate Continue](evidence/pass3/packaged-continue3.txt). Redirected stderr was empty and process exits were zero. This exercises dynamic scenes, original audio, JSON, input/settings, fonts/UI construction, saves and loading from the PCK. See [export record](evidence/pass3/export.txt) and [build hash](evidence/pass3/build-hash.json).
 
-Foundational fixes in this pass include JSON numeric compatibility, typed save-location checks, old-zone callback shutdown, shared-script-safe loading, a real pre-construction release in low-memory mode, malformed-root cleanup/recovery, restoration of camera/input on story skip, and a remnant lesson to prevent defeating the Warden from closing the only progression path. [Pass-one testing history](history/pass1-testing.md) is retained for continuity.
+The sustained route was accelerated and headless: approximately 34 seconds wall time for three fast-play simulations. It validates repeated ownership/resource handling, not graphics performance or thermal stability. The [full report](evidence/pass3/headless-sustained-report.json) labels its unavailable counters; [summary](evidence/pass3/measurement-summary.json) is derived from that file. Release builds do not expose engine static allocation counters; null is used rather than interpreting zero as no memory usage.
+
+## Local acceptance still needed
+
+Use [benchmark.md](benchmark.md) on the real play laptop. Complete a human campaign; inspect feet, turns, grip, interrupted swings, dodge collision agreement, pillar/wall camera behavior, behind-target lock-on and largest subtitles. Listen to effects/footsteps/loops and quiet scenes. Try real controller disconnection, focus loss, all menu directions, rebinding, fullscreen/window changes, and long sessions. Collect current-build captures with F9 and machine/preset metadata. Measure sustained low-preset frame times and memory. [Known issues](known-issues.md) lists these release gates explicitly.
+
+Historical pass-one/pass-two evidence remains in `docs/history` and `docs/evidence/pass2`; it is not substituted for current rendered acceptance. No test result here proves the multi-hour duration target or target-laptop 30 FPS.

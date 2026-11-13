@@ -20,6 +20,7 @@ func _ready() -> void:
 	build_environment()
 	build_village()
 	build_road()
+	SceneryDetails.village(self,"warm")
 	batch_scenery()
 	spawn_actors()
 	marker = Node3D.new()
@@ -52,6 +53,8 @@ func prepare_hero() -> void:
 	hero.world = self
 	hero.position = Session.checkpoint_position()
 	hero.velocity = Vector3.ZERO
+	hero.clear_intent()
+	hero.smooth_camera_distance=.5
 	hero.camera_focus = Vector3.ZERO
 	hero.yaw.rotation.y = 0
 	hero.pitch.rotation.x = -0.31
@@ -64,6 +67,11 @@ func prepare_hero() -> void:
 	coordinator = EncounterCoordinator.new()
 	coordinator.world = self
 	add_child(coordinator)
+	Preferences.changed.connect(refresh_prompt_labels)
+
+func refresh_prompt_labels() -> void:
+	for l in find_children("*","Label3D",true,false):
+		if l.has_meta("prompt_source"): l.text=Preferences.prompt(l.get_meta("prompt_source"))
 
 func solid_box(size: Vector3, at: Vector3, color: Color, visible_mesh: bool = true) -> StaticBody3D:
 	var body = StaticBody3D.new()
@@ -83,6 +91,12 @@ func solid_box(size: Vector3, at: Vector3, color: Color, visible_mesh: bool = tr
 func batch_scenery() -> void:
 	var batches: Dictionary = {}
 	for node in find_children("*","MeshInstance3D",true,false):
+		var ancestor=node.get_parent()
+		var dynamic=false
+		while ancestor!=self and ancestor!=null:
+			if ancestor.has_meta("dynamic_scenery"): dynamic=true; break
+			ancestor=ancestor.get_parent()
+		if dynamic: continue
 		if node.mesh == null or node.material_override == null:
 			continue
 		var key = str(node.mesh.get_instance_id())+"_"+str(node.material_override.get_instance_id())
@@ -106,7 +120,8 @@ func batch_scenery() -> void:
 
 func label(text: String, at: Vector3, size: int = 30, color: Color = Color("efe0bc")) -> Label3D:
 	var l = Label3D.new()
-	l.text = text
+	l.text = Preferences.prompt(text)
+	l.set_meta("prompt_source",text)
 	l.position = at
 	l.font_size = size
 	l.pixel_size = 0.007
@@ -342,10 +357,11 @@ func _process(delta: float) -> void:
 	if hero == null or ui == null:
 		return
 	if not Session.running: return
+	Sound.context(Session.data.zone,not coordinator.active.is_empty(),ui.mode in ["menu","loading","cinematic"])
 	marker.position.y = 2.8+sin(elapsed*2)*0.18
 	marker.rotation.y += delta
 	for id in npcs:
-		npcs[id].animate(delta,npc_model,0,ui.mode == "dialogue" and id == ui.speaker_id)
+		npcs[id].animate(delta,npc_model,0,Vector3.ZERO,ui.mode == "dialogue" and id == ui.speaker_id)
 	var zone = "zone_alder_road" if hero.position.z < -14 else "zone_hearthmere"
 	if zone != zone_label:
 		zone_label = zone
@@ -359,7 +375,7 @@ func _process(delta: float) -> void:
 				enemy.queue_free()
 		ui.update_hud(hero,nearest_interaction())
 		if hero.position.z < -30 and not Session.flag("learn_checkpoint"):
-			ui.toast("The roadside shrine restores health and draughts. E to rest and save.")
+			ui.toast("The roadside shrine restores health and draughts. {interact} to rest and save.")
 			learn("checkpoint")
 		if hero.position.z < -55 and not Session.flag("learn_foreman"):
 			ui.toast("Foreman: two broad sweeps, then a slow overhead blow. Dodge, then punish the recovery.",7)
@@ -445,6 +461,7 @@ func interact() -> void:
 func talk(key: String, id: String, completion: Callable = Callable(), choice: bool = false) -> void:
 	if not hero.model.freeze("talk"):
 		return
+	hero.clear_intent()
 	hero.velocity = Vector3.ZERO
 	var saved_yaw = hero.yaw.rotation.y
 	var saved_pitch = hero.pitch.rotation.x
@@ -509,6 +526,7 @@ func spawn_projectile(owner_actor: Fighter) -> void:
 	bolt.position = owner_actor.position+Vector3(0,1.0,0)
 	bolt.direction = (hero.position+Vector3.UP-bolt.position).normalized()
 	bolt.damage = owner_actor.model.attack.damage
+	bolt.rules=owner_actor.model.attack.duplicate(true)
 	add_child(bolt)
 
 func on_ash_evade() -> void:

@@ -5,4 +5,5 @@ tools/*.zip
 tools/*.tpz
 tools/logs/
 exports/
+benchmark-environment.json
 *.tmp

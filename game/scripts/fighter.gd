@@ -36,8 +36,20 @@ var phase_time: float = 0
 var repeated_lights: int = 0
 var light_memory: float = 0
 var ash_trail: MeshInstance3D
+var intent: ActionBuffer=ActionBuffer.new()
+var next_step_distance: float=0
+var shake_time: float=0
+var smooth_camera_distance: float=5.6
+var camera_obstruction: bool=false
+var impact_ring: MeshInstance3D
+var impact_time: float=0
+var hit_query: PhysicsShapeQueryParameters3D
+var hit_sphere: SphereShape3D
 
 func _ready() -> void:
+	floor_snap_length=.35
+	floor_max_angle=deg_to_rad(46)
+	wall_min_slide_angle=deg_to_rad(10)
 	collision_layer = 2 if player else 4
 	collision_mask = (1 | 4 | 32) if player else (1 | 2)
 	var capsule = CapsuleShape3D.new()
@@ -70,6 +82,12 @@ func _ready() -> void:
 	hitbox.add_child(hitshape)
 	hitbox.position = Vector3(0,0.9,-1.1)
 	add_child(hitbox)
+	hit_query=PhysicsShapeQueryParameters3D.new()
+	hit_sphere=SphereShape3D.new()
+	hit_query.shape=hit_sphere
+	hit_query.collision_mask=16 if player else 8
+	hit_query.collide_with_areas=true
+	hit_query.collide_with_bodies=false
 	if player:
 		yaw = Node3D.new()
 		yaw.top_level = true
@@ -89,6 +107,7 @@ func _ready() -> void:
 		camera.near = 0.1
 		pitch.add_child(camera)
 		camera.current = true
+		Preferences.input_reset.connect(clear_intent)
 	else:
 		definition = model.config.enemies[kind]
 		model.max_health = definition.health
@@ -107,6 +126,12 @@ func _ready() -> void:
 	tell_ring.position.y = 0.04
 	tell_ring.visible = false
 	add_child(tell_ring)
+	impact_ring=MeshInstance3D.new()
+	impact_ring.mesh=ring
+	impact_ring.material_override=Figure.material(Color("edc58e"))
+	impact_ring.position.y=1.0
+	impact_ring.visible=false
+	add_child(impact_ring)
 	if player:
 		ash_trail = Figure.cylinder(self,.52,.34,.10,Vector3(0,.18,0),Color("9dd8df"),12)
 		ash_trail.visible = false
@@ -117,18 +142,37 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		yaw.rotation.y -= event.relative.x * Preferences.sensitivity
 		pitch.rotation.x = clampf(pitch.rotation.x-event.relative.y*Preferences.sensitivity*(-1 if Preferences.invert else 1),-0.85,0.28)
+	if not Preferences.gameplay_input_ready(): return
 	if event.is_action_pressed("lock_on"):
 		toggle_target()
-	if event.is_action_pressed("light"):
-		try_attack("light")
-	if event.is_action_pressed("heavy"):
-		try_attack("heavy")
-	if event.is_action_pressed("dodge"):
-		try_dodge()
-	if event.is_action_pressed("heal"):
-		try_heal()
-	if event.is_action_pressed("ashstep"):
-		try_ashstep()
+	for action in ["light","heavy","dodge","heal","ashstep"]:
+		if event.is_action_pressed(action) and not event.is_echo():
+			queue_intent(action)
+			get_viewport().set_input_as_handled()
+			break
+
+func clear_intent() -> void:
+	intent.clear()
+	model.guard(false)
+	velocity.x=0
+	velocity.z=0
+
+func queue_intent(action: String) -> void:
+	intent.push(action,model,desired_direction())
+	consume_intent()
+
+func consume_intent() -> void:
+	if intent.action.is_empty() or not model.can_begin(): return
+	var action=intent.action
+	var direction=intent.direction
+	intent.clear()
+	match action:
+		"light","heavy": try_attack(action)
+		"dodge":
+			if try_dodge() and direction.length()>.1: dodge_vector=direction
+		"ashstep":
+			if try_ashstep() and direction.length()>.1: dodge_vector=direction
+		"heal": try_heal()
 
 func try_attack(id: String) -> bool:
 	if player and id == "heavy" and model.ash_unlocked and model.counter_window>0: id="opening_counter"
@@ -136,7 +180,7 @@ func try_attack(id: String) -> bool:
 	if ok:
 		if is_instance_valid(target):
 			face(target.global_position)
-		Sound.play("swing")
+		Sound.play(str(model.attack.get("cue","swing")))
 		if player:
 			world.learn(id)
 			repeated_lights = repeated_lights+1 if id == "light" else 0
@@ -184,14 +228,15 @@ func toggle_target() -> void:
 	if is_instance_valid(target):
 		target = null
 		return
-	var closest = 13.0
+	var best_score = -1000.0
 	for enemy in world.enemies:
 		if not is_instance_valid(enemy) or enemy.model.state == "dead":
 			continue
 		var distance = global_position.distance_to(enemy.global_position)
 		var to_enemy = (enemy.global_position-global_position).normalized()
-		if distance < closest and (-camera.global_basis.z).dot(to_enemy) > 0.1 and clear_sight(enemy):
-			closest = distance
+		var score=(-camera.global_basis.z).dot(to_enemy)*3.0-distance*.3
+		if distance < 13 and score>best_score and clear_sight(enemy):
+			best_score = score
 			target = enemy
 	world.learn("lock")
 
@@ -213,10 +258,15 @@ func desired_direction() -> Vector3:
 func _physics_process(delta: float) -> void:
 	if world == null:
 		return
+	if player:
+		intent.tick(delta)
+		model.parry_multiplier=1.4 if Preferences.difficulty=="story" else 1.0
+		if not world.can_play(): intent.clear()
 	model.tick(delta)
 	light_memory = maxf(0,light_memory-delta)
 	if light_memory<=0: repeated_lights=0
 	if player:
+		if world.can_play() and Preferences.gameplay_input_ready(): consume_intent()
 		if Session.running: Session.data.resolve=model.resolve
 		collision_mask = 1|4|(0 if model.state=="ashstep" and model.invulnerable() else 32)
 		ash_trail.visible = model.state=="ashstep" or model.counter_window>0
@@ -236,12 +286,24 @@ func _physics_process(delta: float) -> void:
 	var before = position
 	move_and_slide()
 	total_distance += Vector2(position.x-before.x,position.z-before.z).length()
-	figure.animate(delta,model,Vector2(velocity.x,velocity.z).length())
+	var displacement=position-before
+	figure.animate(delta,model,Vector2(displacement.x,displacement.z).length()/maxf(.001,delta),global_basis.inverse()*displacement)
+	if player:
+		next_step_distance+=Vector2(displacement.x,displacement.z).length()
+		if next_step_distance>0.9 and model.state in ["idle","guard"] and is_on_floor():
+			next_step_distance=0
+			Sound.footstep(Session.data.zone)
+		update_camera_collision(delta)
+	impact_time=maxf(0,impact_time-delta)
+	impact_ring.visible=impact_time>0 and not Preferences.reduced_effects
+	impact_ring.scale=Vector3.ONE*(.25+(.16-impact_time)*2)
 	if not player:
 		health_bar.visible = model.health < model.max_health and model.state != "dead"
 		health_bar.scale.x = maxf(0.01,model.health/model.max_health)
 		tell_ring.visible = model.state == "attack" and model.elapsed < float(model.attack.windup)
 		tell_ring.scale = Vector3.ONE*(1.0+model.elapsed*0.7)
+		var unblockable=model.state=="attack" and not model.attack.get("blockable",true)
+		tell_ring.material_override=Figure.material(Color("df9d72") if unblockable else Color("e9c48c"))
 	if last_state != model.state:
 		if model.state == "dead":
 			collision_layer = 0
@@ -264,7 +326,7 @@ func update_player(delta: float) -> void:
 		return
 	yaw.rotation.y -= Input.get_axis("look_left","look_right")*delta*2.4
 	pitch.rotation.x = clampf(pitch.rotation.x-Input.get_axis("look_up","look_down")*delta*1.7*(-1 if Preferences.invert else 1),-0.85,0.28)
-	model.guard(Input.is_action_pressed("guard"))
+	model.guard(Input.is_action_pressed("guard") and Preferences.gameplay_input_ready())
 	if model.state == "guard":
 		world.learn("guard")
 	var direction = desired_direction()
@@ -281,6 +343,7 @@ func update_player(delta: float) -> void:
 		speed = 11.5
 	elif model.state != "idle":
 		speed = 0
+	if not Preferences.gameplay_input_ready() and not use_test_direction: direction=Vector3.ZERO
 	if direction.length() > 0.1 and speed > 0 and model.state not in ["dodge","ashstep"] and not is_instance_valid(target):
 		rotation.y = lerp_angle(rotation.y,atan2(-direction.x,-direction.z),1-exp(-delta*14))
 	velocity.x = direction.x*speed
@@ -353,15 +416,9 @@ func update_enemy(delta: float) -> void:
 				velocity.z=tangent.z*.65
 
 func apply_hits() -> void:
-	var query = PhysicsShapeQueryParameters3D.new()
-	var sphere = SphereShape3D.new()
-	sphere.radius = float(model.attack.reach)*0.57
-	query.shape = sphere
-	query.transform = global_transform.translated_local(Vector3(0,0.9,-float(model.attack.reach)*0.52))
-	query.collision_mask = 16 if player else 8
-	query.collide_with_areas = true
-	query.collide_with_bodies = false
-	for result in get_world_3d().direct_space_state.intersect_shape(query,8):
+	hit_sphere.radius = float(model.attack.reach)*0.57
+	hit_query.transform = global_transform.translated_local(Vector3(0,0.9,-float(model.attack.reach)*0.52))
+	for result in get_world_3d().direct_space_state.intersect_shape(hit_query,8):
 		var other: Fighter = result.collider.get_meta("fighter",null)
 		if other == null or other == self or other.player == player or other.model.state == "dead":
 			continue
@@ -372,22 +429,25 @@ func apply_hits() -> void:
 		if model.claim_hit(other.get_instance_id()):
 			other.take_damage(float(model.attack.damage),self)
 
-func take_damage(amount: float, attacker: Fighter) -> String:
+func take_damage(amount: float, attacker: Fighter, attack_rules: Dictionary={}) -> String:
+	if not is_instance_valid(attacker): return "ignored"
 	var in_front = (-global_basis.z).dot((attacker.global_position-global_position).normalized()) > 0.0
-	var heavy_hit = attacker.model.attack_id in ["heavy","opening_counter"]
+	var rules: Dictionary = attack_rules if not attack_rules.is_empty() else attacker.model.attack
+	var heavy_hit = rules.get("pose","")=="heavy" and attacker.player
 	var armor = not player and (kind == "foreman" or definition.get("behavior","") in ["heavy","warden","serit","halvek"]) and model.state == "attack" and not heavy_hit
 	if not player and model.state=="guard" and heavy_hit and ("tempered_edge" in Session.data.unlocks or attacker.model.attack_id=="opening_counter"):
 		model.state="hit"
 		model.elapsed=-.45
 		world.ui.toast("Guard broken · tempered edge")
-	var rules: Dictionary = attacker.model.attack if not attacker.model.attack.is_empty() else {}
+	if player and Preferences.difficulty=="story": amount*=.6
 	var result = model.receive(amount,in_front,armor,rules)
 	if result == "ash_evade":
 		world.on_ash_evade()
 		Sound.play("parry")
 	if result == "parry":
-		attacker.model.state = "hit"
-		attacker.model.elapsed = -0.65
+		if attack_rules.is_empty() and attacker.model.state!="dead":
+			attacker.model.state = "hit"
+			attacker.model.elapsed = -0.65
 		Sound.play("parry")
 		if player:
 			world.learn("parry")
@@ -402,4 +462,19 @@ func take_damage(amount: float, attacker: Fighter) -> String:
 			attacker.model.resolve = minf(3,attacker.model.resolve+.25)
 			Session.data.resolve=attacker.model.resolve
 	if player: Session.data.resolve=model.resolve
+	if result in ["hit","dead","guard","parry","ash_evade"]:
+		impact_time=.16
+		if player and Preferences.camera_shake: shake_time=.12
 	return result
+
+func update_camera_collision(delta: float) -> void:
+	# SpringArm provides the safe distance. Pull inward immediately; release
+	# outward slowly without ever exceeding the collision-constrained length.
+	var safe=pitch.get_hit_length()
+	if safe<=0: safe=.18
+	camera_obstruction=safe<pitch.spring_length-.15
+	smooth_camera_distance=minf(safe,move_toward(smooth_camera_distance,safe,delta*5))
+	camera.position.z=minf(0,smooth_camera_distance-safe)
+	shake_time=maxf(0,shake_time-delta)
+	camera.h_offset=sin(shake_time*180)*.025 if shake_time>0 and Preferences.camera_shake else 0
+	figure.visible=safe>.65

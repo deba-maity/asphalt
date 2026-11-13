@@ -1,5 +1,21 @@
 # Architecture and ownership — pass two
 
+## Pass-three additions (2026-11-13)
+
+The ownership and schema-two contract below remain in place. New focused classes serve quality work without new gameplay autoloads: `ActionBuffer` stores one short intent, `AnimationPolicy` samples analytic legs and swing weights, `SettingsPanel` builds tabbed options, `SceneryDetails` supplies original props, and main owns a `BenchmarkRecorder`. Settings remain separate from progress and retain old sensitivity/inversion/volume/shadow defaults.
+
+Input intent can be queued for 160ms only outside active/windup, hit, story, transition and death. The newest intent replaces the previous one and carries a sampled direction. UI/focus/device changes clear it. Returning to gameplay quarantines menu-closing input for 150ms and requires action release. InputMap and all marked prompts share `Preferences` bindings. Disconnect releases logical actions and guard. No gameplay state can be started by a menu action during that guard interval.
+
+Animation remains physics-owned/in-place. It now consumes actual horizontal displacement, uses a two-link hard-joint leg solution and shares exact windup/active/recovery elapsed time with damage. Strike sampling moves from anticipation at the active boundary and returns to rest during recovery. Hit/death/attack ownership takes precedence over residual parry pose. This is not terrain-aware foot planting or visual acceptance.
+
+Melee shape/query objects are reused. Projectiles retain a copy of their attack definition; changing shooter state cannot change their block/parry behavior, and a projectile parry cannot revive a dead shooter. Optional impact/shake is local and bounded. No hit-stop or global time-scale manipulation was introduced. Story difficulty changes incoming damage and player parry timing while retaining all story paths.
+
+Sound owns eight one-shot players, two synchronized music stems and one current ambience. Original cues are loaded once; bus volumes are independent. Context requests blend calm/combat and silence authored moments without restarting every zone. Surface footsteps follow physical distance. The wheel has explicit dynamic ownership so static batching does not consume its moving spokes.
+
+Benchmark recording is local only. Bounded samples distinguish headless/graphics, supported/unavailable counters, frame intervals and transition costs. The optional sustained harness repeats normal automation under separate validation saves, outside ordinary player menus. The wrapper records process memory without modifying OS settings. F9 captures the actual viewport only in a graphical user run.
+
+Shutdown drains a pending threaded resource over frames before destroying scripts/services, fixing a close-during-loading parser/teardown race. Cancellation still does not claim to stop engine work. No progress schema or chapter ID change was needed for this pass. The remaining pass-two description documents the preserved foundation.
+
 The existing project, renderer, player/combat classes, opening scene construction and three autoloads are retained. `Session` owns plain progress and SaveStore; `Preferences` owns input/settings; `Sound` owns a bounded voice pool. Main owns the UI and transition coordinator. The same Fighter player node is detached during unloading and reparented into the next zone. Its combat model is reset from persistent progress; player identity remains constant across transitions and ordinary restarts. Only one zone remains active after a swap.
 
 `Campaign` caches only the small JSON index: chapter names/IDs, zone paths, checkpoint positions and estimated speculative costs. It has no live scene references. Current-zone definitions supply dialogue, quests, objects, NPCs, encounters and rewards. `campaign_zone.gd` extends the original `ChapterWorld` helpers; the opening retains its own scene and content. Each later PackedScene references its relevant baked actor scenes so background loading retrieves actual local asset dependencies. Environment construction and activation remain explicit main-thread work.

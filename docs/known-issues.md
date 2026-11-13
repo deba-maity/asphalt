@@ -1,0 +1,11 @@
+# Remaining acceptance and release gates
+
+- **Rendered review outstanding.** Pass three was kept headless at the user's Remote Desktop instruction. The new gait, swing blending, camera release, props, palette and effects have behavioral/resource checks, not visual acceptance. No new screenshots or subjective audio evaluation are claimed.
+- **Target laptop untested.** The low target is 720p/30 FPS on Ryzen 5 5500U integrated Radeon. The new local collector is available, but performance is not established. A selectable 60 FPS cap is experimental.
+- **Short campaign.** All six chapters and the ending work, but the multi-hour scope remains unmet/unmeasured. Automation's roughly six minutes of simulated fast-play content is not a human duration estimate. More authored journeys and relationships would be needed to reach that goal.
+- **Original fallback art.** The shared characters use hard-jointed geometry and analytic leg motion, not skinned motion capture or a terrain-aware planted-foot solver. Strafe/backward motion, slopes, sword clipping and NPC staging need rendered refinement. Environment detail remains economical and should not be marketed as final high-fidelity art.
+- **Devices and accessibility.** Physical mouse capture, controller navigation/disconnect, fullscreen/resize behavior, contrast and all subtitle sizes need local human checks. Keyboard/mouse rebinding is supported; controller mapping is fixed. UI layout tests do not establish usability or screen-reader support.
+- **Audio.** Original synthesized music/effects/ambience are implemented with buses, variation and bounded playback. Listening, pause/resume and seamlessness need local acceptance. No voice acting; all story remains subtitled.
+- **Release work.** Windows preview exports and headless packaged campaign checks exist. Clean-checkout reproducibility/CI, signing/installer choices, release archive/checksums, Android feasibility/touch controls and the download website remain pass four. There is no published repository or site.
+
+Pass four can prepare distribution, but a final release should not silently waive human full-campaign, visual/audio, physical-device and target-laptop acceptance. Use [benchmark.md](benchmark.md) for local evidence collection. Previous records are retained in `docs/history`.

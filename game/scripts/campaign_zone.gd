@@ -14,6 +14,8 @@ func _ready() -> void:
 	rng.seed = zone_id.hash()
 	build_setting()
 	build_landmarks()
+	SceneryDetails.route(self,definition.theme,definition.length)
+	if definition.theme in ["morning","cinders","memorial"]: SceneryDetails.village(self,definition.theme)
 	interactables.clear()
 	batch_scenery()
 	prepare_hero()
@@ -30,6 +32,7 @@ func _ready() -> void:
 		interactables.append({"id":point.id,"name":point.name,"position":vec(point.position)})
 		if point.id.begins_with("obj_"):
 			Figure.cylinder(self,.26,.34,.55,vec(point.position)+Vector3.UP*.28,Color("b6a883"),6)
+			SceneryDetails.object_prop(self,point.id,vec(point.position))
 		elif point.id.begins_with("exit_"):
 			for x in [-3,3]: solid_box(Vector3(.3,3,.3),vec(point.position)+Vector3(x,1.5,0),Color("7e7666"))
 		label(point.name,vec(point.position)+Vector3.UP*2.1,21)
@@ -64,7 +67,8 @@ func build_setting() -> void:
 	var environment=WorldEnvironment.new()
 	var env=Environment.new()
 	env.background_mode=Environment.BG_COLOR
-	env.background_color=Color("25323b") if realm else (Color("373c43") if night else Color("81969d"))
+	var palettes={"morning":"a9afa0","cinders":"343b42","mill":"708b98","fortress":"6a7e8d","ashes":"25323b","returned":"747f94","dawn":"b2a58e","court":"bcae90","memorial":"b1b39d"}
+	env.background_color=Color(palettes.get(theme,"81969d"))
 	env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color=Color("9fbbcc")
 	env.ambient_light_energy=.4 if realm or night else .3
@@ -75,7 +79,7 @@ func build_setting() -> void:
 	add_child(environment)
 	sun=DirectionalLight3D.new()
 	sun.rotation_degrees=Vector3(-35,-28,0)
-	sun.light_color=Color("a8d3e5") if realm else Color("ffe0ae")
+	sun.light_color=Color("a8d3e5") if realm else (Color("c8d7e4") if theme in ["mill","fortress","returned"] else Color("ffe0ae"))
 	sun.light_energy=.45 if night else .75
 	sun.shadow_enabled=Preferences.shadows and not realm
 	sun.directional_shadow_max_distance=38
@@ -122,6 +126,7 @@ func build_landmarks() -> void:
 		Figure.box(self,Vector3(9,.06,71),Vector3(-11,.04,-29),Color("506f7b") if theme=="mill" else Color("5d6255"))
 		house(Vector3(-10,0,-29),5,8)
 		wheel=Node3D.new()
+		wheel.set_meta("dynamic_scenery",true)
 		wheel.position=Vector3(-6.8,2,-26)
 		add_child(wheel)
 		for i in 8:
@@ -166,7 +171,7 @@ func build_landmarks() -> void:
 		for x in [-11.5,11.5]: solid_box(Vector3(13,3,1.2),Vector3(x,1.5,z),Color("73838a"))
 		ward=solid_box(Vector3(10,3,.3),Vector3(0,1.5,z),Color("82b4bb"))
 		ward.collision_layer=32
-		label("F / LT · ASHSTEP THROUGH THE VEIL",Vector3(0,3.4,z),22)
+		label("{ashstep} / LT · ASHSTEP THROUGH THE VEIL",Vector3(0,3.4,z),22)
 
 func requirements_met(requirements: Array) -> bool:
 	for flag in requirements:
@@ -193,11 +198,12 @@ func spawn_available() -> void:
 func _process(delta: float) -> void:
 	if is_queued_for_deletion() or (hero!=null and hero.world!=self): return
 	if not Session.running or hero==null or marker==null: return
+	Sound.context(Session.data.zone,not coordinator.active.is_empty(),ui.mode in ["menu","loading","cinematic"] or definition.theme=="cinders" or (definition.theme=="memorial" and ui.mode=="dialogue"))
 	elapsed+=delta
 	marker.position.y=2.8+sin(elapsed*2)*.18
 	marker.rotation.y+=delta
 	if wheel!=null and definition.theme=="mill": wheel.rotation.x+=delta*.2
-	for id in npcs: npcs[id].animate(delta,npc_model,0,ui.mode=="dialogue")
+	for id in npcs: npcs[id].animate(delta,npc_model,0,Vector3.ZERO,ui.mode=="dialogue")
 	if not can_play(): return
 	if definition.theme=="ashes" and Session.flag("evt_trial_warden_clear") and not Session.flag("evt_ashstep_evade"):
 		# A nonlethal remnant keeps the mandatory defensive lesson available if the boss fell first.
@@ -253,6 +259,7 @@ func interact() -> void:
 
 func begin_story(object: Dictionary) -> void:
 	if not hero.model.freeze("talk"): return
+	hero.clear_intent()
 	hero.velocity=Vector3.ZERO
 	var old_yaw=hero.yaw.rotation.y
 	var old_pitch=hero.pitch.rotation.x
@@ -274,7 +281,7 @@ func commit_story(object: Dictionary) -> void:
 		"lend_ashstep":
 			if "ashstep" not in Session.data.unlocks: Session.data.unlocks.append("ashstep")
 			hero.model.ash_unlocked=true
-			ui.toast("Ashstep lent · F / left trigger. Evade a Warden blow, then heavy-counter.",8)
+			ui.toast("Ashstep lent · {ashstep} / left trigger. Evade a Warden blow, then heavy-counter.",8)
 		"tempered_edge":
 			if "tempered_edge" not in Session.data.unlocks: Session.data.unlocks.append("tempered_edge")
 			ui.toast("Tempered edge learned · Heavy attacks break patient guards.",7)

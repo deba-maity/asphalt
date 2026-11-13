@@ -1,0 +1,37 @@
+ASHEN VOW pass-three Windows preview — 2026-11-13 client date
+
+Engine: Godot 4.7.2.stable.official.ed1daf0bf, standard GDScript.
+Matching official Windows x86-64 release template, Compatibility configured.
+Preview version: 0.3.0.0. Output: exports/windows/AshenVow.exe, embedded PCK.
+
+Build:
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/build.ps1
+Result: exit 0.
+
+Packaged quality:
+AshenVow.exe --headless --fixed-fps 60 -- --test-quality
+Result: exit 0, 38/38 pass-three behavior checks.
+
+Packaged sustained traversal:
+AshenVow.exe --headless --fixed-fps 60 -- --campaign-play --benchmark --benchmark-route --benchmark-seconds=30
+Result: exit 0, three complete campaigns / 27 zone transitions, memorial/credits.
+Accelerated headless wall time: 33.97 seconds. Not a rendered performance,
+15-minute thermal, human duration or target-laptop benchmark.
+
+Separate packaged relaunch:
+AshenVow.exe --headless -- --campaign-continue
+Result: exit 0; completed memorial, credits and exactly one canonical death and
+resurrection restored. Redirected stderr empty for these packaged runs.
+
+See adjacent process transcripts, full headless benchmark report, measurement
+summary and build-hash.json. New dynamic props, audio, settings, benchmark tools,
+JSON and zone/character resources are packed locally. No runtime download.
+
+After the final provenance/manifest update, the preview was rebuilt and a final
+headless full-campaign + separate Continue pair also exited 0 with empty stderr.
+Those process transcripts are packaged-final-campaign.txt and
+packaged-final-continue.txt. build-hash.json identifies that final rebuild.
+
+No graphical game window or audio was opened in pass three, respecting the
+user's Remote Desktop instruction. No new screenshots or human visual/audio
+acceptance is implied. The target Ryzen laptop is still untested.

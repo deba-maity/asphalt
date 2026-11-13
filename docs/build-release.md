@@ -15,7 +15,7 @@ The template fetcher uses HTTP ranges on the official 4.7.2 standard template ZI
 
 The export preset packs all resources and explicitly includes `content/*.json`. The ten zone scenes hold their relevant actor scene dependencies, and manifest strings use packaged local paths. Developer validation scripts needed for headless packaged traversal are included but have no normal-menu entries; bake/image-capture/notice-generation tools are excluded. The embedded PCK means no loose data download is needed. No runtime network API exists.
 
-Build output: `exports/windows/AshenVow.exe`, root MIT license, Godot license, component notices and `build-hash.json`. The preview is unsigned and approximately 105 MiB. `exports/` is ignored generated output. Ship the notice files with any copy. On the machine where the user intends to play, double-click the executable; neither Godot nor Python is required. No graphical launch is performed here after the user's instruction.
+Build output: `exports/windows/AshenVow.exe`, root MIT license, Godot license, component notices and `build-hash.json`. The preview is unsigned; its exact digest is in the retained build hash. `exports/` is ignored generated output. Ship the notice files with any copy. On the machine where the user intends to play, double-click the executable; neither Godot nor Python is required. No graphical launch is performed here after the user's instruction.
 
 ## Packaged headless verification
 
@@ -30,3 +30,11 @@ The packaged full traversal reaches credits with actual movement, collisions, co
 Regenerate engine notices after any engine change with the headless `tests/write_notices.gd` tool. Change the engine pin, templates, script paths and future CI together. The current early preview is not a claim of byte-identical reproducible release builds, installer/signing behavior, Android support, target-laptop performance or release certification.
 
 Pass four will add a clean-checkout release workflow, CI, archives and public download metadata. Website publication needs an identified repository; none was invented or published. Android remains optional and needs real device, input, renderer and export work. The empty `site/` directory is reserved for that later pass.
+
+## Pass-three package evidence and local checks
+
+The current Windows build retains the pinned engine/templates and all dynamic scenes/data. New audio, settings, quality fixtures, props and benchmark/capture scripts are included in the PCK. It passed 38 packaged behavior checks, three accelerated headless campaigns (27 transitions), and separate Continue. See `evidence/pass3/export.txt` and `evidence/pass3/build-hash.json`. No graphical launch was made on the Remote Desktop.
+
+`tools/benchmark.ps1` without `-Headless` is an explicit local user action that opens the game on the play machine. See `benchmark.md` before invoking it. Current-build screenshots and rendered laptop metrics must be collected there; historical opening captures cannot establish pass-three visual quality. Human full-campaign, visual/audio, physical-device and target-laptop acceptance remain release blockers listed in `known-issues.md`.
+
+The export preset carries version 0.3.0.0 as a local preview marker. Clean-checkout reproducibility/CI, final release packaging and website publication remain pass four. No new license or online dependency was introduced.

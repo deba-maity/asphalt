@@ -92,7 +92,7 @@
       "dialogue": [
         [
           "Ash mark",
-          "F / left trigger: Ashstep. Three Resolve charges. Step as the Warden's gold ring closes; an exact evasion opens a heavy counter. Parrying also opens a counter. Strikes and parries restore Resolve."
+          "{ashstep} / left trigger: Ashstep. Three Resolve charges. Step as the Warden's gold ring closes; an exact evasion opens a heavy counter. Parrying also opens a counter. Strikes and parries restore Resolve."
         ]
       ],
       "flag": "discovery_ash_mark",
@@ -190,7 +190,7 @@
     },
     {
       "id": "q_ash_tutorial",
-      "text": "F: evade a Warden blow with Ashstep, then heavy-counter.",
+      "text": "{ashstep}: evade a Warden blow with Ashstep, then heavy-counter.",
       "target": [
         0,
         0,

@@ -1,4 +1,4 @@
-param([switch]$Campaign, [switch]$RealTime)
+param([switch]$Campaign, [switch]$RealTime, [ValidateSet(30,60)][int]$SimulationHz=60)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $pin = Get-Content -LiteralPath (Join-Path $repo 'engine-version.json') -Raw | ConvertFrom-Json
@@ -7,12 +7,12 @@ New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot 'logs') -Force | Out
 & $exe --headless --path (Join-Path $repo 'game') --editor --import --quit
 if ($LASTEXITCODE -ne 0) { throw 'Import failed.' }
 $baseArgs = @('--headless','--path',(Join-Path $repo 'game'))
-if (-not $RealTime) { $baseArgs += @('--fixed-fps','60') }
+if (-not $RealTime) { $baseArgs += @('--fixed-fps',"$SimulationHz") }
 foreach ($script in @('unit_tests','campaign_logic','ui_layout')) {
     & $exe @baseArgs --script "res://tests/$script.gd" 2>&1 | Tee-Object -FilePath (Join-Path $PSScriptRoot "logs\$script.log")
     if ($LASTEXITCODE -ne 0) { throw "$script checks failed." }
 }
-foreach ($mode in @('--validate-systems','--test-transitions')) {
+foreach ($mode in @('--validate-systems','--test-transitions','--test-quality','--test-quit-transition','--test-resume-transition')) {
     $label = $mode.TrimStart('-')
     & $exe @baseArgs -- $mode 2>&1 | Tee-Object -FilePath (Join-Path $PSScriptRoot "logs\$label.log")
     if ($LASTEXITCODE -ne 0) { throw "$label checks failed." }

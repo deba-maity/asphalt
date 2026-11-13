@@ -8,6 +8,7 @@ var closing: bool = false
 var last_install_metrics: Dictionary = {}
 var story_token: int = 0
 var story_active: bool = false
+var benchmark: BenchmarkRecorder
 
 func _ready() -> void:
 	ui = GameInterface.new()
@@ -18,12 +19,18 @@ func _ready() -> void:
 	add_child(transitions)
 	load_world()
 	ui.show_menu()
+	benchmark=BenchmarkRecorder.new()
+	benchmark.main=self
+	add_child(benchmark)
 	get_tree().auto_accept_quit = false
 	var args = OS.get_cmdline_user_args()
 	var script = ""
 	if "--validate-systems" in args: script = "res://tests/system_tests.gd"
 	elif "--validate-play" in args or "--validate-continue" in args: script = "res://tests/playthrough.gd"
+	elif "--benchmark-route" in args: script="res://tests/benchmark_route.gd"
 	elif "--campaign-play" in args or "--campaign-continue" in args: script = "res://tests/campaign_playthrough.gd"
+	elif "--test-quality" in args: script="res://tests/quality_tests.gd"
+	elif "--test-quit-transition" in args or "--test-resume-transition" in args: script="res://tests/quit_transition.gd"
 	elif "--test-transitions" in args: script = "res://tests/transition_tests.gd"
 	if not script.is_empty():
 		var validator = load(script).new()
@@ -37,6 +44,7 @@ func detach_player() -> void:
 	player.reparent(self)
 	player.world = null
 	player.target = null
+	player.clear_intent()
 	player.set_physics_process(false)
 	player.visible = false
 
@@ -69,6 +77,7 @@ func install_zone(scene: PackedScene, zone_id: String, effect: String, low_memor
 		Figure.materials.clear()
 		Figure.meshes.clear()
 		await get_tree().process_frame
+		if closing: return false
 		previous = null
 		last_install_metrics={"old_zone_release_frame_ms":(Time.get_ticks_usec()-release_start)/1000.0,"old_zone_freed_before_construct":released.get_ref()==null}
 	else: last_install_metrics={"old_zone_release_frame_ms":0.0}
@@ -90,6 +99,7 @@ func install_zone(scene: PackedScene, zone_id: String, effect: String, low_memor
 	last_install_metrics["ready_geometry_and_scripts_ms"]=(Time.get_ticks_usec()-activate_start)/1000.0
 	if is_instance_valid(previous): previous.queue_free()
 	await get_tree().process_frame
+	if closing: return false
 	if not is_instance_valid(world.hero): return false
 	Session.save()
 	return true
@@ -144,6 +154,7 @@ func _notification(what: int) -> void:
 		if Session.running and is_instance_valid(world): world.save_current()
 		finish()
 	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		Preferences.release_input()
 		if ui != null and ui.mode == "play" and not Session.validation: ui.show_pause()
 
 func finish(code: int = 0) -> void:
@@ -151,10 +162,13 @@ func finish(code: int = 0) -> void:
 	print("EXIT requested: ",code," mode=",ui.mode)
 	if Session.validation: print_stack()
 	closing = true
+	if benchmark!=null and benchmark.recording: benchmark.stop()
 	get_tree().paused = false
 	Session.running = false
+	Preferences.release_input()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	transitions.cancel()
+	await transitions.drain_for_shutdown()
 	ui.world = null
 	if is_instance_valid(world): world.queue_free()
 	if is_instance_valid(player) and player.get_parent() == self: player.queue_free()
