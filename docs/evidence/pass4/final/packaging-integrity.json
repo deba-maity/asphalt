@@ -1,0 +1,25 @@
+{
+  "source_commit": "1d4982d626db1bcc8da0ac2507bc5cf34c2e80c1",
+  "status": "passed",
+  "scope": "same executable/commit/build epoch; not a cross-machine native byte-identity claim",
+  "checks": [
+    {
+      "check": "repeat package windows-portable",
+      "status": "passed",
+      "sha256": "59196466e0d4f1bcc2d80337df15486b0442e627666911c24185b8bb5824e55a"
+    },
+    {
+      "check": "repeat package source",
+      "status": "passed",
+      "sha256": "e22ffe25bdd7cfd897fae44ac8b3dec4dcce47eb7641b3fb9afe9b69f51b7cb0"
+    },
+    {
+      "check": "existing output refused",
+      "status": "passed"
+    },
+    {
+      "check": "mutated final archive rejected",
+      "status": "passed"
+    }
+  ]
+}

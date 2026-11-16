@@ -1,0 +1,4 @@
+59196466e0d4f1bcc2d80337df15486b0442e627666911c24185b8bb5824e55a  AshenVow-v0.4.0-rc.1-windows-x86_64.zip
+e22ffe25bdd7cfd897fae44ac8b3dec4dcce47eb7641b3fb9afe9b69f51b7cb0  AshenVow-v0.4.0-rc.1-source.zip
+f71ec291ed2b15eded135be23150c7a7153e34a8f826c7bb4cbb8893e4f68ccf  release.json
+41e1e49c56d7ec1894f0c8b83707796b039e18781a406b8ff33be21190156061  portable-verification.json

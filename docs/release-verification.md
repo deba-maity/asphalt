@@ -25,3 +25,18 @@ Retained evidence is in [evidence/pass4](evidence/pass4). Generated tools/caches
 Two verification failures were found and corrected: (1) Windows core.autocrlf made Godot-rewritten .import files appear dirty despite equivalent contents; repository .gitattributes now enforces LF for those files, confirmed in a second fresh clone. (2) the portable verifier initially demanded the word PASS in every process; Continue's actual success message is “Relaunch Continue restored ending…”. The game had exited0/restored correctly. The verifier now requires each mode's specific success marker and rejects ERROR/FAIL across stdout/stderr. Re-extraction/campaign/Continue then passed. Earlier failure output is retained; it is not presented as a game failure or a final passing pipeline.
 
 Website screenshots here are **website QA**, not new game captures. Historical images in the site are explicitly labelled pass-one. Public-link activation is exercised only with an isolated test fixture; no public release URL is verified or claimed locally. Target-laptop/human gates remain not run for the reasons above.
+
+## Final delivered candidate
+
+The complete updated release.ps1 pipeline passed from clean source commit 1d4982d626db1bcc8da0ac2507bc5cf34c2e80c1. Final build UTC: **2026-11-16T09:57:08+00:00**. This documentation/evidence commit follows the executable build and does not alter its identity.
+
+| Artifact | Bytes | SHA-256 |
+|---|---:|---|
+| AshenVow-v0.4.0-rc.1-windows-x86_64.zip | 38524139 | 59196466e0d4f1bcc2d80337df15486b0442e627666911c24185b8bb5824e55a |
+| AshenVow-v0.4.0-rc.1-source.zip | 5795764 | e22ffe25bdd7cfd897fae44ac8b3dec4dcce47eb7641b3fb9afe9b69f51b7cb0 |
+
+Final logs/manifest/identity: [evidence/pass4/final](evidence/pass4/final). Fresh extraction quality, full campaign/ending and separate Continue passed with the updated mode-specific verifier. Final source ZIP commit comment and embedded BUILD.json match release.json; every intended uploaded ZIP/JSON has a verified checksum.
+
+**Passed:** same-input repeat Windows/source packaging produced identical hashes at the same epoch; existing output was refused; a deliberately altered temporary archive copy was rejected. This is deterministic packaging, not a cross-machine native byte-identity claim. No original artifact was changed by the rejection test.
+
+**Not run:** public URLs/hosted CI/Pages, credential-backed signing, graphical/audio/device acceptance, Ryzen5500U performance and Android installation/play, for the reasons recorded above. The generated local site snapshot shows this actual candidate size/date/hash and keeps downloads unavailable until publication.

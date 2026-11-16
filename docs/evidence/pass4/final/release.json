@@ -1,0 +1,47 @@
+{
+  "version": "0.4.0-rc.1",
+  "source_commit": "1d4982d626db1bcc8da0ac2507bc5cf34c2e80c1",
+  "source_dirty": false,
+  "build_date_utc": "2026-11-16T09:57:08+00:00",
+  "engine": "4.7.2",
+  "platform": "windows",
+  "architecture": "x86_64",
+  "status": "candidate",
+  "signature": "unsigned",
+  "source_headless_tests": "passed",
+  "rendered_target_laptop_tests": "not_run",
+  "schema": 1,
+  "published": false,
+  "repository_url": null,
+  "release_url": null,
+  "website_url": null,
+  "artifacts": [
+    {
+      "kind": "windows-portable",
+      "platform": "windows",
+      "architecture": "x86_64",
+      "filename": "AshenVow-v0.4.0-rc.1-windows-x86_64.zip",
+      "size_bytes": 38524139,
+      "sha256": "59196466e0d4f1bcc2d80337df15486b0442e627666911c24185b8bb5824e55a",
+      "download_url": null
+    },
+    {
+      "kind": "source",
+      "filename": "AshenVow-v0.4.0-rc.1-source.zip",
+      "size_bytes": 5795764,
+      "sha256": "e22ffe25bdd7cfd897fae44ac8b3dec4dcce47eb7641b3fb9afe9b69f51b7cb0",
+      "download_url": null
+    }
+  ],
+  "android": {
+    "status": "unavailable",
+    "artifact": null,
+    "reason": "SDK, release signing identity, touch adaptation and device acceptance are not completed."
+  },
+  "tests": {
+    "source_headless": "passed",
+    "fresh_zip": "passed",
+    "target_laptop": "not_run",
+    "visual_audio_devices": "not_run"
+  }
+}
