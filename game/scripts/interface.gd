@@ -176,14 +176,15 @@ func show_menu() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	clear_overlay()
 	shade(0.50)
-	var c = column(panel(overlay,Vector2(68,32),Vector2(520,650)),8)
+	var c = column(panel(overlay,Vector2(68,32),Vector2(520,650)),6)
 	text(c,"A  W A Y F A R E R ' S  S T O R Y",17,GOLD)
-	var title = text(c,"ASHEN\nVOW",60)
+	var title = text(c,"ASHEN\nVOW",48)
 	var serif = SystemFont.new()
 	serif.font_names = PackedStringArray(["Georgia","Liberation Serif"])
 	title.add_theme_font_override("font",serif)
-	text(c,"A ROAD THROUGH ASHES",21,GOLD)
-	text(c,"Six chapters · One costly road home",18)
+	text(c,"THE ASHEN TRIAL",21,GOLD)
+	text(c,"One courtyard. One warden. Keep your vow.",18)
+	var trial_button=button(c,"Enter the Ashen Trial",func(): main.start_trial())
 	if not Session.loaded.is_empty():
 		button(c,"Continue · "+Campaign.chapter(Session.loaded.chapter).title,func(): main.start_game(false)).grab_focus()
 		button(c,"Chapter select · separate replay saves",show_chapter_select)
@@ -194,7 +195,8 @@ func show_menu() -> void:
 			confirm_new()).grab_focus()
 	button(c,"Controls & settings",func(): show_settings("menu"))
 	button(c,"Quit",func(): main.finish())
-	text(c,"Original campaign · Offline single-player\nGodot 4.7.2 · Art and animation in development",14,Color("b7b5a9"))
+	text(c,"Offline single-player / Story campaign also included",14,Color("b7b5a9"))
+	trial_button.grab_focus()
 	if not Session.save_warning.is_empty():
 		var warning = text(overlay,Session.save_warning,17,GOLD)
 		warning.position = Vector2(620,560)
@@ -251,6 +253,9 @@ func begin_rebind(action: String, back: String) -> void:
 	button(c,"Cancel",func(): rebinding=""; show_settings(back,"Controls")).grab_focus()
 
 func show_journal() -> void:
+	if main.trial_active:
+		show_trial_guide()
+		return
 	mode = "journal"
 	get_tree().paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -540,7 +545,7 @@ func show_credits() -> void:
 	var c=column(panel(overlay,Vector2(260,52),Vector2(760,620)),12)
 	text(c,"ASHEN VOW",38,GOLD)
 	text(c,"The road remains open",24)
-	text(c,"For Mira and Isha, remembered in the small things.\n\nOriginal game, story, models and audio: ASHEN VOW contributors\nCreated with Codex assistance · Original work: MIT\n\nGodot Engine contributors · Godot 4.7.2\nEngine and component notices accompany this game.\nThank you for walking this road.",18)
+	text(c,"For Mira and Isha, remembered in the small things.\n\nOriginal game, story and audio: ASHEN VOW contributors\nCreated with Codex assistance · Original work: MIT\n\nGodot Engine contributors · Godot 4.7.2\nTrial character art: Quaternius (CC0)\nTrial animation: Quaternius / Gonzalo Furnier (CC0)\nEngine and asset notices accompany this game.\nThank you for walking this road.",18)
 	button(c,"Continue at the memorial",func(): finish_credits(); play()).grab_focus()
 	button(c,"Return to title",func(): finish_credits(); show_menu())
 	button(c,"Skip credits",func(): finish_credits(); show_menu())
@@ -556,3 +561,28 @@ func accept_rebind(code: int) -> void:
 		rebinding=""
 		show_settings(rebind_back,"Controls")
 	else: rebind_status.text=reason
+
+func show_trial_result(won: bool) -> void:
+	mode="trial_result"
+	get_tree().paused=false
+	hud.visible=false
+	clear_overlay()
+	shade(.45)
+	var c=column(panel(overlay,Vector2(370,220),Vector2(540,275)),16)
+	text(c,"VOW KEPT" if won else "RISE THROUGH THE ASH",30,GOLD)
+	text(c,"The Cinder Warden yields." if won else "Read the wind-up. Leave room to recover.",19)
+	text(c,"Your story campaign progress is preserved.",16)
+	button(c,"Challenge the Warden again",func(): main.start_trial()).grab_focus()
+	button(c,"Return to title",show_menu)
+
+func show_trial_guide() -> void:
+	mode="journal"
+	get_tree().paused=true
+	clear_overlay()
+	shade()
+	var c=column(panel(overlay,Vector2(230,90),Vector2(820,530)),16)
+	text(c,"THE ASHEN TRIAL",30,GOLD)
+	text(c,"Defeat the Cinder Warden in a single duel.",22)
+	text(c,"Light attacks chain into a three-strike sequence.\nQueue the next strike as the current swing finishes.\nA heavy attack commits longer and deals more damage.\nGuard just before impact to parry; roll to escape.\nThe Warden's recovery is your opening.\nDraughts heal, but leave you exposed while drinking.",19)
+	text(c,Preferences.help_text(),16)
+	button(c,"Return to the duel",play).grab_focus()

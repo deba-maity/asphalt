@@ -1,0 +1,31 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SKIP: Desktop mouse capture requires a graphics window; none opened.
+PASS: Physical W key moves the character
+PASS: Shift + W sprints faster
+SKIP: Captured-mouse orbit requires a graphics window; none opened.
+PASS: LMB starts a light attack
+PASS: Dodge cannot interrupt attack
+PASS: RMB starts heavy attack
+PASS: Ctrl holds guard
+PASS: Releasing Ctrl releases guard
+PASS: Space starts dodge and invulnerability window
+PASS: R heals and consumes a persistent draught
+PASS: Escape pauses and releases mouse
+PASS: Movement is frozen during pause
+PASS: Escape resumes play
+PASS: Tab opens journal with free cursor
+PASS: Camera spring arm retracts at an actual wall
+PASS: Q locks onto a visible enemy
+PASS: Actual active hit volume damages hurtbox exactly once per swing
+PASS: E begins family dialogue and releases cursor
+PASS: Dialogue excludes incoming damage
+PASS: Finishing dialogue commits its story event
+PASS: Fatal damage opens checkpoint restart screen
+PASS: Death restores checkpoint position
+PASS: Restart has one player and retains one-time family flag
+RESULT: 22/22 checks passed
+EXIT requested: 0 mode=play
+Frame 0 - res://scripts/main.gd:178 in function 'finish'
+Frame 1 - res://tests/system_tests.gd:168 in function 'run'
+Frame 2 - res://tests/system_tests.gd:20 in function 'wait'

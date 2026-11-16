@@ -5,6 +5,7 @@ var world: ChapterWorld
 var player: Fighter
 var transitions: TransitionCoordinator
 var closing: bool = false
+var trial_active: bool = false
 var last_install_metrics: Dictionary = {}
 var story_token: int = 0
 var story_active: bool = false
@@ -17,6 +18,7 @@ func _ready() -> void:
 	transitions = TransitionCoordinator.new()
 	transitions.main = self
 	add_child(transitions)
+	trial_active=true
 	load_world()
 	ui.show_menu()
 	benchmark=BenchmarkRecorder.new()
@@ -29,6 +31,7 @@ func _ready() -> void:
 	elif "--validate-play" in args or "--validate-continue" in args: script = "res://tests/playthrough.gd"
 	elif "--benchmark-route" in args: script="res://tests/benchmark_route.gd"
 	elif "--campaign-play" in args or "--campaign-continue" in args: script = "res://tests/campaign_playthrough.gd"
+	elif "--test-trial" in args: script="res://tests/trial_tests.gd"
 	elif "--test-quality" in args: script="res://tests/quality_tests.gd"
 	elif "--test-quit-transition" in args or "--test-resume-transition" in args: script="res://tests/quit_transition.gd"
 	elif "--test-transitions" in args: script = "res://tests/transition_tests.gd"
@@ -52,14 +55,20 @@ func load_world() -> void:
 	story_token+=1
 	story_active=false
 	detach_player()
+	if is_instance_valid(player) and (trial_active or player.use_performance):
+		player.free()
+		player=null
 	if is_instance_valid(world):
 		remove_child(world)
 		world.free()
 	Figure.materials.clear()
 	Figure.meshes.clear()
 	Session.chapter = Campaign.definition(Session.data.zone)
-	var scene = ResourceLoader.load(Campaign.zone(Session.data.zone).scene,"PackedScene",ResourceLoader.CACHE_MODE_REUSE)
-	world = scene.instantiate()
+	if trial_active:
+		world=TrialWorld.new()
+	else:
+		var scene = ResourceLoader.load(Campaign.zone(Session.data.zone).scene,"PackedScene",ResourceLoader.CACHE_MODE_REUSE)
+		world = scene.instantiate()
 	world.ui = ui
 	ui.world = world
 	add_child(world)
@@ -105,6 +114,8 @@ func install_zone(scene: PackedScene, zone_id: String, effect: String, low_memor
 	return true
 
 func start_game(fresh: bool) -> void:
+	trial_active=false
+	Session.return_to_main_save()
 	transitions.cancel()
 	Session.begin(fresh)
 	load_world()
@@ -113,6 +124,7 @@ func start_game(fresh: bool) -> void:
 	if not Session.save_warning.is_empty(): ui.toast(Session.save_warning,8)
 
 func replay_chapter(id: String) -> void:
+	trial_active=false
 	Session.begin_replay(id)
 	load_world()
 	ui.play()
@@ -139,6 +151,9 @@ func finish_story_death(token: int) -> void:
 	travel("zone_counting_shore","story_death")
 
 func restart_checkpoint() -> void:
+	if trial_active:
+		start_trial()
+		return
 	if transitions.state == "loading": return
 	transitions.reset()
 	Session.data.health = Session.data.max_health
@@ -176,3 +191,12 @@ func finish(code: int = 0) -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	get_tree().quit(code)
+
+func start_trial() -> void:
+	transitions.cancel()
+	trial_active=true
+	Session.begin_trial()
+	load_world()
+	ui.play()
+	ui.announce("ASHEN TRIAL")
+	ui.toast("The Cinder Warden awaits. Chain light strikes during recovery; guard just before impact to parry.",7)

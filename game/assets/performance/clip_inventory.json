@@ -1,0 +1,227 @@
+[
+  {
+    "name": "Death01",
+    "seconds": 2.4000000953674316,
+    "source": "UAL1"
+  },
+  {
+    "name": "Dodge_Left",
+    "seconds": 1.2999999523162842,
+    "source": "UAL1"
+  },
+  {
+    "name": "Dodge_Right",
+    "seconds": 1.2999999523162842,
+    "source": "UAL1"
+  },
+  {
+    "name": "Drink",
+    "seconds": 3.0,
+    "source": "UAL1"
+  },
+  {
+    "name": "Hit_Chest",
+    "seconds": 0.3333333432674408,
+    "source": "UAL1"
+  },
+  {
+    "name": "Hit_Head",
+    "seconds": 0.4333333373069763,
+    "source": "UAL1"
+  },
+  {
+    "name": "Hit_Shoulder_L",
+    "seconds": 0.5333333611488342,
+    "source": "UAL1"
+  },
+  {
+    "name": "Hit_Shoulder_R",
+    "seconds": 0.5,
+    "source": "UAL1"
+  },
+  {
+    "name": "Idle_Loop",
+    "seconds": 2.5,
+    "source": "UAL1"
+  },
+  {
+    "name": "Idle_Talking_Loop",
+    "seconds": 2.933333396911621,
+    "source": "UAL1"
+  },
+  {
+    "name": "Jog_Bwd_L_Loop",
+    "seconds": 0.9333333373069763,
+    "source": "UAL1"
+  },
+  {
+    "name": "Jog_Bwd_Loop",
+    "seconds": 0.9333333373069763,
+    "source": "UAL1"
+  },
+  {
+    "name": "Jog_Bwd_R_Loop",
+    "seconds": 0.9333333373069763,
+    "source": "UAL1"
+  },
+  {
+    "name": "Jog_Fwd_L_Loop",
+    "seconds": 0.9333333373069763,
+    "source": "UAL1"
+  },
+  {
+    "name": "Jog_Fwd_Loop",
+    "seconds": 0.9333333373069763,
+    "source": "UAL1"
+  },
+  {
+    "name": "Jog_Fwd_R_Loop",
+    "seconds": 0.9333333373069763,
+    "source": "UAL1"
+  },
+  {
+    "name": "Jog_Left_Loop",
+    "seconds": 0.9333333373069763,
+    "source": "UAL1"
+  },
+  {
+    "name": "Jog_Right_Loop",
+    "seconds": 0.9333333373069763,
+    "source": "UAL1"
+  },
+  {
+    "name": "Roll",
+    "seconds": 1.4666666984558105,
+    "source": "UAL1"
+  },
+  {
+    "name": "Sprint_Enter",
+    "seconds": 0.8666666746139526,
+    "source": "UAL1"
+  },
+  {
+    "name": "Sprint_Exit",
+    "seconds": 1.6666666269302368,
+    "source": "UAL1"
+  },
+  {
+    "name": "Sprint_Loop",
+    "seconds": 0.6666666865348816,
+    "source": "UAL1"
+  },
+  {
+    "name": "Sword_Idle",
+    "seconds": 1.6666666269302368,
+    "source": "UAL1"
+  },
+  {
+    "name": "Turn90_L",
+    "seconds": 2.0,
+    "source": "UAL1"
+  },
+  {
+    "name": "Turn90_R",
+    "seconds": 2.0,
+    "source": "UAL1"
+  },
+  {
+    "name": "Shield_OneShot",
+    "seconds": 0.8333333134651184,
+    "source": "UAL2"
+  },
+  {
+    "name": "Sword_Block",
+    "seconds": 1.2333333492279053,
+    "source": "UAL2"
+  },
+  {
+    "name": "Sword_Dash",
+    "seconds": 1.5666667222976685,
+    "source": "UAL2"
+  },
+  {
+    "name": "Sword_Heavy_A",
+    "seconds": 0.7333333492279053,
+    "source": "UAL2"
+  },
+  {
+    "name": "Sword_Heavy_A_Rec",
+    "seconds": 1.0,
+    "source": "UAL2"
+  },
+  {
+    "name": "Sword_Light_A",
+    "seconds": 0.36666667461395264,
+    "source": "UAL2"
+  },
+  {
+    "name": "Sword_Light_A_Rec",
+    "seconds": 0.5,
+    "source": "UAL2"
+  },
+  {
+    "name": "Sword_Regular_A",
+    "seconds": 0.4333333373069763,
+    "source": "UAL2"
+  },
+  {
+    "name": "Sword_Regular_A_Rec",
+    "seconds": 0.9666666388511658,
+    "source": "UAL2"
+  },
+  {
+    "name": "Sword_Regular_B",
+    "seconds": 0.5333333611488342,
+    "source": "UAL2"
+  },
+  {
+    "name": "Sword_Regular_B_Rec",
+    "seconds": 1.0333333015441895,
+    "source": "UAL2"
+  },
+  {
+    "name": "Sword_Regular_C",
+    "seconds": 2.0,
+    "source": "UAL2"
+  },
+  {
+    "name": "Walk_Bwd_L_Loop",
+    "seconds": 1.3333333730697632,
+    "source": "UAL2"
+  },
+  {
+    "name": "Walk_Bwd_Loop",
+    "seconds": 1.3333333730697632,
+    "source": "UAL2"
+  },
+  {
+    "name": "Walk_Bwd_R_Loop",
+    "seconds": 1.3333333730697632,
+    "source": "UAL2"
+  },
+  {
+    "name": "Walk_Fwd_L_Loop",
+    "seconds": 1.3333333730697632,
+    "source": "UAL2"
+  },
+  {
+    "name": "Walk_Fwd_Loop",
+    "seconds": 1.3333333730697632,
+    "source": "UAL2"
+  },
+  {
+    "name": "Walk_Fwd_R_Loop",
+    "seconds": 1.3333333730697632,
+    "source": "UAL2"
+  },
+  {
+    "name": "Walk_L_Loop",
+    "seconds": 1.3333333730697632,
+    "source": "UAL2"
+  },
+  {
+    "name": "Walk_R_Loop",
+    "seconds": 1.3333333730697632,
+    "source": "UAL2"
+  }
+]

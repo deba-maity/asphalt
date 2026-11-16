@@ -1,4 +1,8 @@
-# Current asset pipeline: 0.4.0-rc.3
+# Current asset pipeline: 0.5.0-rc.1
+
+The Ashen Trial uses CC0 third-party characters and authored animation. See [current implementation](ashen-trial.md), [credits](CREDITS.txt) and [source provenance](../game/assets/performance/provenance.json). The campaign retains its procedural assets. All descriptions below concern historical revisions; their original-only statements do not apply to the new trial.
+
+## Historical 0.4.0 asset pipeline
 
 See [visual-revision.md](visual-revision.md) and the asset manifest for the current weighted, textured meshes, foot placement, original material maps and environment geometry. The pass-three descriptions below are historical. All new content remains original MIT-licensed work.
 

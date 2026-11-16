@@ -1,0 +1,34 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: Light attack starts
+PASS: Windup cannot apply damage
+PASS: First hit during active window
+PASS: Duplicate physics/event hit refused
+PASS: One swing can hit a different target
+PASS: Attack excludes dodge, heal and dialogue
+PASS: Recovery returns to idle
+PASS: New swing can hit previous target
+PASS: Insufficient stamina cannot start heavy
+PASS: Exact stamina cost
+PASS: Stamina does not regenerate during attack
+PASS: Stamina regenerates after recovery
+PASS: Timed parry blocks health damage
+PASS: Held guard consumes stamina
+PASS: Dodge middle has invulnerability
+PASS: Dodge recovery is vulnerable
+PASS: Death excludes attacks and dialogue
+PASS: Safe save write
+PASS: Save/load round trip includes chapter completion
+PASS: Second save retains backup
+PASS: Invalid primary recovers valid previous backup
+PASS: Invalid progress is refused
+PASS: Invalid flag value is refused
+PASS: Unknown schema is refused
+PASS: Missing valid backup reports damaged save
+PASS: New valid save preserves damaged file
+PASS: First reward granted
+PASS: Reward is idempotent
+PASS: Purchase deducts currency
+PASS: Purchase is idempotent
+PASS: Chapter completion persists
+RESULT: 31/31 checks passed

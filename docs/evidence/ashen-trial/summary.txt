@@ -1,0 +1,15 @@
+unit_tests: RESULT: 31/31 checks passed
+campaign_logic: RESULT: 34/34 campaign logic checks passed
+ui_layout: RESULT: 28/28 headless layout bounds checks passed; no visual inspection claimed
+rig_tests: RESULT: 42/42 skeletal/animation checks passed; rendered acceptance not performed
+motion_tests: RESULT: 40/40 motion/geometry checks passed
+validate-systems: RESULT: 22/22 checks passed
+test-transitions: RESULT: 63/63 transition/system checks passed
+test-quality: RESULT: 38/38 pass-three behavior checks passed
+test-trial: RESULT: 48/48 trial checks passed; headless, no rendered quality claim
+trial-30: RESULT: 48/48 trial checks passed; headless, no rendered quality claim
+trial-package-60: RESULT: 48/48 trial checks passed; headless, no rendered quality claim
+trial-package-30: RESULT: 48/48 trial checks passed; headless, no rendered quality claim
+trial-package-quality: RESULT: 38/38 pass-three behavior checks passed
+
+All engine execution headless; no graphical acceptance or laptop FPS claimed.

@@ -163,3 +163,14 @@ func recorded_entries() -> Array[Dictionary]:
 		for object in zone.objects:
 			if not object.flag.is_empty() and flag(object.flag): entries.append({"name":object.name,"lines":object.dialogue})
 	return entries
+
+func begin_trial() -> void:
+	if not replay: original_store=store
+	replay=true
+	store=SaveStore.new("user://trial_validation" if validation else "user://ashen_trial")
+	data=Campaign.replay_state("ch04_between_ashes")
+	data.heals=3
+	data.health=100
+	data.max_health=100
+	chapter=Campaign.definition(data.zone)
+	running=true

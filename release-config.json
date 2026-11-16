@@ -1,8 +1,8 @@
 {
-  "version": "0.4.0-rc.3",
+  "version": "0.5.0-rc.1",
   "status": "candidate",
   "prerelease": true,
-  "android_version_code": 4003,
+  "android_version_code": 5001,
   "android_application_id": "org.ashenvow.game",
   "public_repository": "deba-maity/asphalt"
 }

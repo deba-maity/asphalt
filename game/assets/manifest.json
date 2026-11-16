@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "author": "ASHEN VOW contributors (original work created with Codex assistance)",
+  "author": "ASHEN VOW contributors and individually credited third-party artists",
   "assets": [
     {
       "id": "asset_characters",
@@ -160,6 +160,62 @@
         "surfaces/stone_normal.png",
         "surfaces/wood.png",
         "surfaces/wood_normal.png"
+      ],
+      "attribution_requirements": "Retain root MIT notice"
+    },
+    {
+      "id": "asset_trial_performance",
+      "source_url": "https://quaternius.com/packs/universalanimationlibrary2.html",
+      "creation_method": "CC0 artist-authored characters and animation, compiled and retargeted by tools/compile_performance_assets.py and tests/bake_performance.gd. Not motion capture.",
+      "author": "Quaternius; Gonzalo Furnier (animation)",
+      "license": "CC0-1.0",
+      "modifications": "Ranger outfits combined with base heads, palette shader, skeleton retargeting, curated clips and root curves. See performance/provenance.json for pinned source hashes.",
+      "runtime_files": [
+        "performance/clip_inventory.json",
+        "performance/LICENSE-CC0.txt",
+        "performance/provenance.json",
+        "performance/rayan.glb",
+        "performance/rayan_motion.res",
+        "performance/root_motion.json",
+        "performance/warden.glb",
+        "performance/warden_motion.res",
+        "performance/textures/086c2eb25bddfdb77d8e.png",
+        "performance/textures/10cd71e2453e577fdd43.png",
+        "performance/textures/172f230aae0d4366c3cf.png",
+        "performance/textures/3b6ab973f9f3d6f89612.png",
+        "performance/textures/57fd0ad8c96a4d01b387.png",
+        "performance/textures/846ef2170b04ee584ad8.png",
+        "performance/textures/9b25cf9200216eb754b7.png",
+        "performance/textures/9ed61f7726a54fe346a7.png",
+        "performance/textures/aca03d2fba12508ef07d.png",
+        "performance/textures/b4dcc0f4139aab548d7c.png",
+        "performance/textures/bc7aa863bd22ab0a995c.png",
+        "performance/textures/c70dabf48574cda55644.png",
+        "performance/textures/cf922460b43ccd31e983.png",
+        "performance/textures/d08e3356a83211bc6ca2.png",
+        "performance/textures/d2beabf2bd0313e32c68.png",
+        "performance/textures/d366843ee7d9e9f37ec8.png",
+        "performance/textures/da541fbd4b3bffe754fa.png",
+        "performance/textures/dd64da2af3180f0c8f0b.png",
+        "performance/textures/df680cbc1967a61e8599.png",
+        "performance/textures/e1051d3d56df9cf061bc.png",
+        "performance/textures/f9f4f2fb3eeeefb0b6f0.png"
+      ],
+      "attribution_requirements": "CC0 has no attribution condition. Credit and source notices are voluntarily retained."
+    },
+    {
+      "id": "asset_trial_integration",
+      "source_url": null,
+      "author": "ASHEN VOW contributors",
+      "license": "MIT",
+      "creation_method": "Original animation integration, root-motion controller, analytic foot correction and runtime palette shader",
+      "modifications": "Original code integrating separately licensed CC0 art/motion",
+      "runtime_files": [
+        "performance/cloth.gdshader",
+        "../scripts/performance_figure.gd",
+        "../scripts/performance_motion.gd",
+        "../scripts/performance_feet.gd",
+        "../scripts/trial_world.gd"
       ],
       "attribution_requirements": "Retain root MIT notice"
     }

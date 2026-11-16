@@ -1,0 +1,26 @@
+ASHEN TRIAL THIRD-PARTY ART AND MOTION
+
+Characters and textures: Quaternius
+Authored animation: Quaternius and Gonzalo Furnier
+
+-------------------------------------------------------
+License:
+CC0 1.0 Universal (CC0 1.0)
+Public Domain Dedication
+https://creativecommons.org/publicdomain/zero/1.0/
+
+------------------------------------------------------
+Models by @Quaternius
+Consider supporting me on Patreon!
+
+https://www.patreon.com/quaternius
+
+
+Official sources:
+https://quaternius.com/packs/universalanimationlibrary.html
+https://quaternius.com/packs/universalanimationlibrary2.html
+https://quaternius.com/packs/universalbasecharacters.html
+https://quaternius.com/packs/modularcharacteroutfitsfantasy.html
+
+Pinned redistribution and source hashes: game/assets/performance/provenance.json
+Our code remains MIT; the imported art and motion retain their CC0 dedication.

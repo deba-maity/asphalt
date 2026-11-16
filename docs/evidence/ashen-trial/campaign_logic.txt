@@ -1,0 +1,37 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: Schema-one migration preserves money and family story
+PASS: Migration preserves unique rewards and chapter completion
+PASS: On-disk migration preserves a schema-one backup before replacement
+PASS: Preserved migration backup remains schema one
+PASS: Future schema refuses rollback to older backup and leaves files intact
+PASS: Replay start has compatible canonical state: ch01_bread_steel
+PASS: Replay start has compatible canonical state: ch02_night_cinders
+PASS: Replay start has compatible canonical state: ch03_road_revenge
+PASS: Replay start has compatible canonical state: ch04_between_ashes
+PASS: Replay start has compatible canonical state: ch05_returned
+PASS: Replay start has compatible canonical state: ch06_last_dawn
+PASS: Mortal swordsman cannot Ashstep
+PASS: Ashstep spends exactly one Resolve
+PASS: Ashstep evasion protects health and opens a counter
+PASS: Resolve shortage blocks repeated Ashstep
+PASS: Unblockable attacks defeat held guard
+PASS: Parry permission is independent of held-block permission
+PASS: Accumulated posture breaks a held guard
+PASS: Authored death commits chapter-four checkpoint with canonical state
+PASS: Repeated authored-death commit is idempotent
+PASS: Canonical resurrection occurs once and preserves its cost
+PASS: Chapter-boundary save/load round trip
+PASS: Pre-resurrection body cannot retain returned powers
+PASS: Later boss reward is idempotent
+PASS: Zone has packaged scene and actual quests: zone_hearthmere
+PASS: Zone has packaged scene and actual quests: zone_cinder_errand
+PASS: Zone has packaged scene and actual quests: zone_cinder_home
+PASS: Zone has packaged scene and actual quests: zone_sere_mill
+PASS: Zone has packaged scene and actual quests: zone_copper_stair
+PASS: Zone has packaged scene and actual quests: zone_counting_shore
+PASS: Zone has packaged scene and actual quests: zone_mill_return
+PASS: Zone has packaged scene and actual quests: zone_dawn_approach
+PASS: Zone has packaged scene and actual quests: zone_dawn_court
+PASS: Zone has packaged scene and actual quests: zone_memorial
+RESULT: 34/34 campaign logic checks passed

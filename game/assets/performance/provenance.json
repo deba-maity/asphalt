@@ -1,0 +1,58 @@
+{
+  "license": "CC0-1.0",
+  "authors": [
+    "Quaternius",
+    "Gonzalo Furnier (animation)"
+  ],
+  "sources": [
+    {
+      "url": "https://raw.githubusercontent.com/tilakpatell/tilakverse-assets/85064399bbdacc0e8cc50807179490314bc4ff1c/quaternius/universal-animation-library-2/License.txt",
+      "sha256": "d77329b05c4c206e76c83285ecdd1e5f2b3df2350ec80657ebdb5a706a0fc0de",
+      "file": "UAL2-License.txt",
+      "bytes": 320
+    },
+    {
+      "url": "https://raw.githubusercontent.com/tilakpatell/tilakverse-assets/85064399bbdacc0e8cc50807179490314bc4ff1c/quaternius/universal-animation-library-2/Unreal-Godot/UAL2.glb",
+      "sha256": "ad3ae049c7d3d4846133b59dba6218fdabebe05d3aec646caef6665f6c540684",
+      "file": "UAL2-UAL2.glb",
+      "bytes": 20717364
+    },
+    {
+      "url": "https://raw.githubusercontent.com/tilakpatell/tilakverse-assets/85064399bbdacc0e8cc50807179490314bc4ff1c/quaternius/universal-animation-library/License.txt",
+      "sha256": "d77329b05c4c206e76c83285ecdd1e5f2b3df2350ec80657ebdb5a706a0fc0de",
+      "file": "UAL1-License.txt",
+      "bytes": 320
+    },
+    {
+      "url": "https://raw.githubusercontent.com/tilakpatell/tilakverse-assets/85064399bbdacc0e8cc50807179490314bc4ff1c/quaternius/universal-animation-library/Unreal-Godot/UAL1.glb",
+      "sha256": "d1cb4537efa4c06a953ca951e5935062f88c2580ac68e45045592d587bddb43d",
+      "file": "UAL1-UAL1.glb",
+      "bytes": 21378992
+    },
+    {
+      "file": "UAL2-UAL2_RM.glb",
+      "url": "https://raw.githubusercontent.com/tilakpatell/tilakverse-assets/85064399bbdacc0e8cc50807179490314bc4ff1c/quaternius/universal-animation-library-2/Unreal-Godot/UAL2_RM.glb",
+      "sha256": "a295ddb1fe171ed225517e88aa1baeaa3939cd00c775b39c75745c3e6a57060d",
+      "bytes": 20756380
+    },
+    {
+      "file": "UAL1-UAL1_RM.glb",
+      "url": "https://raw.githubusercontent.com/tilakpatell/tilakverse-assets/85064399bbdacc0e8cc50807179490314bc4ff1c/quaternius/universal-animation-library/Unreal-Godot/UAL1_RM.glb",
+      "sha256": "9caacb49bc1bf22457d9152288f2e5c37ff52e6546706bdf7755102108c55a53",
+      "bytes": 21405544
+    },
+    {
+      "file": "universal-base-characters.zip",
+      "url": "https://quaternius.itch.io/universal-base-characters",
+      "sha256": "fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40",
+      "bytes": 128968391
+    },
+    {
+      "file": "modular-character-outfits-fantasy.zip",
+      "url": "https://quaternius.itch.io/modular-character-outfits-fantasy",
+      "sha256": "c3468b18871cc8c8f05ab14df7712baf22cb9f389cbd870babf130e595187f70",
+      "bytes": 294347394
+    }
+  ],
+  "modifications": "Selected ranger outfits combined with compatible base heads, preserved texture pixels, retargeted and resampled motion, curated source GLBs, extracted root curves. Runtime palette shader changes green cloth."
+}

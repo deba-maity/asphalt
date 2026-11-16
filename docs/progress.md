@@ -1,4 +1,8 @@
-# Current revision: 0.4.0-rc.3
+# Current revision: 0.5.0-rc.1
+
+Scope shifted to the Ashen Trial: a focused duel with skinned characters, authored/retargeted motion and collision-aware root movement. The story campaign remains separately selectable and save-safe. See [current implementation and evidence](ashen-trial.md). Older records below are historical and do not establish AAA visual acceptance.
+
+## Historical 0.4.0 revision
 
 A deeper visual/motion pass replaces the excessive gait cadence and two-pose attacks, adds ground-aware planted feet, layered textured clothing and secondary cloth motion, and revises trees, rocks, ground, buildings, sky and camera. See [visual-revision.md](visual-revision.md) for implementation and acceptance limits. No graphical game execution was performed on this Remote Desktop. AAA production quality remains unmet.
 

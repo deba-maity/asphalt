@@ -1,0 +1,25 @@
+{
+  "version": "0.5.0-rc.1",
+  "binary": "AshenVow.exe",
+  "bytes": 142450080,
+  "sha256": "372ef1fdb4f9acf2433355f1adbb14042dcbf615074ab758fbb1af7b05c993a6",
+  "engine": "Godot 4.7.2 standard",
+  "renderer": "Compatibility",
+  "headless_only": true,
+  "graphics_acceptance": false,
+  "target_laptop_fps": "unmeasured",
+  "package_checks": [
+    "trial-package-60",
+    "trial-package-30",
+    "trial-package-quality",
+    "trial-package-campaign",
+    "trial-package-continue"
+  ],
+  "source_assertions": 346,
+  "trial_assertions": 48,
+  "trial_physics_hz": [
+    30,
+    60
+  ],
+  "asset_inspection": "CPU deformed geometry/albedo projection, not an in-game screenshot"
+}

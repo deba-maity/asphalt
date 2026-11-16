@@ -14,6 +14,12 @@ They do not claim current-build visual acceptance or Ryzen laptop performance.
 
 Optional source asset conversion: Pillow (HPND), a development tool only.
 Windows resource stamping: electron/rcedit v2.0.0 (MIT), a development tool only.
-No external art, music samples, extracted franchise assets or paid assets.
+Ashen Trial character models/textures: Quaternius.
+Ashen Trial authored animation: Quaternius and Gonzalo Furnier.
+Universal Base Characters, Modular Character Outfits - Fantasy,
+Universal Animation Library 1 and 2: CC0 1.0 public-domain dedication.
+Sources: https://quaternius.com and game/assets/performance/provenance.json.
+Selected assets are modified, combined and retargeted for this game.
+See PERFORMANCE_ASSET_LICENSE.txt. No franchise assets or paid assets used.
 
 ASHEN VOW is a working title, not a claim of trademark clearance.

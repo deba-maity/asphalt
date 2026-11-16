@@ -88,12 +88,21 @@ func freeze(next: String) -> bool:
 	return true
 
 func active() -> bool:
+	if state=="attack" and attack.has("hit_windows"): return active_window()>=0
 	return state == "attack" and elapsed >= float(attack.windup) and elapsed < float(attack.windup) + float(attack.active)
 
+func active_window() -> int:
+	var time=elapsed*float(attack.get("rate",1.0))
+	var windows: Array=attack.get("hit_windows",[])
+	for index in windows.size():
+		if time>=float(windows[index][0]) and time<float(windows[index][1]): return index
+	return -1
+
 func claim_hit(target_id: int) -> bool:
-	if not active() or victims.has(target_id):
+	var key: Variant=str(target_id)+":"+str(active_window()) if attack.has("hit_windows") else target_id
+	if not active() or victims.has(key):
 		return false
-	victims[target_id] = true
+	victims[key] = true
 	damage_events += 1
 	return true
 
@@ -146,7 +155,7 @@ func tick(delta: float) -> void:
 	elif state == "hit":
 		done = elapsed >= 0.38
 	elif state == "heal":
-		done = elapsed >= 0.85
+		done = elapsed >= float(config.get("heal_duration",.85))
 	if done:
 		state = "idle"
 		elapsed = 0

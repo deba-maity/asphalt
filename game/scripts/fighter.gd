@@ -6,6 +6,10 @@ signal feedback(text: String)
 var model: CombatModel = CombatModel.new()
 var figure: Figure
 var player: bool = false
+var use_performance: bool = false
+var combo_index: int = 0
+var impact_pause: float = 0
+var reaction_clip: String = "Hit_Chest"
 var enemy_id: String = ""
 var kind: String = "road_bandit"
 var encounter_id: String = ""
@@ -59,7 +63,13 @@ func _ready() -> void:
 	collider.shape = capsule
 	collider.position.y = 0.9
 	add_child(collider)
-	figure = load("res://assets/characters/"+("rayan" if player else kind)+".tscn").instantiate()
+	if use_performance:
+		PerformanceMotion.configure(model,not player)
+		figure=PerformanceFigure.new()
+		figure.role="rayan" if player else "warden"
+		intent.window=.45
+	else:
+		figure = load("res://assets/characters/"+("rayan" if player else kind)+".tscn").instantiate()
 	add_child(figure)
 	hurtbox = Area3D.new()
 	hurtbox.collision_layer = 8 if player else 16
@@ -162,29 +172,46 @@ func queue_intent(action: String) -> void:
 	consume_intent()
 
 func consume_intent() -> void:
-	if intent.action.is_empty() or not model.can_begin(): return
+	if intent.action.is_empty(): return
+	if use_performance and model.state=="attack":
+		var cancel_at=float(model.attack.get("clip_length",1.0))/float(model.attack.get("rate",1.0))+.07
+		if model.elapsed>=cancel_at and intent.action in ["light","dodge"]:
+			var next_id=["light","trial_second","trial_finish"][next_combo_index()]
+			var cost=float(model.config.stamina.dodge_cost) if intent.action=="dodge" else float(model.config.attacks[next_id].cost)
+			if model.stamina>=cost: model.state="idle"
+	if not model.can_begin(): return
 	var action=intent.action
 	var direction=intent.direction
 	intent.clear()
 	match action:
 		"light","heavy": try_attack(action)
 		"dodge":
-			if try_dodge() and direction.length()>.1: dodge_vector=direction
+			if try_dodge() and direction.length()>.1:
+				dodge_vector=direction
+				select_evade_clip()
 		"ashstep":
 			if try_ashstep() and direction.length()>.1: dodge_vector=direction
 		"heal": try_heal()
 
+func next_combo_index() -> int:
+	return (combo_index+1)%3 if light_memory>0 and combo_index>=0 else 0
+
 func try_attack(id: String) -> bool:
 	if player and id == "heavy" and model.ash_unlocked and model.counter_window>0: id="opening_counter"
+	var proposed_combo=combo_index
+	if use_performance and player and id=="light":
+		proposed_combo=next_combo_index()
+		id=["light","trial_second","trial_finish"][proposed_combo]
 	var ok = model.start_attack(id)
 	if ok:
+		if use_performance and player: combo_index=proposed_combo if id in ["light","trial_second","trial_finish"] else -1
 		if is_instance_valid(target):
 			face(target.global_position)
 		Sound.play(str(model.attack.get("cue","swing")))
 		if player:
 			world.learn(id)
 			repeated_lights = repeated_lights+1 if id == "light" else 0
-			light_memory = 2.5
+			light_memory = 2.5 if not use_performance else 2.0
 			if id == "opening_counter":
 				model.counter_window=0
 				feedback.emit("Opening counter · commit, then recover.")
@@ -208,10 +235,16 @@ func try_dodge() -> bool:
 	dodge_vector = desired_direction()
 	if dodge_vector.length() < 0.1:
 		dodge_vector = -global_basis.z
+	select_evade_clip()
 	if player:
 		world.learn("dodge")
 	Sound.play("swing")
 	return true
+
+func select_evade_clip() -> void:
+	if not use_performance: return
+	var local=global_basis.inverse()*dodge_vector
+	model.config["dodge_clip"]=("Dodge_Left" if local.x<0 else "Dodge_Right") if absf(local.x)>.7 else "Roll"
 
 func try_heal() -> bool:
 	if Session.data.heals > 0 and model.heal():
@@ -258,6 +291,10 @@ func desired_direction() -> Vector3:
 func _physics_process(delta: float) -> void:
 	if world == null:
 		return
+	if use_performance and impact_pause>0:
+		impact_pause=maxf(0,impact_pause-delta)
+		if player: update_camera_collision(delta)
+		return
 	if player:
 		intent.tick(delta)
 		model.parry_multiplier=1.4 if Preferences.difficulty=="story" else 1.0
@@ -273,6 +310,13 @@ func _physics_process(delta: float) -> void:
 		update_player(delta)
 	else:
 		update_enemy(delta)
+	if use_performance and world.can_play() and model.state in ["attack","dodge"]:
+		var root_delta=PerformanceMotion.displacement(model,delta)
+		root_delta*=figure.motion_scale
+		if model.state=="dodge": root_delta=dodge_vector*(-root_delta.z)
+		else: root_delta=global_basis*root_delta
+		velocity.x=root_delta.x/maxf(delta,.001)
+		velocity.z=root_delta.z/maxf(delta,.001)
 	if model.active() and world.can_play():
 		if model.attack.get("projectile",false):
 			if fired_serial != model.swing_serial:
@@ -290,7 +334,7 @@ func _physics_process(delta: float) -> void:
 	figure.animate(delta,model,Vector2(displacement.x,displacement.z).length()/maxf(.001,delta),global_basis.inverse()*displacement)
 	var visual_speed=Vector2(displacement.x,displacement.z).length()/maxf(.001,delta)
 	var contacts_before=figure.foot_placement.contact_count
-	figure.foot_placement.apply(figure,self,model.state,visual_speed)
+	figure.plant_feet(self,model.state,visual_speed)
 	if player:
 		if figure.foot_placement.contact_count>contacts_before and visual_speed>.3 and model.state in ["idle","guard"]:
 			Sound.footstep(Session.data.zone)
@@ -347,8 +391,9 @@ func update_player(delta: float) -> void:
 	if not Preferences.gameplay_input_ready() and not use_test_direction: direction=Vector3.ZERO
 	if direction.length() > 0.1 and speed > 0 and model.state not in ["dodge","ashstep"] and not is_instance_valid(target):
 		rotation.y = lerp_angle(rotation.y,atan2(-direction.x,-direction.z),1-exp(-delta*14))
-	velocity.x = direction.x*speed
-	velocity.z = direction.z*speed
+	var acceleration=20.0 if direction.length()>.1 else 28.0
+	velocity.x = move_toward(velocity.x,direction.x*speed,delta*acceleration) if use_performance and model.state=="idle" else direction.x*speed
+	velocity.z = move_toward(velocity.z,direction.z*speed,delta*acceleration) if use_performance and model.state=="idle" else direction.z*speed
 	if total_distance > 5:
 		world.learn("move")
 
@@ -466,6 +511,12 @@ func take_damage(amount: float, attacker: Fighter, attack_rules: Dictionary={}) 
 	if result in ["hit","dead","guard","parry","ash_evade"]:
 		impact_time=.16
 		if player and Preferences.camera_shake: shake_time=.12
+		if use_performance and result in ["hit","guard","parry"]:
+			impact_pause=.05 if result=="parry" else .035
+			if attacker.use_performance: attacker.impact_pause=impact_pause
+			var direction=global_basis.inverse()*(attacker.global_position-global_position).normalized()
+			reaction_clip="Hit_Shoulder_L" if direction.x<-.35 else ("Hit_Shoulder_R" if direction.x>.35 else "Hit_Chest")
+			if result=="hit" and model.state=="hit": combo_index=-1
 	return result
 
 func update_camera_collision(delta: float) -> void:

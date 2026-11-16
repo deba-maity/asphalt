@@ -290,3 +290,6 @@ func animate(delta: float, model: CombatModel, speed: float, displacement: Vecto
 		coat.rotation=Vector3(-.10-secondary_angles.x-absf(sin(phase+side*.7))*.10*gait_weight,side*.12,side*.07+secondary_angles.z)
 	joints.scarf_tail.rotation=Vector3(-.12-secondary_angles.x*1.5,secondary_angles.y*2,secondary_angles.z*.7)
 	sync_skin()
+
+func plant_feet(actor: CharacterBody3D, state: String, speed: float) -> void:
+	foot_placement.apply(self,actor,state,speed)

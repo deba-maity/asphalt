@@ -1,0 +1,159 @@
+class_name TrialWorld
+extends ChapterWorld
+
+var warden: Fighter
+var won: bool=false
+var result_delay: float=-1
+var boss_bar: ProgressBar
+var boss_panel: Control
+
+func _ready() -> void:
+	rng.seed=7251
+	build_court()
+	batch_scenery()
+	hero=Fighter.new()
+	hero.player=true
+	hero.use_performance=true
+	hero.world=self
+	hero.position=Vector3(0,.08,4)
+	add_child(hero)
+	hero.feedback.connect(ui.toast)
+	hero.slain.connect(_hero_died)
+	ui.main.player=hero
+	hero.pitch.spring_length=3.7
+	hero.pitch.rotation.x=-.24
+	hero.camera.fov=56
+	hero.smooth_camera_distance=3.7
+	hero.camera_focus=Vector3(.25,-.05,0)
+	warden=Fighter.new()
+	warden.use_performance=true
+	warden.kind="still_warden"
+	warden.world=self
+	warden.position=Vector3(0,.08,-3.5)
+	warden.rotation.y=PI
+	warden.ai_cooldown=1.4
+	add_child(warden)
+	warden.slain.connect(_enemy_died)
+	enemies.append(warden)
+	hero.target=warden
+	coordinator=EncounterCoordinator.new()
+	coordinator.world=self
+	add_child(coordinator)
+	boss_panel=ui.panel(ui.hud,Vector2(390,580),Vector2(500,58),Color(.045,.055,.06,.7))
+	var column=ui.column(boss_panel,4)
+	var title=ui.text(column,"THE CINDER WARDEN",17,ui.GOLD)
+	title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	boss_bar=ProgressBar.new()
+	boss_bar.custom_minimum_size=Vector2(460,7)
+	boss_bar.show_percentage=false
+	boss_bar.add_theme_stylebox_override("fill",ui.bar_style(Color("a88062")))
+	boss_bar.add_theme_stylebox_override("background",ui.bar_style(Color("303333")))
+	column.add_child(boss_bar)
+	ui.help_caption.text=Preferences.prompt("{journal} Trial guide · {pause} Pause")
+
+func _exit_tree() -> void:
+	if is_instance_valid(boss_panel): boss_panel.queue_free()
+
+func build_court() -> void:
+	var atmosphere=WorldEnvironment.new()
+	atmosphere.environment=ArtDirection.environment("fortress")
+	atmosphere.environment.fog_density=.009
+	atmosphere.environment.ambient_light_energy=.52
+	add_child(atmosphere)
+	sun=DirectionalLight3D.new()
+	sun.rotation_degrees=Vector3(-24,-47,0)
+	sun.light_color=Color("f3cf9f")
+	sun.light_energy=1.8
+	sun.shadow_enabled=Preferences.shadows
+	sun.directional_shadow_max_distance=35
+	add_child(sun)
+	var fill=DirectionalLight3D.new()
+	fill.rotation_degrees=Vector3(-40,130,0)
+	fill.light_color=Color("95b4d3")
+	fill.light_energy=.45
+	add_child(fill)
+	var floor=solid_box(Vector3(30,.5,30),Vector3(0,-.26,0),Color("777975"))
+	for mesh in floor.get_children():
+		if mesh is MeshInstance3D: SurfaceLibrary.apply(mesh,"stone",Color("777975"),.65)
+	# Closely fitted stone slabs, with a level collision surface for readable feet.
+	for x in range(-5,6):
+		for z in range(-5,6):
+			var tile=Figure.box(self,Vector3(1.97,.025,1.97),Vector3(x*2,.002,z*2),Color("85867d").darkened(rng.randf_range(0,.14)))
+			SurfaceLibrary.apply(tile,"stone",tile.material_override.albedo_color,.8)
+	for i in 40:
+		var angle=TAU*i/40
+		var point=Vector3(sin(angle)*12,0,cos(angle)*12)
+		var wall=solid_box(Vector3(1.95,1.2,.65),point+Vector3.UP*.6,Color("686b69"))
+		wall.rotation.y=angle
+		var cap=Figure.box(self,Vector3(2.0,.16,.83),point+Vector3.UP*1.25,Color("95958a"))
+		cap.rotation.y=angle
+	for i in 8:
+		var angle=TAU*i/8
+		var base=Vector3(sin(angle)*10.8,0,cos(angle)*10.8)
+		var pillar=Node3D.new(); pillar.position=base; add_child(pillar)
+		Figure.box(pillar,Vector3(1.1,.3,1.1),Vector3.UP*.15,Color("888b81"))
+		for row in 6:
+			var block=Figure.box(pillar,Vector3(.70,.48,.7),Vector3.UP*(.55+row*.5),Color("757a73"))
+			SurfaceLibrary.apply(block,"stone",Color("757a73"),1)
+		Figure.box(pillar,Vector3(.95,.22,.95),Vector3.UP*3.45,Color("9b9b8e"))
+		if i%2==0:
+			var lamp=OmniLight3D.new(); lamp.position=base+Vector3.UP*2.8
+			lamp.light_color=Color("ffb56b"); lamp.light_energy=1.2; lamp.omni_range=5; add_child(lamp)
+			var bowl=Figure.cylinder(pillar,.16,.27,.18,Vector3.UP*3.65,Color("393f3e"),20)
+			var fire=StandardMaterial3D.new(); fire.albedo_color=Color("efba79"); fire.emission_enabled=true; fire.emission=Color("ef9a51"); fire.emission_energy_multiplier=1.4
+			bowl.material_override=fire
+	for side in [-1,1]:
+		for i in 14:
+			var angle=PI*float(i)/13
+			var block=Figure.box(self,Vector3(.53,.65,.9),Vector3(cos(angle)*2.2,3+sin(angle)*2.2,side*11),Color("858b81"))
+			block.rotation.z=angle
+		for x in [-2.2,2.2]: solid_box(Vector3(.75,3,.9),Vector3(x,1.5,side*11),Color("727a72"))
+	for i in 24:
+		var angle=TAU*i/24
+		rock(Vector3(sin(angle)*rng.randf_range(18,26),-1,cos(angle)*rng.randf_range(18,26)),Vector3(5,rng.randf_range(5,12),5))
+	for i in 18:
+		var angle=TAU*i/18
+		tree(Vector3(sin(angle)*16,0,cos(angle)*16),rng.randf_range(1.0,1.7))
+
+func _process(delta: float) -> void:
+	if not Session.running or hero==null: return
+	elapsed+=delta
+	Sound.context("zone_copper_stair",not won,ui.mode!="play")
+	if result_delay>=0:
+		result_delay-=delta
+		if result_delay<0 and ui.mode=="play": ui.show_trial_result(won)
+	if ui.mode=="play":
+		if warden.phase==1 and warden.model.health<warden.model.max_health*.5 and warden.model.can_begin():
+			warden.phase=2
+			for id in ["light","trial_second","trial_finish","heavy"]:
+				var attack: Dictionary=warden.model.config.attacks[id]
+				attack.rate*=1.12
+				for part in ["windup","active","recovery"]: attack[part]/=1.12
+			ui.announce("THE LAST EMBER")
+			ui.toast("The Warden quickens. Keep enough stamina to escape.",4)
+		ui.update_hud(hero,{})
+		ui.chapter_label.text="ASHEN TRIAL"
+		ui.objective_text.text="Defeat the Cinder Warden.\nWatch the shoulders; punish recovery."
+		ui.tutorial.text=Preferences.prompt("{light} Chain strikes · {heavy} Heavy · {guard} Guard / parry · {dodge} Roll · {lock_on} Lock")
+		ui.status.text="%d HP · %d draughts" % [hero.model.health,Session.data.heals]
+		boss_bar.value=warden.model.health/warden.model.max_health*100
+		warden.health_bar.visible=false
+		warden.tell_ring.visible=false
+	boss_panel.visible=ui.mode=="play"
+
+func can_play() -> bool:
+	return super.can_play() and not won and result_delay<0
+
+func learn(_action: String) -> void: pass
+func interact() -> void: pass
+func save_current() -> void: pass # A trial is a fresh duel; campaign persistence is untouched.
+
+func _enemy_died(_enemy: Fighter) -> void:
+	won=true
+	result_delay=2.6
+	ui.announce("VOW KEPT")
+	Sound.play("reward")
+
+func _hero_died(_fighter: Fighter) -> void:
+	hero.velocity=Vector3.ZERO
+	result_delay=2.5
