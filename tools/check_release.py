@@ -18,5 +18,11 @@ for name,digest in manifest.items():
 for artifact in data['artifacts']:
     path=root/artifact['filename']; assert path.stat().st_size==artifact['size_bytes']
     assert manifest[path.name]==artifact['sha256']
-    with zipfile.ZipFile(path) as archive: assert archive.testzip() is None
+    with zipfile.ZipFile(path) as archive:
+        assert archive.testzip() is None
+        if artifact['kind']=='source': assert archive.comment.decode('ascii')==data['source_commit'],'Source ZIP commit mismatch'
+        if artifact['kind']=='windows-portable':
+            build=json.loads(archive.read(next(n for n in archive.namelist() if n.endswith('/BUILD.json'))))
+            for key in ['version','source_commit','source_dirty','build_date_utc','engine','platform','architecture','status','signature']:
+                assert build[key]==data[key],'Embedded build identity mismatch: '+key
 print('PASS: coherent candidate, clean source, final upload checksums and ZIP CRCs.')

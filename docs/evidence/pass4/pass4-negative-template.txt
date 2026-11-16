@@ -1,0 +1,9 @@
+Template integrity/version mismatch: C:\Users\DEBAJY~1.M\AppData\Local\Temp\Ashen Vow wrong templates 
+_m1nd945\windows_release_x86_64.exe. Re-fetch the pinned official templates.
+At C:\Users\debajyothi.m\wuk\ashen-vow\tools\common.ps1:46 char:109
++ ... ry.Value) { throw "Template integrity/version mismatch: $path. Re-fet ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Template integr...cial templates.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Template integrity/version mismatch: C:\Users\DEBAJY~1.M\AppData\Local\Temp\Ashen Vow wr 
+   ong templates _m1nd945\windows_release_x86_64.exe. Re-fetch the pinned official templates.
+ 

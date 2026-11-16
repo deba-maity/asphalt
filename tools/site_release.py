@@ -1,6 +1,6 @@
 """Build-time release snapshot. No API calls or credentials in the website."""
 from pathlib import Path
-import argparse, hashlib, json, re, urllib.request
+import argparse, hashlib, json, re, subprocess, sys, urllib.request
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -14,11 +14,14 @@ def remote(repository,tag):
     with get(f'https://api.github.com/repos/{repository}/releases/tags/{tag}') as response: release=json.load(response)
     if release['draft']: raise SystemExit('Draft releases are not public downloads.')
     assets={a['name']:a for a in release['assets']}
-    if not {'release.json','SHA256SUMS.txt'}<=assets.keys(): raise SystemExit('Release metadata/checksum assets missing.')
-    with get(assets['release.json']['browser_download_url']) as response: data=json.load(response)
+    if not {'release.json','portable-verification.json','SHA256SUMS.txt'}<=assets.keys(): raise SystemExit('Release metadata/checksum/verification assets missing.')
+    with get(assets['release.json']['browser_download_url']) as response: raw=response.read(); data=json.loads(raw)
     if 'v'+data['version']!=tag or data['source_dirty']: raise SystemExit('Version mismatch or dirty source build.')
     if data['tests'].get('fresh_zip')!='passed': raise SystemExit('Published candidate must have passed fresh-ZIP checks.')
     with get(assets['SHA256SUMS.txt']['browser_download_url']) as response: sums=response.read().decode('ascii')
+    if hashlib.sha256(raw).hexdigest()+'  release.json' not in sums.splitlines(): raise SystemExit('Remote metadata checksum mismatch.')
+    with get(assets['portable-verification.json']['browser_download_url']) as response: verification=response.read()
+    if hashlib.sha256(verification).hexdigest()+'  portable-verification.json' not in sums.splitlines() or json.loads(verification)['status']!='passed': raise SystemExit('Remote portable verification/checksum mismatch.')
     for artifact in data['artifacts']:
         name=artifact['filename']
         if name not in assets: raise SystemExit('Missing release asset: '+name)
@@ -39,6 +42,7 @@ def main():
         if not args.repository or not args.tag: p.error('--repository and --tag are required together')
         data=remote(args.repository,args.tag)
     elif args.release:
+        subprocess.run([sys.executable,str(ROOT/'tools/check_release.py'),str(args.release.resolve().parent)],check=True)
         data=json.loads(args.release.read_text(encoding='utf-8'))
         data['published']=False
         data.update(repository_url=None,release_url=None,checksum_url=None)

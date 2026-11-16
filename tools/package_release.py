@@ -28,7 +28,7 @@ def main():
     output.mkdir(parents=True,exist_ok=True)
     filename=f'AshenVow-v{version}-windows-x86_64.zip'
     archive=output/filename
-    if archive.exists(): raise SystemExit(f'{archive} exists. Choose a new output directory; existing candidates/releases are never silently replaced.')
+    if any(output.iterdir()): raise SystemExit(f'{output} is not empty. Choose a new output directory; existing candidates/releases are never silently replaced.')
     for name in ['AshenVow.exe','LICENSE','GODOT_LICENSE.txt','THIRD_PARTY_NOTICES.txt','CREDITS.txt']:
         if not (args.binary_dir/name).is_file(): raise SystemExit('Required package file missing: '+name)
     identity={'version':version,'source_commit':commit,'source_dirty':dirty,'build_date_utc':date,'engine':pin['version'],'platform':'windows','architecture':'x86_64','status':'candidate','signature':'signed' if args.signed else 'unsigned','source_headless_tests':'passed','rendered_target_laptop_tests':'not_run'}

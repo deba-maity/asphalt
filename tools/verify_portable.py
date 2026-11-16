@@ -20,10 +20,12 @@ def main():
         exe=next(root.glob('*/AshenVow.exe'))
         required=['README.txt','BUILD.json','LICENSE','GODOT_LICENSE.txt','THIRD_PARTY_NOTICES.txt','CREDITS.txt']
         if not all((exe.parent/n).is_file() for n in required): raise SystemExit('Incomplete portable distribution.')
-        for label,mode in [('quality','--test-quality'),('campaign','--campaign-play'),('continue','--campaign-continue')]:
+        checks=[('quality','--test-quality','behavior checks passed'),('campaign','--campaign-play','PLAY: PASS: all six chapters'),('continue','--campaign-continue','PLAY: Relaunch Continue restored ending, credits, memorial and exactly one canonical death/resurrection.')]
+        for label,mode,marker in checks:
             run=subprocess.run([str(exe),'--headless','--fixed-fps','60','--',mode],cwd=exe.parent,capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=240)
             (directory/f'portable-{label}.log').write_text(run.stdout+run.stderr,encoding='utf-8')
-            success=run.returncode==0 and 'FAIL:' not in run.stdout and 'ERROR:' not in run.stderr and 'PASS' in run.stdout
+            output=run.stdout+run.stderr
+            success=run.returncode==0 and 'FAIL:' not in output and 'ERROR:' not in output and marker in run.stdout
             results.append({'name':label,'status':'passed' if success else 'failed','exit_code':run.returncode,'cwd':'fresh temporary extraction with spaces; no --path or editor invocation'})
             if not success: raise SystemExit(f'Portable {label} failed; read {directory}/portable-{label}.log')
     metadata['tests']['fresh_zip']='passed'

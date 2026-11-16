@@ -14,6 +14,7 @@ The Counting Shore uses economical floating geometry, a moon/bowl motif, cool li
 
 ```powershell
 # Source generation, no graphics window required:
+Set-Location 'C:\Users\debajyothi.m\wuk\ashen-vow'
 python .\tools\author_campaign.py
 python .\tools\author_combat.py
 & .\tools\engine\Godot_v4.7.2-stable_win64_console.exe --headless --path game --script res://tests/bake_characters.gd
