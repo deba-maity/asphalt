@@ -1,5 +1,7 @@
 # Content authoring and stable contracts
 
+Current rig update: see [animation-revision.md](animation-revision.md). Bodies are now weighted ArrayMesh/Skin resources under BodySkeleton. Figure joint nodes drive the skeleton and original equipment together. Author the body in character_skin.gd, then rebake all role scenes. The older hard-joint descriptions below explain the retained driver contract, not the current body deformation.
+
 Work from the repository root and commit generated runtime files. Run `tools/test.ps1 -Campaign` after changes. [Architecture](architecture.md) documents bounded loading and the persistent player.
 
 ## Chapters, dialogue, quests and attacks

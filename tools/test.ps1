@@ -8,7 +8,7 @@ New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot 'logs') -Force | Out
 Invoke-Godot $exe @('--headless','--path',(Join-Path $repo 'game'),'--editor','--import','--quit') (Join-Path $PSScriptRoot 'logs\test-import.log')
 $baseArgs = @('--headless','--path',(Join-Path $repo 'game'))
 if (-not $RealTime) { $baseArgs += @('--fixed-fps',"$SimulationHz") }
-foreach ($script in @('unit_tests','campaign_logic','ui_layout')) {
+foreach ($script in @('unit_tests','campaign_logic','ui_layout','rig_tests')) {
     Invoke-Godot $exe ($baseArgs+@('--script',"res://tests/$script.gd")) (Join-Path $PSScriptRoot "logs\$script.log")
 }
 foreach ($mode in @('--validate-systems','--test-transitions','--test-quality','--test-quit-transition','--test-resume-transition')) {

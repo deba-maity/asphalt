@@ -1,5 +1,7 @@
 # ASHEN VOW
 
+**Current source: 0.4.0-rc.2 animation revision.** Weighted skeletal bodies replace the original rigid body parts across all 18 roles. Directional gait, quaternion pose transitions, continuous attack release and pelvis/head follow-through are implemented. Read [animation revision](docs/animation-revision.md) for actual checks and limits. This is an unreviewed visual development candidate; AAA animation quality has not been attained. The older 0.4.0-rc.1 archive/evidence below remains historical and is not silently replaced.
+
 An original offline, single-player, third-person sword adventure. Rayan begins with family and paid protection work; **six playable chapters** lead through revenge, a costly resurrection and an ending with credits. Checkpoints, save migration and chapter replay are implemented. Native **Godot 4.7.2 stable standard / GDScript / Compatibility**, no Electron or runtime network dependency.
 
 **0.4.0-rc.1 is a Windows candidate, not a production-quality release.** The campaign is short; the multi-hour goal is unmet. Hard-jointed art, animation, camera, synthesized sound and physical inputs need human acceptance. Ryzen 5500U performance is unmeasured. No game window was opened on this Remote Desktop. Working title; no trademark clearance claimed.
@@ -17,7 +19,7 @@ The local candidate is at **`exports\releases\v0.4.0-rc.1\AshenVow-v0.4.0-rc.1-w
    Get-Content .\SHA256SUMS.txt
    ```
 
-2. Right-click the ZIP → **Extract All** into a new folder. Open its `AshenVow-v0.4.0-rc.1-windows-x86_64` directory and double-click **AshenVow.exe**. Keep its README, BUILD.json, credits and notices together. The PCK/game data is embedded in the executable; Godot, Python, a browser, an account and internet are unnecessary at runtime.
+2. Right-click the ZIP â†’ **Extract All** into a new folder. Open its `AshenVow-v0.4.0-rc.1-windows-x86_64` directory and double-click **AshenVow.exe**. Keep its README, BUILD.json, credits and notices together. The PCK/game data is embedded in the executable; Godot, Python, a browser, an account and internet are unnecessary at runtime.
 3. Choose **New Game**, follow the objective and E prompts, speak to Mira and Saren. Replacement asks for confirmation. **R** drinks a healing draught; stone shrines refill supplies and save checkpoints. **Continue** returns to a valid checkpoint. Ordinary combat death retries it; authored story progression is separate. After the ending, Continue stays at the memorial. Chapter replay uses separate saves.
 
 This build is **unsigned**: no code-signing certificate is configured. Do not disable Windows security. Preserve any block/error message and report it to the owner. Download only from the actual repository chosen by the owner.
@@ -36,13 +38,13 @@ This build is **unsigned**: no code-signing certificate is configured. Do not di
 
 Controller: sticks move/orbit, X/Y attack, LB guard, B dodge, RB lock, A interact, D-pad up heal, LT later ability, left-stick click sprint, Back journal, Start pause. Physical controller acceptance remains outstanding. Focus loss/disconnect clears actions and buffered intent.
 
-**Settings → Controls** rebinds keyboard/mouse and updates prompts. **Play** has Story/Standard difficulty, three subtitle sizes, sensitivity/inversion, optional shake and reduced effects. Story reduces incoming damage by 40% and widens parry timing without removing content. **Display** has 540p/720p/900p 3D resolution independent of HUD, window/fullscreen, shadows, low-memory transitions and 30/60 caps. **Audio** separates master/music/effects/ambient. Start at **720p/30**; 60 is experimental, not guaranteed performance.
+**Settings â†’ Controls** rebinds keyboard/mouse and updates prompts. **Play** has Story/Standard difficulty, three subtitle sizes, sensitivity/inversion, optional shake and reduced effects. Story reduces incoming damage by 40% and widens parry timing without removing content. **Display** has 540p/720p/900p 3D resolution independent of HUD, window/fullscreen, shadows, low-memory transitions and 30/60 caps. **Audio** separates master/music/effects/ambient. Start at **720p/30**; 60 is experimental, not guaranteed performance.
 
 ### Saves, backup, updates and reporting
 
 Paste **`%APPDATA%\AshenVow\`** into Explorer. `progress.json` is the campaign, `progress.backup.json` the previous valid save, `settings.cfg` preferences, `chapter_replay\` replay saves, `logs\godot.log` runtime log. Tests use separate validation directories. While the game is closed, copy the **whole AppData AshenVow folder** to a backup. Extract updates into a new game folder; leave AppData in place and retain its backup until verified. Schema-one saves migrate with `progress.schema1.backup.json`; future schemas are safely refused.
 
-No public issue tracker exists yet. Share diagnostics with the owner; after publication use the real repository's **Issues → New issue**. Include `BUILD.json`, chapter/objective/checkpoint, steps, Windows/GPU/driver, settings, log and optionally a backed-up save. Exclude personal files. See [troubleshooting](docs/troubleshooting.md).
+No public issue tracker exists yet. Share diagnostics with the owner; after publication use the real repository's **Issues â†’ New issue**. Include `BUILD.json`, chapter/objective/checkpoint, steps, Windows/GPU/driver, settings, log and optionally a backed-up save. Exclude personal files. See [troubleshooting](docs/troubleshooting.md).
 
 ### Hardware and limitations
 
@@ -76,7 +78,7 @@ Set-Location 'C:\Users\debajyothi.m\wuk\ashen-vow'
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\setup.ps1 -Templates -ReleaseTools
 ```
 
-Official versioned downloads are verified against [engine-version.json](engine-version.json). Cache locations are above. `rcedit` stamps native PE icon/version only. Use an existing exact engine by passing **`-GodotPath 'FULL PATH TO GODOT EXE'`**, replacing that labelled value with the executable's actual path, or set `GODOT_EXE` in this shell. Setup also accepts `-GodotPath`. Wrong versions fail explicitly. If proxy range requests fail, install **4.7.2 standard** through Godot **Editor → Manage Export Templates → Download and Install**, then pass its directory to build/release with `-TemplateDirectory`. Do not substitute .NET or another patch version.
+Official versioned downloads are verified against [engine-version.json](engine-version.json). Cache locations are above. `rcedit` stamps native PE icon/version only. Use an existing exact engine by passing **`-GodotPath 'FULL PATH TO GODOT EXE'`**, replacing that labelled value with the executable's actual path, or set `GODOT_EXE` in this shell. Setup also accepts `-GodotPath`. Wrong versions fail explicitly. If proxy range requests fail, install **4.7.2 standard** through Godot **Editor â†’ Manage Export Templates â†’ Download and Install**, then pass its directory to build/release with `-TemplateDirectory`. Do not substitute .NET or another patch version.
 
 These commands **open graphics**; run only on the machine where you intend to edit/play. They were not run here:
 
@@ -104,7 +106,7 @@ python .\tools\check_release.py .\exports\releases\v0.4.0-rc.1
 
 `build.ps1` imports, validates templates, exports **Windows Preview** x86_64 with all resources and indirect JSON, embeds PCK and stamps icon/version. Output: `exports\windows\AshenVow.exe` and notices. Scene/dialogue/audio dependencies are included. Source-only capture/bake/notice writers are excluded; explicit packaged behavior fixtures remain accessible only through test flags.
 
-`release.ps1` reruns tests/build, optionally signs, packages Windows/source separately, extracts to a fresh path **with spaces**, then runs quality/settings, full New Game→ending and separate Continue without editor/project paths. Logs: `tools\logs\` and release directory. Metadata records commit, date, engine, platform/architecture, status, bytes, SHA-256 and tests. Checksums are finalized after stamping/signing/packaging. [Build details](docs/build-release.md).
+`release.ps1` reruns tests/build, optionally signs, packages Windows/source separately, extracts to a fresh path **with spaces**, then runs quality/settings, full New Gameâ†’ending and separate Continue without editor/project paths. Logs: `tools\logs\` and release directory. Metadata records commit, date, engine, platform/architecture, status, bytes, SHA-256 and tests. Checksums are finalized after stamping/signing/packaging. [Build details](docs/build-release.md).
 
 No certificate is configured. If you have one, `release.ps1` accepts `-SigningThumbprint` from `Cert:\CurrentUser\My` and your provider's `-TimestampUrl`, validates Authenticode, then hashes signed bytes. CI defaults unsigned. Source ZIP is exactly the recorded clean Git commit. Existing candidate archives are never overwritten; pass `-OutputDirectory` for a different directory. Fix `SOURCE_DATE_EPOCH` to `git show -s --format=%ct HEAD` for stable ZIP timestamps/build identity. Practical clean-checkout reproducibility does not promise byte-identical native imports/signatures across machines.
 
@@ -143,7 +145,7 @@ Tests cover 320/390/768/1440px, keyboard focus, accessibility, reduced motion, a
 
 ### Publishing and Android
 
-[Publishing instructions](docs/publishing.md) explain the exact remote activation: identify **your actual project repository**, configure/check origin and `gh auth status`, push reviewed source, configure **Settings → Pages → Source: GitHub Actions**, run **Windows candidate**, then **Deploy download site** with the verified public version tag. They also describe Actions logs, environments, permissions, public verification and updates. No account/repository destination is inferred here. Windows/Pages need only the automatic permission-scoped `GITHUB_TOKEN`; no token enters website source. Publication is manual, prerelease, and refuses existing versions.
+[Publishing instructions](docs/publishing.md) explain the exact remote activation: identify **your actual project repository**, configure/check origin and `gh auth status`, push reviewed source, configure **Settings â†’ Pages â†’ Source: GitHub Actions**, run **Windows candidate**, then **Deploy download site** with the verified public version tag. They also describe Actions logs, environments, permissions, public verification and updates. No account/repository destination is inferred here. Windows/Pages need only the automatic permission-scoped `GITHUB_TOKEN`; no token enters website source. Publication is manual, prerelease, and refuses existing versions.
 
 [Android preparation](docs/android.md) includes exact SDK/JDK/Gradle versions from the tagged engine, preset, check-only command, signed internal-build route and required CI secrets. Android is **unavailable**, not a mobile-supported release: SDK/signing/touch/device acceptance are incomplete. Windows delivery is independent.
 

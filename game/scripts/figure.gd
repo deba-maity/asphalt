@@ -16,6 +16,14 @@ var gait_weight: float=0
 var visual_clock: float=0
 var stride_direction: Vector3=Vector3(0,0,-1)
 var pose_cache: Dictionary={}
+var body_skeleton: Skeleton3D
+var previous_speed: float=0
+var acceleration_lean: float=0
+var transition_age: float=1
+var last_state: String=""
+var last_swing: int=-1
+var entry_rotations: Dictionary={}
+var bone_nodes: Array[Node3D]=[]
 static var shared_poses: Dictionary={}
 static var materials: Dictionary = {}
 static var meshes: Dictionary = {}
@@ -79,6 +87,7 @@ func _ready() -> void:
 		hips = joints.hips
 		weapon = joints.weapon
 		blade = weapon.get_node("Blade")
+		bind_skin()
 		return
 	var skin = Color("c39774")
 	var boots = Color("373535")
@@ -89,7 +98,7 @@ func _ready() -> void:
 	var torso = pivot("torso",hips,Vector3(0,0.19,0))
 	cylinder(torso,0.23,0.3,0.48,Vector3(0,0.22,0),cloth)
 	box(torso,Vector3(0.09,0.5,0.34),Vector3(-0.14,0.24,0),Color("65503c"))
-	var head = pivot("head",torso,Vector3(0,0.62,0))
+	var head = pivot("head",torso,Vector3(0,0.59,0))
 	cylinder(head,0.085,0.085,0.12,Vector3(0,-0.07,0),skin)
 	cylinder(head,0.145,0.155,0.29,Vector3.ZERO,skin,8)
 	cylinder(head,0.165,0.145,0.13,Vector3(0,0.13,0.018),Color("332f31"),8)
@@ -118,11 +127,13 @@ func _ready() -> void:
 			blade.name = "Blade"
 			var tip = cylinder(weapon,0,0.052,0.16,Vector3(0,-1.01,0),Color("d5ded9"),4)
 			tip.rotation.y = PI/4
+	CharacterSkin.new().build(self)
+	bind_skin()
 	weapon.visible = armed
 	if armed:
-		var scarf = box(torso,Vector3(0.62,0.1,0.40),Vector3(0,0.47,0.01),Color("bd9561"))
+		var scarf = cylinder(torso,.19,.22,.10,Vector3(0,.46,.01),Color("635848"),16)
 		scarf.rotation.z = -0.08
-		box(torso,Vector3(0.18,0.55,0.045),Vector3(-0.18,0.18,0.22),Color("a58054"))
+		box(torso,Vector3(0.18,0.55,0.045),Vector3(-0.18,0.18,0.22),Color("50473d"))
 	if role in ["ledger_guard","lieutenant_kesran","halvek"]:
 		var shield=cylinder(joints.hand_l,.32,.32,.09,Vector3(0,.12,-.13),Color("6e7f82"),8)
 		shield.rotation.x=PI/2
@@ -151,6 +162,18 @@ func _ready() -> void:
 			cord.position=Vector3(-.07+i*.07,.34,-.26)
 			torso.add_child(cord)
 
+func bind_skin() -> void:
+	body_skeleton=get_node_or_null("BodySkeleton")
+	bone_nodes.clear()
+	if body_skeleton:
+		for i in body_skeleton.get_bone_count(): bone_nodes.append(joints[String(body_skeleton.get_bone_name(i))])
+
+func sync_skin() -> void:
+	if not body_skeleton: return
+	for i in bone_nodes.size():
+		body_skeleton.set_bone_pose_position(i,bone_nodes[i].position)
+		body_skeleton.set_bone_pose_rotation(i,bone_nodes[i].quaternion)
+
 func pose_values(id: String) -> Dictionary:
 	if pose_cache.has(id): return pose_cache[id].duplicate(true)
 	var result = poses.idle.duplicate(true)
@@ -161,26 +184,37 @@ func pose_values(id: String) -> Dictionary:
 
 func animate(delta: float, model: CombatModel, speed: float, displacement: Vector3=Vector3.ZERO, interaction: bool = false) -> void:
 	visual_clock+=delta
+	if model.state!=last_state or (model.state=="attack" and model.swing_serial!=last_swing):
+		transition_age=0
+		for key in joints: entry_rotations[key]=joints[key].quaternion
+		last_state=model.state; last_swing=model.swing_serial
+	transition_age+=delta
+	var acceleration=clampf((speed-previous_speed)/maxf(delta,.001),-15,15)
+	acceleration_lean=lerpf(acceleration_lean,acceleration,1-exp(-delta*8))
+	previous_speed=speed
 	weapon.visible = armed and model.state != "talk" and role!="ledger_archer"
 	var distance=Vector2(displacement.x,displacement.z).length()
 	# NPCs have no locomotion; old callers may pass speed alone in fixtures.
 	if distance>0.00001: stride_direction=displacement.normalized()
-	phase+=distance*TAU/(1.18 if speed>4.5 else .84)
+	# Stance travel / stance fraction matches distance covered per cycle.
+	phase+=distance*TAU/(1.0 if speed>4.5 else (.44/.60))
 	gait_weight=move_toward(gait_weight,1.0 if speed>.1 and model.state in ["idle","guard","dodge","ashstep"] else 0.0,delta*9)
 	var pose = pose_values("idle")
 	if gait_weight>.01 and model.state in ["idle","guard","dodge","ashstep"]:
 		if model.state in ["guard","dodge","ashstep"]: pose=pose_values("guard" if model.state=="guard" else "dodge")
-		var left=AnimationPolicy.leg(phase,speed>4.5)
-		var right=AnimationPolicy.leg(phase+PI,speed>4.5)
-		var backwards=1.0 if stride_direction.z<=0 else -1.0
-		pose.leg_l=[rad_to_deg(left.x)*backwards*gait_weight,0,-stride_direction.x*12*gait_weight]
-		pose.leg_r=[rad_to_deg(right.x)*backwards*gait_weight,0,-stride_direction.x*12*gait_weight]
+		var left=AnimationPolicy.directional_leg(phase,speed>4.5,stride_direction)
+		var right=AnimationPolicy.directional_leg(phase+PI,speed>4.5,stride_direction)
+		pose.leg_l=[rad_to_deg(left.x)*gait_weight,0,rad_to_deg(left.z)*gait_weight]
+		pose.leg_r=[rad_to_deg(right.x)*gait_weight,0,rad_to_deg(right.z)*gait_weight]
 		pose.knee_l=[rad_to_deg(left.y)*gait_weight,0,0]
 		pose.knee_r=[rad_to_deg(right.y)*gait_weight,0,0]
 		if model.state=="idle":
-			pose.arm_l=[-sin(phase)*21,0,-8]
-			pose.arm_r=[sin(phase)*16+10,0,8]
-			pose.torso=[5,sin(phase)*3,0]
+			var run=clampf((speed-2)/4,0,1)
+			pose.arm_l=[-sin(phase)*lerpf(18,36,run)+8,0,-9]
+			pose.arm_r=[sin(phase)*lerpf(12,25,run)+18,0,12]
+			pose.elbow_l=[25+run*35,0,0]; pose.elbow_r=[35+run*30,0,0]
+			pose.torso=[4+run*9+acceleration_lean*.3,sin(phase)*5,-stride_direction.x*run*5]
+			pose.head=[-run*5,-sin(phase)*3,0]
 	elif model.state == "attack":
 		var heavy = model.attack.get("pose","")=="heavy" or model.attack_id in ["heavy","foreman_slam"]
 		var first = pose_values("heavy_windup" if heavy else "light_windup")
@@ -192,6 +226,17 @@ func animate(delta: float, model: CombatModel, speed: float, displacement: Vecto
 			var b = second[key]
 			var rest=idle.get(key,[0,0,0])
 			pose[key] = [rest[0]*weights.x+a[0]*weights.y+b[0]*weights.z,rest[1]*weights.x+a[1]*weights.y+b[1]*weights.z,rest[2]*weights.x+a[2]*weights.y+b[2]*weights.z]
+		# Weight transfers through the pelvis before the shoulders settle.
+		pose.hips=[0,lerpf(-12,18,weights.z)*weights.y+12*weights.z,0]
+		pose.leg_l=[18*weights.y-12*weights.z,0,-6]
+		pose.leg_r=[-10*weights.y+22*weights.z,0,6]
+		pose.knee_l=[-20*weights.y-12*weights.z,0,0]
+		pose.knee_r=[-12*weights.y-28*weights.z,0,0]
+		pose.head=[-6*weights.z,-float(pose.torso[1])*.35,0]
+		# Alternate diagonal cuts; heavy attacks retain their overhead silhouette.
+		if not heavy and model.swing_serial%2==0:
+			pose.torso[1]*=-.7
+			pose.arm_r[2]*=-.65
 		if model.attack.get("pose","")=="bow":
 			pose=pose_values("guard")
 			pose.arm_l=[95,0,-35]
@@ -205,14 +250,23 @@ func animate(delta: float, model: CombatModel, speed: float, displacement: Vecto
 	if model.parry_flash > 0 and model.state not in ["attack","dead","hit"]:
 		pose = pose_values("parry")
 	if model.story_fall: pose=pose_values("dead")
-	var rate = 1.0 if model.state=="attack" else 1-exp(-delta*18)
+	var entry=smoothstep(0,1,transition_age/(.065 if model.state=="hit" else .12))
 	for key in joints:
-		if key in ["hips","weapon"] or key.begins_with("hand"):
-			continue
-		var a = pose.get(key,[0,0,0])
-		var target = Vector3(deg_to_rad(a[0]),deg_to_rad(a[1]),deg_to_rad(a[2]))
-		joints[key].rotation = joints[key].rotation.lerp(target,rate)
-	dead_blend = move_toward(dead_blend,1.0 if model.state == "dead" or model.story_fall else 0.0,delta*2)
-	rotation.z = dead_blend*1.47
-	position.y = -dead_blend*0.68
-	hips.position.y = .85-.07*gait_weight + (sin(visual_clock*2)*.006 if gait_weight<.1 else 0.0)
+		if key=="weapon" or key.begins_with("hand"): continue
+		var angles=pose.get(key,[0,0,0])
+		var target=Quaternion.from_euler(Vector3(deg_to_rad(angles[0]),deg_to_rad(angles[1]),deg_to_rad(angles[2])))
+		# Quaternion transitions avoid Euler wrap and preserve the interrupted pose.
+		joints[key].quaternion=entry_rotations.get(key,Quaternion.IDENTITY).slerp(target,entry)
+	dead_blend=move_toward(dead_blend,1.0 if model.state=="dead" or model.story_fall else 0.0,delta*2)
+	rotation.z=dead_blend*1.47
+	position.y=-dead_blend*.68
+	var bounce=(cos(phase*2)*.012)*gait_weight
+	hips.position.y=.85-.055*gait_weight+bounce+sin(visual_clock*2)*.004*(1-gait_weight)
+	hips.position.x=sin(phase)*.018*gait_weight
+	if model.state in ["dodge","ashstep"] and not model.story_fall:
+		var duration=float(model.config.dodge.duration) if model.state=="dodge" else .5
+		var crouch=sin(clampf(model.elapsed/duration,0,1)*PI)
+		hips.position.y-=.12*crouch
+		hips.rotation.z=-stride_direction.x*.14*crouch
+	if model.state=="attack": hips.position.y-=.035*sin(clampf(model.elapsed/(model.attack.windup+model.attack.active+model.attack.recovery),0,1)*PI)
+	sync_skin()

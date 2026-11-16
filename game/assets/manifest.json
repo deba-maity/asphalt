@@ -5,10 +5,10 @@
     {
       "id": "asset_characters",
       "source_url": null,
-      "creation_method": "Editable articulated geometry in game/scripts/figure.gd, baked by game/tests/bake_characters.gd",
+      "creation_method": "Original procedural weighted skeletal bodies in game/scripts/character_skin.gd, rig and equipment in figure.gd, committed via game/tests/bake_characters.gd",
       "author": "ASHEN VOW contributors",
       "license": "MIT",
-      "modifications": "Original eighteen role variants with shields, bow/quiver, heavy blades, elite headgear and an original three-loop Ledger cord; common articulated rig.",
+      "modifications": "18 rebaked role scenes: continuous weighted elbow/knee geometry, shaped torso and smaller heads, original equipment retained. No mocap or external models. Rendered acceptance outstanding.",
       "runtime_files": [
         "characters/captain_varo.tscn",
         "characters/foreman.tscn",

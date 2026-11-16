@@ -1,3 +1,7 @@
+# Current animation revision ? 0.4.0-rc.2
+
+The user rejected the original visual quality. Weighted skeletal body assets and a revised procedural animation system now replace the rigid body parts. See [animation-revision.md](animation-revision.md) for changes and explicit limits. All 18 roles rebaked; 42 new skeletal tests and the existing campaign suite passed, as did Windows export and packaged quality/full campaign/Continue. No graphical play was performed here. This does not attain God of War/Wukong animation quality; professional art/motion content and rendered acceptance remain outstanding. Existing 0.4.0-rc.1 ZIP/evidence below are preserved historical results.
+
 # Pass-four continuation record
 
 Date: 2026-11-16 (client date). Repository `C:\Users\debajyothi.m\wuk\ashen-vow`. Prior commits: pass-one dec13db, pass-two 6cd41be, pass-three 601df0f. Previous progress is retained in `docs/history/pass3-progress.md` and earlier history. Engine remains **4.7.2 stable standard / Compatibility**, source campaign/save schema unchanged.

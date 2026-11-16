@@ -1,0 +1,43 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: Active/windup cannot buffer a dodge or cancel an attack
+PASS: Recent recovery dodge consumes once with the captured direction
+PASS: Old input expires after the bounded 160ms window
+PASS: Closing dialogue click cannot become a heavy attack
+PASS: Fresh intent after menu release still starts an attack
+PASS: Disconnect clears held guard and buffered intent
+PASS: Device/focus reset releases movement
+PASS: Focus loss clears guard even when automated validation suppresses the pause screen
+PASS: Story reduces incoming damage to 60%, preserving physical encounters
+PASS: Projectile retains its own authored rules after shooter changes attack
+PASS: Parrying an in-flight shot cannot revive its dead shooter
+PASS: Interrupted attack cannot claim a hurtbox hit
+PASS: Dead attacker cannot continue applying weapon damage
+PASS: Lock-on can acquire the closest visible opponent behind the player
+PASS: Dying target releases lock-on without stale camera ownership
+PASS: Camera retracts at collision without smoothing through geometry
+PASS: Camera releases outward gradually after obstruction clears
+PASS: Floor snap and character motion traverse a gentle ramp
+PASS: Rebinding changes the live InputMap and prompts together
+PASS: Existing world prompts update immediately after rebinding
+PASS: Binding conflicts are refused
+PASS: Settings can be persisted separately from progress
+PASS: Settings round trip restores access, audio and binding choices
+PASS: Player-facing labels resolve the rebound key
+PASS: 3D scale and optional frame cap apply independently of HUD layout
+PASS: Resizing window preserves requested 540p 3D height
+PASS: Independent audio bus: Music
+PASS: Independent audio bus: Effects
+PASS: Independent audio bus: Ambient
+PASS: Small zone change retains music clock and bounded effects pool
+PASS: Realm ambience and authored quiet context are explicit
+PASS: All combat, footstep, music and ambient audio assets load
+PASS: Returning to title cannot leave combat music active
+PASS: Authored animation/damage clock recovers coherently at 30 FPS
+PASS: Authored animation/damage clock recovers coherently at 60 FPS
+PASS: Analytic leg solution has a bent knee at 30 Hz
+PASS: Analytic leg solution has a bent knee at 60 Hz
+BENCHMARK_REPORT C:/Users/debajyothi.m/AppData/Roaming/AshenVow/benchmarks/2026-11-16T05-53-51-444111/report.json
+PASS: Benchmark report separates headless measurements from rendered telemetry
+RESULT: 38/38 pass-three behavior checks passed
+EXIT requested: 0 mode=play
