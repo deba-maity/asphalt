@@ -1,0 +1,3 @@
+# Godot rewrites these settings with LF during import. Keep fresh Windows
+# checkouts clean even when the user's global core.autocrlf is true.
+*.import text eol=lf
