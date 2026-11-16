@@ -1,5 +1,7 @@
 # Pass-three validation record
 
+**Current pass-four distribution/site/rebuild results:** [release-verification.md](release-verification.md). This page retains the pass-three gameplay evidence and its limits; no new graphical game session was run in pass four.
+
 All verification in this pass used `--headless` on the development/Remote Desktop machine. No graphical game, audible play, new screenshot, physical-controller session or target-laptop benchmark was performed. Headless layout and animation data checks cannot establish visual quality. The restriction is carried into the README and local benchmark instructions.
 
 ## Commands actually run

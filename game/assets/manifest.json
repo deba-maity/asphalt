@@ -117,6 +117,19 @@
         "exported engine executable"
       ],
       "attribution_requirements": "Retain Godot and applicable bundled dependency notices; docs/GODOT_LICENSE.txt"
+    },
+    {
+      "id": "asset_branding",
+      "source_url": null,
+      "creation_method": "Original code-native SVG emblem; optional Pillow rasterization in tools/prepare_site_assets.py produces PNG/ICO. ICO used for Windows resource stamping.",
+      "author": "ASHEN VOW contributors",
+      "license": "MIT",
+      "modifications": "Original",
+      "runtime_files": [
+        "branding/ashen-vow.svg",
+        "branding/ashen-vow.png"
+      ],
+      "attribution_requirements": "Retain root MIT notice"
     }
   ]
 }

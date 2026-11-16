@@ -34,3 +34,7 @@ Follow [benchmark.md](benchmark.md). F8 records/stops local measurements; F9 cap
 3D bilinear scaling and fixed-aspect window scaling follow the official [Viewport](https://docs.godotengine.org/en/stable/classes/class_viewport.html) and [Window](https://docs.godotengine.org/en/stable/classes/class_window.html) APIs. The project stays within Compatibility features and does not rely on screen-space GI, volumetric fog, TAA or other advanced renderer-only effects.
 
 Acceptance remains sustained low-preset testing on the real Ryzen laptop, with its actual driver, display, charger/power mode and thermals recorded. No OS power, driver or firmware setting is changed automatically. The short campaign still lacks the authored scope needed to substantiate a multi-hour adventure; automation duration is not a human playtime.
+
+## Pass-four status
+
+No new rendered or target-laptop performance measurement was made. Packaging/site/headless results are in release-verification.md; they do not establish Ryzen5500U FPS, GPU memory or thermal stability. Use local-acceptance.md and benchmark.md on the play laptop.

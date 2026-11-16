@@ -1,22 +1,28 @@
-$ErrorActionPreference = 'Stop'
-$repo = Split-Path -Parent $PSScriptRoot
-$pin = Get-Content -LiteralPath (Join-Path $repo 'engine-version.json') -Raw | ConvertFrom-Json
-$exe = Join-Path $PSScriptRoot "engine\Godot_v$($pin.version)-stable_win64_console.exe"
-$actual = & $exe --version
-if ($actual -notlike "$($pin.version).stable.*") { throw 'Engine version does not match pin.' }
-$template = Join-Path $PSScriptRoot "export_templates\$($pin.version).stable\windows_release_x86_64.exe"
-if (-not (Test-Path -LiteralPath $template)) {
-    & python (Join-Path $PSScriptRoot 'fetch_windows_templates.py')
-    if ($LASTEXITCODE -ne 0) { throw 'Template fetch failed.' }
+param([string]$GodotPath, [string]$TemplateDirectory, [string]$OutputDirectory)
+. (Join-Path $PSScriptRoot 'common.ps1')
+$exe = Resolve-Godot $GodotPath
+$templates = Get-MatchingTemplates $TemplateDirectory
+if (-not $OutputDirectory) { $OutputDirectory = Join-Path $script:RepoRoot 'exports\windows' }
+New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
+$output = (Resolve-Path -LiteralPath $OutputDirectory).Path
+$config = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'release-config.json') -Raw | ConvertFrom-Json
+$rcedit = Join-Path $PSScriptRoot 'cache\rcedit-x64.exe'
+if (-not (Test-Path -LiteralPath $rcedit)) { throw 'Missing pinned resource editor. Run tools\setup.ps1 -ReleaseTools.' }
+if ((Get-FileHash -LiteralPath $rcedit -Algorithm SHA256).Hash.ToLowerInvariant() -ne $script:EnginePin.rcedit.sha256) { throw 'rcedit integrity check failed; re-run setup after removing only that cached file.' }
+& python (Join-Path $PSScriptRoot 'prepare_export.py') --templates $templates
+if ($LASTEXITCODE -ne 0) { throw 'Export preparation failed. Python 3 is required for build tools.' }
+try {
+    Invoke-Godot $exe @('--headless','--path',(Join-Path $script:RepoRoot 'game'),'--editor','--import','--quit') (Join-Path $PSScriptRoot 'logs\build-import.log')
+    Invoke-Godot $exe @('--headless','--path',(Join-Path $script:RepoRoot 'game'),'--export-release','Windows Preview',(Join-Path $output 'AshenVow.exe')) (Join-Path $PSScriptRoot 'logs\export.log')
+} finally {
+    & python (Join-Path $PSScriptRoot 'prepare_export.py') --restore
 }
-$output = Join-Path $repo 'exports\windows'
-New-Item -ItemType Directory -Path $output -Force | Out-Null
-& $exe --headless --path (Join-Path $repo 'game') --editor --import --quit
-if ($LASTEXITCODE -ne 0) { throw 'Asset import failed.' }
-& $exe --headless --path (Join-Path $repo 'game') --export-release 'Windows Preview' (Join-Path $output 'AshenVow.exe')
-if ($LASTEXITCODE -ne 0) { throw 'Windows export failed.' }
-Copy-Item -LiteralPath (Join-Path $repo 'LICENSE') -Destination $output
-Copy-Item -LiteralPath (Join-Path $repo 'docs\GODOT_LICENSE.txt') -Destination $output
-Copy-Item -LiteralPath (Join-Path $repo 'docs\THIRD_PARTY_NOTICES.txt') -Destination $output
-Get-FileHash -LiteralPath (Join-Path $output 'AshenVow.exe') -Algorithm SHA256 | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $output 'build-hash.json')
-Write-Output "Built $output\AshenVow.exe"
+$binary = Join-Path $output 'AshenVow.exe'
+$numeric = ($config.version -split '-')[0] + '.1'
+& $rcedit $binary --set-icon (Join-Path $script:RepoRoot 'game\assets\branding\ashen-vow.ico') --set-file-version $numeric --set-product-version $numeric --set-version-string ProductName 'ASHEN VOW' --set-version-string FileDescription 'ASHEN VOW native campaign candidate'
+if ($LASTEXITCODE -ne 0) { throw 'Windows icon/version stamping failed.' }
+foreach ($file in @('LICENSE','docs\GODOT_LICENSE.txt','docs\THIRD_PARTY_NOTICES.txt','docs\CREDITS.txt')) {
+    Copy-Item -LiteralPath (Join-Path $script:RepoRoot $file) -Destination $output
+}
+Get-FileHash -LiteralPath $binary -Algorithm SHA256 | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $output 'build-hash.json')
+Write-Output "Built $binary ($($config.version), unsigned)."

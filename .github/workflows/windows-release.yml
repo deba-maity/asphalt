@@ -1,0 +1,60 @@
+name: Windows candidate
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish a verified GitHub prerelease after building
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14.0'
+      - name: Install pinned local build tools
+        shell: powershell
+        run: ./tools/setup.ps1 -Templates -ReleaseTools
+      - name: Test, export, package and verify fresh extraction
+        shell: powershell
+        run: ./tools/release.ps1 -OutputDirectory ./exports/release
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-candidate
+          path: |
+            exports/release/*.zip
+            exports/release/SHA256SUMS.txt
+            exports/release/release.json
+            exports/release/portable-verification.json
+          if-no-files-found: error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: windows-build-logs
+          path: tools/logs/
+  publish:
+    if: ${{ inputs.publish }}
+    needs: build
+    runs-on: windows-2025
+    environment: github-release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14.0'
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: windows-candidate
+          path: exports/release
+      - name: Create draft, verify uploaded bytes, publish prerelease
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./tools/publish_release.ps1 -Repository '${{ github.repository }}' -ReleaseDirectory ./exports/release -Publish

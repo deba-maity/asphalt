@@ -7,6 +7,7 @@ import io
 import json
 import urllib.request
 import zipfile
+import hashlib
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = json.loads((ROOT / "engine-version.json").read_text())["version"]
@@ -49,11 +50,19 @@ class RemoteZip(io.RawIOBase):
         return data
 
 
-destination = ROOT / "tools/export_templates" / f"{VERSION}.stable"
-destination.mkdir(parents=True, exist_ok=True)
-with zipfile.ZipFile(RemoteZip()) as archive:
-    for filename in ["windows_debug_x86_64.exe", "windows_release_x86_64.exe"]:
-        member = next(name for name in archive.namelist() if name.endswith("/" + filename))
-        payload = archive.read(member)
-        (destination / filename).write_bytes(payload)
-        print(f"Verified ZIP CRC and extracted {filename}: {len(payload)} bytes", flush=True)
+def main():
+    import argparse
+    parser=argparse.ArgumentParser(); parser.add_argument('--android',action='store_true'); args=parser.parse_args()
+    destination = ROOT / "tools/export_templates" / f"{VERSION}.stable"
+    destination.mkdir(parents=True, exist_ok=True)
+    files=['android_release.apk'] if args.android else ['windows_debug_x86_64.exe','windows_release_x86_64.exe']
+    with zipfile.ZipFile(RemoteZip()) as archive:
+        for filename in files:
+            member = next(name for name in archive.namelist() if name.endswith('/'+filename))
+            payload=archive.read(member)
+            pin=json.loads((ROOT/'engine-version.json').read_text())
+            if hashlib.sha256(payload).hexdigest()!=pin['template_sha256'][filename]: raise RuntimeError('Template SHA-256 does not match pinned member: '+filename)
+            (destination/filename).write_bytes(payload)
+            print(f'Verified ZIP CRC + SHA-256: {filename}: {len(payload)} bytes',flush=True)
+
+if __name__=='__main__': main()

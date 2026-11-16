@@ -1,27 +1,24 @@
-param([switch]$Campaign, [switch]$RealTime, [ValidateSet(30,60)][int]$SimulationHz=60)
+param([switch]$Campaign, [switch]$RealTime, [ValidateSet(30,60)][int]$SimulationHz=60, [string]$GodotPath)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $pin = Get-Content -LiteralPath (Join-Path $repo 'engine-version.json') -Raw | ConvertFrom-Json
-$exe = Join-Path $PSScriptRoot "engine\Godot_v$($pin.version)-stable_win64_console.exe"
+. (Join-Path $PSScriptRoot 'common.ps1')
+$exe = Resolve-Godot $GodotPath
 New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot 'logs') -Force | Out-Null
-& $exe --headless --path (Join-Path $repo 'game') --editor --import --quit
-if ($LASTEXITCODE -ne 0) { throw 'Import failed.' }
+Invoke-Godot $exe @('--headless','--path',(Join-Path $repo 'game'),'--editor','--import','--quit') (Join-Path $PSScriptRoot 'logs\test-import.log')
 $baseArgs = @('--headless','--path',(Join-Path $repo 'game'))
 if (-not $RealTime) { $baseArgs += @('--fixed-fps',"$SimulationHz") }
 foreach ($script in @('unit_tests','campaign_logic','ui_layout')) {
-    & $exe @baseArgs --script "res://tests/$script.gd" 2>&1 | Tee-Object -FilePath (Join-Path $PSScriptRoot "logs\$script.log")
-    if ($LASTEXITCODE -ne 0) { throw "$script checks failed." }
+    Invoke-Godot $exe ($baseArgs+@('--script',"res://tests/$script.gd")) (Join-Path $PSScriptRoot "logs\$script.log")
 }
 foreach ($mode in @('--validate-systems','--test-transitions','--test-quality','--test-quit-transition','--test-resume-transition')) {
     $label = $mode.TrimStart('-')
-    & $exe @baseArgs -- $mode 2>&1 | Tee-Object -FilePath (Join-Path $PSScriptRoot "logs\$label.log")
-    if ($LASTEXITCODE -ne 0) { throw "$label checks failed." }
+    Invoke-Godot $exe ($baseArgs+@('--',$mode)) (Join-Path $PSScriptRoot "logs\$label.log")
 }
 if ($Campaign) {
     foreach ($mode in @('--campaign-play','--campaign-continue')) {
         $label = $mode.TrimStart('-')
-        & $exe @baseArgs -- $mode 2>&1 | Tee-Object -FilePath (Join-Path $PSScriptRoot "logs\$label.log")
-        if ($LASTEXITCODE -ne 0) { throw "$label checks failed." }
+        Invoke-Godot $exe ($baseArgs+@('--',$mode)) (Join-Path $PSScriptRoot "logs\$label.log")
     }
 }
 Write-Output 'Headless checks finished. No game window or desktop input capture was used.'

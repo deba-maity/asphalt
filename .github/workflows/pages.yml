@@ -1,0 +1,60 @@
+name: Deploy download site
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Public release tag; leave empty for an unavailable-download site
+        type: string
+        required: false
+        default: ''
+permissions:
+  contents: read
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14.0'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.18.0'
+          cache: npm
+          cache-dependency-path: tools/qa/package-lock.json
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Check static site and unpublished fallback
+        run: |
+          python tools/site_release.py
+          python tools/check_site.py
+          npm ci --ignore-scripts --no-audit --no-fund --prefix tools/qa
+          cd tools/qa
+          npx playwright install --with-deps chromium
+          npm test
+      - name: Snapshot verified public assets if explicitly selected
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          PROJECT_REPOSITORY: ${{ github.repository }}
+        run: |
+          if [ -n "$RELEASE_TAG" ]; then
+            python tools/site_release.py --repository "$PROJECT_REPOSITORY" --tag "$RELEASE_TAG"
+          fi
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+  deploy:
+    runs-on: ubuntu-24.04
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

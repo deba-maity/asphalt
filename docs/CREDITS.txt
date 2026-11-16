@@ -1,0 +1,19 @@
+ASHEN VOW
+An original fictional world and single-player game.
+
+Original code, story, dialogue, hard-jointed models, animation poses, props,
+synthesized audio, icon and website: ASHEN VOW contributors, created with
+Codex assistance. MIT license; retain the included notice.
+
+Engine: Godot Engine contributors, MIT license.
+See GODOT_LICENSE.txt and THIRD_PARTY_NOTICES.txt for bundled component notices.
+
+Website screenshots: real historical pass-one Godot viewport captures from the
+development machine (Intel i7-1185G7 / Iris Xe). Resize/WebP compression only.
+They do not claim current-build visual acceptance or Ryzen laptop performance.
+
+Optional source asset conversion: Pillow (HPND), a development tool only.
+Windows resource stamping: electron/rcedit v2.0.0 (MIT), a development tool only.
+No external art, music samples, extracted franchise assets or paid assets.
+
+ASHEN VOW is a working title, not a claim of trademark clearance.

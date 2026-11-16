@@ -1,40 +1,17 @@
-# Build and release — pass two
+# Native build and portable release
 
-Use Godot **4.7.2 stable standard**, GDScript, Compatibility, and exactly matching Windows export templates. `engine-version.json` pins version/status/renderer and the official editor ZIP SHA-256. The tagged engine is unmodified. [Official archive](https://godotengine.org/download/archive/4.7.2-stable/) and [renderer guidance](https://docs.godotengine.org/en/stable/tutorials/rendering/renderers.html) remain the references.
+Run the PowerShell commands in [README](../README.md#tests-windows-export-and-portable-zip) from the repository root. Engine is **4.7.2 stable standard GDScript**, Compatibility. `engine-version.json` pins editor ZIP, Windows templates, Android template and rcedit digests. The Android engine template is not an ASHEN VOW game APK.
 
-```powershell
-Set-Location 'C:\Users\debajyothi.m\wuk\ashen-vow'
-# Optional fresh-tool setup; standard editor, verified before extracting:
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\setup.ps1 -Templates
-# All further verification is headless, suitable for this Remote Desktop:
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\test.ps1 -Campaign
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\build.ps1
-```
+`setup.ps1 -Templates -ReleaseTools` caches the official editor in `tools/engine`, templates in `tools/export_templates/4.7.2.stable`, resource editor in `tools/cache`. Python range requests avoid downloading the whole templates bundle; ZIP CRC and pinned SHA-256 both apply. Existing installations use `-GodotPath` and `-TemplateDirectory`. Proxies blocking ranges can use Godot's template manager instead. Tools use explicit project paths, check native exit codes and reject ERROR/FAIL diagnostics.
 
-The template fetcher uses HTTP ranges on the official 4.7.2 standard template ZIP, retrieves only Windows debug/release x86-64 members and validates their ZIP CRC. Cached engine/templates are ignored. If a proxy prevents ranges, install the same version's standard templates through Godot and update the two custom-template paths. Do not substitute a patch or .NET build.
+The committed preset is a blueprint. `prepare_export.py` backs it up in ignored cache, inserts local absolute template paths and PE version derived from `release-config.json`, then build restores exact original bytes in `finally`. After an interrupted export, from the root run `python tools/prepare_export.py --restore` before retrying. Do not export Windows and Android concurrently in one checkout.
 
-The export preset packs all resources and explicitly includes `content/*.json`. The ten zone scenes hold their relevant actor scene dependencies, and manifest strings use packaged local paths. Developer validation scripts needed for headless packaged traversal are included but have no normal-menu entries; bake/image-capture/notice-generation tools are excluded. The embedded PCK means no loose data download is needed. No runtime network API exists.
+Windows uses x86_64, Compatibility, embedded PCK, all resources and explicit `content/*.json`. Source-only capture/bake/notice writers are excluded; explicit packaged behavior fixtures remain for checks, invisible in player menus. Runtime actor/zone dependencies and audio/dialogue are local. Native rcedit stamps original committed ICO/version before optional signing; portable checks establish that the embedded PCK survives. It is not an Electron runtime. Original SVG/PNG/ICO and compressed real screenshots are regenerated only with optional Pillow via `prepare_site_assets.py`.
 
-Build output: `exports/windows/AshenVow.exe`, root MIT license, Godot license, component notices and `build-hash.json`. The preview is unsigned; its exact digest is in the retained build hash. `exports/` is ignored generated output. Ship the notice files with any copy. On the machine where the user intends to play, double-click the executable; neither Godot nor Python is required. No graphical launch is performed here after the user's instruction.
+`release.ps1` runs source validation, builds, optionally signs, refuses dirty source, packages, extracts into a fresh temporary path containing spaces and runs quality/full campaign/separate Continue with no project/editor path. ZIP includes actual executable/data, README, BUILD.json, root MIT, Godot/component notices and credits. A separate source ZIP is exactly the recorded Git commit. After portable checks, final release.json/portable-verification.json and SHA256SUMS are written; hashes cover final Windows/source ZIP and JSON bytes. `check_release.py` verifies every intended upload, size and ZIP CRC. Logs remain local, not advertised as public artifacts.
 
-## Packaged headless verification
+Default output: `exports/releases/v0.4.0-rc.1`. Existing candidate archives are never silently replaced. Set `SOURCE_DATE_EPOCH` to a fixed commit epoch for deterministic archive timestamps/BUILD identity. Ordering and permissions are fixed. Godot import IDs, native headers and signing timestamps can affect byte identity, so no cross-machine byte-identical native build is promised. [Verification](release-verification.md) distinguishes clean-checkout rebuild from deterministic packaging checks.
 
-```powershell
-# These flags create separate validation saves and never open a game window.
-& .\exports\windows\AshenVow.exe --headless --fixed-fps 60 -- --campaign-play
-& .\exports\windows\AshenVow.exe --headless -- --campaign-continue
-```
+No certificate was configured: local/CI candidates are unsigned. Optional explicit thumbprint/timestamp arguments require a real certificate and valid Authenticode result. No security software should be disabled. No SDK/key/cache/export files are tracked.
 
-The packaged full traversal reaches credits with actual movement, collisions, combat and interactions; the second process verifies the ending and canonical state at the memorial. Reports live under `%APPDATA%/AshenVow/campaign_validation/evidence` and retained copies are in `docs/evidence/pass2`. Fixed FPS advances simulation faster than wall time; it is not a graphics benchmark. Actual final process exits and build hash are recorded in [export evidence](evidence/pass2/export.txt).
-
-Regenerate engine notices after any engine change with the headless `tests/write_notices.gd` tool. Change the engine pin, templates, script paths and future CI together. The current early preview is not a claim of byte-identical reproducible release builds, installer/signing behavior, Android support, target-laptop performance or release certification.
-
-Pass four will add a clean-checkout release workflow, CI, archives and public download metadata. Website publication needs an identified repository; none was invented or published. Android remains optional and needs real device, input, renderer and export work. The empty `site/` directory is reserved for that later pass.
-
-## Pass-three package evidence and local checks
-
-The current Windows build retains the pinned engine/templates and all dynamic scenes/data. New audio, settings, quality fixtures, props and benchmark/capture scripts are included in the PCK. It passed 38 packaged behavior checks, three accelerated headless campaigns (27 transitions), and separate Continue. See `evidence/pass3/export.txt` and `evidence/pass3/build-hash.json`. No graphical launch was made on the Remote Desktop.
-
-`tools/benchmark.ps1` without `-Headless` is an explicit local user action that opens the game on the play machine. See `benchmark.md` before invoking it. Current-build screenshots and rendered laptop metrics must be collected there; historical opening captures cannot establish pass-three visual quality. Human full-campaign, visual/audio, physical-device and target-laptop acceptance remain release blockers listed in `known-issues.md`.
-
-The export preset carries version 0.3.0.0 as a local preview marker. Clean-checkout reproducibility/CI, final release packaging and website publication remain pass four. No new license or online dependency was introduced.
+GitHub currently requires each release asset **under 2 GiB**; scripts reject that boundary. Checked 2026-11-16 against [official release limits](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases). Binaries stay in Releases, static assets in Pages. [Publishing](publishing.md) verifies uploaded draft bytes, publishes prerelease only after coherence, then verifies public download URLs. Original release metadata is immutable; a generated site snapshot supplies actual URLs without invalidating checksums. Android remains [preparation only](android.md).
