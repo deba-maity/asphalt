@@ -1,0 +1,71 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: light: all authored joints remain continuous across damage and recovery boundaries
+PASS: heavy: all authored joints remain continuous across damage and recovery boundaries
+PASS: Gait cadence and contact reach bounded at 1.45 m/s
+PASS: Gait cadence and contact reach bounded at 3.4 m/s
+PASS: Gait cadence and contact reach bounded at 5.7 m/s
+BLADE: light serial=1 contact=(-0.972144, 0.754504, -1.331197)
+PASS: light cut 1: blade crosses the forward damage region
+BLADE: light serial=2 contact=(1.732752, 0.564279, -0.549175)
+PASS: light cut 2: blade crosses the forward damage region
+BLADE: heavy serial=1 contact=(-0.960556, 0.364998, -1.266)
+PASS: heavy cut 1: blade crosses the forward damage region
+BLADE: heavy serial=2 contact=(-0.960556, 0.365269, -1.266)
+PASS: heavy cut 2: blade crosses the forward damage region
+FOOT: slope=0.0 speed=1.45 direction=(0.0, 0.0, -1.0) error=0.00000025035087 contacts=6 samples=96
+PASS: Grounded foot contacts: slope 0.0 speed 1.45 direction (0.0, 0.0, -1.0)
+FOOT: slope=0.0 speed=1.45 direction=(1.0, 0.0, 0.0) error=0.00000025079396 contacts=5 samples=96
+PASS: Grounded foot contacts: slope 0.0 speed 1.45 direction (1.0, 0.0, 0.0)
+FOOT: slope=0.0 speed=1.45 direction=(0.0, 0.0, 1.0) error=0.00000024292351 contacts=5 samples=96
+PASS: Grounded foot contacts: slope 0.0 speed 1.45 direction (0.0, 0.0, 1.0)
+FOOT: slope=0.0 speed=1.45 direction=(-1.0, 0.0, 0.0) error=0.00000024303773 contacts=5 samples=98
+PASS: Grounded foot contacts: slope 0.0 speed 1.45 direction (-1.0, 0.0, 0.0)
+FOOT: slope=0.0 speed=3.4 direction=(0.0, 0.0, -1.0) error=0.00000023947126 contacts=7 samples=55
+PASS: Grounded foot contacts: slope 0.0 speed 3.4 direction (0.0, 0.0, -1.0)
+FOOT: slope=0.0 speed=3.4 direction=(1.0, 0.0, 0.0) error=0.00000048314371 contacts=7 samples=58
+PASS: Grounded foot contacts: slope 0.0 speed 3.4 direction (1.0, 0.0, 0.0)
+FOOT: slope=0.0 speed=3.4 direction=(0.0, 0.0, 1.0) error=0.00000047910549 contacts=7 samples=60
+PASS: Grounded foot contacts: slope 0.0 speed 3.4 direction (0.0, 0.0, 1.0)
+FOOT: slope=0.0 speed=3.4 direction=(-1.0, 0.0, 0.0) error=0.00000047910549 contacts=7 samples=57
+PASS: Grounded foot contacts: slope 0.0 speed 3.4 direction (-1.0, 0.0, 0.0)
+FOOT: slope=0.0 speed=5.7 direction=(0.0, 0.0, -1.0) error=0.00000047713172 contacts=8 samples=44
+PASS: Grounded foot contacts: slope 0.0 speed 5.7 direction (0.0, 0.0, -1.0)
+FOOT: slope=0.0 speed=5.7 direction=(1.0, 0.0, 0.0) error=0.00000095483961 contacts=9 samples=45
+PASS: Grounded foot contacts: slope 0.0 speed 5.7 direction (1.0, 0.0, 0.0)
+FOOT: slope=0.0 speed=5.7 direction=(0.0, 0.0, 1.0) error=0.0000009548105 contacts=9 samples=45
+PASS: Grounded foot contacts: slope 0.0 speed 5.7 direction (0.0, 0.0, 1.0)
+FOOT: slope=0.0 speed=5.7 direction=(-1.0, 0.0, 0.0) error=0.00000095675614 contacts=9 samples=46
+PASS: Grounded foot contacts: slope 0.0 speed 5.7 direction (-1.0, 0.0, 0.0)
+FOOT: slope=8.0 speed=1.45 direction=(0.0, 0.0, -1.0) error=0.00000023946401 contacts=5 samples=98
+PASS: Grounded foot contacts: slope 8.0 speed 1.45 direction (0.0, 0.0, -1.0)
+FOOT: slope=8.0 speed=1.45 direction=(1.0, 0.0, 0.0) error=0.00000025474014 contacts=5 samples=95
+PASS: Grounded foot contacts: slope 8.0 speed 1.45 direction (1.0, 0.0, 0.0)
+FOOT: slope=8.0 speed=1.45 direction=(0.0, 0.0, 1.0) error=0.00000024575624 contacts=5 samples=96
+PASS: Grounded foot contacts: slope 8.0 speed 1.45 direction (0.0, 0.0, 1.0)
+FOOT: slope=8.0 speed=1.45 direction=(-1.0, 0.0, 0.0) error=0.00000024575624 contacts=6 samples=96
+PASS: Grounded foot contacts: slope 8.0 speed 1.45 direction (-1.0, 0.0, 0.0)
+FOOT: slope=8.0 speed=3.4 direction=(0.0, 0.0, -1.0) error=0.00000047695357 contacts=7 samples=60
+PASS: Grounded foot contacts: slope 8.0 speed 3.4 direction (0.0, 0.0, -1.0)
+FOOT: slope=8.0 speed=3.4 direction=(1.0, 0.0, 0.0) error=0.00000049173832 contacts=7 samples=58
+PASS: Grounded foot contacts: slope 8.0 speed 3.4 direction (1.0, 0.0, 0.0)
+FOOT: slope=8.0 speed=3.4 direction=(0.0, 0.0, 1.0) error=0.00000047878916 contacts=7 samples=60
+PASS: Grounded foot contacts: slope 8.0 speed 3.4 direction (0.0, 0.0, 1.0)
+FOOT: slope=8.0 speed=3.4 direction=(-1.0, 0.0, 0.0) error=0.000000491516 contacts=7 samples=58
+PASS: Grounded foot contacts: slope 8.0 speed 3.4 direction (-1.0, 0.0, 0.0)
+FOOT: slope=8.0 speed=5.7 direction=(0.0, 0.0, -1.0) error=0.00000023853497 contacts=8 samples=44
+PASS: Grounded foot contacts: slope 8.0 speed 5.7 direction (0.0, 0.0, -1.0)
+FOOT: slope=8.0 speed=5.7 direction=(1.0, 0.0, 0.0) error=0.00000098302496 contacts=8 samples=46
+PASS: Grounded foot contacts: slope 8.0 speed 5.7 direction (1.0, 0.0, 0.0)
+FOOT: slope=8.0 speed=5.7 direction=(0.0, 0.0, 1.0) error=0.00000095443067 contacts=8 samples=45
+PASS: Grounded foot contacts: slope 8.0 speed 5.7 direction (0.0, 0.0, 1.0)
+FOOT: slope=8.0 speed=5.7 direction=(-1.0, 0.0, 0.0) error=0.00000096121153 contacts=9 samples=46
+PASS: Grounded foot contacts: slope 8.0 speed 5.7 direction (-1.0, 0.0, 0.0)
+PASS: Scaled enemy foot reach and ankle transforms: 0.85
+PASS: Scaled enemy foot reach and ankle transforms: 1.3
+PASS: Dodge clears old foot locks after teleport
+PASS: Scripted story fall cannot be overridden by grounded foot locks
+PASS: Rock 0: outward normals and front-face winding
+PASS: Rock 1: outward normals and front-face winding
+PASS: Rock 2: outward normals and front-face winding
+RESULT: 40/40 motion/geometry checks passed

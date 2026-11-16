@@ -1,0 +1,14 @@
+Passed: C:\Users\debajyothi.m\wuk\ashen-vow\tools\logs\test-import.log
+Passed: C:\Users\debajyothi.m\wuk\ashen-vow\tools\logs\unit_tests.log
+Passed: C:\Users\debajyothi.m\wuk\ashen-vow\tools\logs\campaign_logic.log
+Passed: C:\Users\debajyothi.m\wuk\ashen-vow\tools\logs\ui_layout.log
+Passed: C:\Users\debajyothi.m\wuk\ashen-vow\tools\logs\rig_tests.log
+Passed: C:\Users\debajyothi.m\wuk\ashen-vow\tools\logs\motion_tests.log
+Passed: C:\Users\debajyothi.m\wuk\ashen-vow\tools\logs\validate-systems.log
+Passed: C:\Users\debajyothi.m\wuk\ashen-vow\tools\logs\test-transitions.log
+Passed: C:\Users\debajyothi.m\wuk\ashen-vow\tools\logs\test-quality.log
+Passed: C:\Users\debajyothi.m\wuk\ashen-vow\tools\logs\test-quit-transition.log
+Passed: C:\Users\debajyothi.m\wuk\ashen-vow\tools\logs\test-resume-transition.log
+Passed: C:\Users\debajyothi.m\wuk\ashen-vow\tools\logs\campaign-play.log
+Passed: C:\Users\debajyothi.m\wuk\ashen-vow\tools\logs\campaign-continue.log
+Headless checks finished. No game window or desktop input capture was used.

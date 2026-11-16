@@ -1,0 +1,17 @@
+{
+  "version": "0.4.0-rc.3",
+  "headless_checks": 298,
+  "motion_checks": 40,
+  "simulation_rates": [
+    30,
+    60
+  ],
+  "packaged_quality_checks": 38,
+  "packaged_campaign": "passed",
+  "packaged_continue": "passed",
+  "graphical_game_execution": false,
+  "target_laptop_gpu_acceptance": false,
+  "isolated_geometry_image": "CPU mesh projection only; no game lighting, textures or ground IK",
+  "windows_exe_bytes": 118550408,
+  "windows_exe_sha256": "475c0df45dd456af724d9d80d97629cd8a7f720939ee6e253ebd87005fb26c35"
+}

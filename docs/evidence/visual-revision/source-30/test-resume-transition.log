@@ -1,0 +1,6 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: relaunch after transition quit restores a valid checkpoint: zone_hearthmere
+EXIT requested: 0 mode=play
+Frame 0 - res://scripts/main.gd:163 in function 'finish'
+Frame 1 - res://tests/quit_transition.gd:19 in function 'run'

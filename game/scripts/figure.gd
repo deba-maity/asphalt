@@ -24,6 +24,9 @@ var last_state: String=""
 var last_swing: int=-1
 var entry_rotations: Dictionary={}
 var bone_nodes: Array[Node3D]=[]
+var foot_placement=FootPlacement.new()
+var secondary_angles=Vector3.ZERO
+var secondary_velocity=Vector3.ZERO
 static var shared_poses: Dictionary={}
 static var materials: Dictionary = {}
 static var meshes: Dictionary = {}
@@ -82,7 +85,7 @@ func _ready() -> void:
 	if shared_poses.is_empty(): shared_poses=JSON.parse_string(FileAccess.get_file_as_string("res://content/poses.json"))
 	poses=shared_poses
 	if get_child_count()>0:
-		for id in ["hips","torso","head","arm_l","arm_r","elbow_l","elbow_r","hand_l","hand_r","leg_l","leg_r","knee_l","knee_r","weapon"]:
+		for id in ["hips","torso","head","arm_l","arm_r","elbow_l","elbow_r","hand_l","hand_r","leg_l","leg_r","knee_l","knee_r","ankle_l","ankle_r","coat_l","coat_r","scarf_tail","weapon"]:
 			joints[id] = find_child(id,true,false)
 		hips = joints.hips
 		weapon = joints.weapon
@@ -119,21 +122,27 @@ func _ready() -> void:
 		var knee = pivot("knee_"+suffix,leg,Vector3(0,-0.37,0))
 		cylinder(knee,0.085,0.10,0.34,Vector3(0,-0.17,0),boots)
 		box(knee,Vector3(0.19,0.14,0.3),Vector3(0,-0.31,-0.045),boots)
+		pivot("ankle_"+suffix,knee,Vector3(0,-.36,0))
 		if side == 1:
 			weapon = pivot("weapon",hand,Vector3(0,-0.05,0))
 			cylinder(weapon,0.035,0.035,0.20,Vector3(0,-0.06,0),Color("4a3431"))
 			box(weapon,Vector3(0.29,0.045,0.07),Vector3(0,-0.18,0),Color("bba36d"))
 			blade = box(weapon,Vector3(0.095,0.73,0.027),Vector3(0,-0.57,0),Color("c0cacf"))
 			blade.name = "Blade"
-			var tip = cylinder(weapon,0,0.052,0.16,Vector3(0,-1.01,0),Color("d5ded9"),4)
-			tip.rotation.y = PI/4
+			blade.mesh=WeaponGeometry.blade()
+			blade.material_override=SurfaceLibrary.material("steel",Color("aeb8bd"),5.0)
+			cylinder(weapon,.048,.04,.075,Vector3(0,.075,0),Color("9d8d6d"),12)
+
+	pivot("coat_l",hips,Vector3(-.12,-.015,.12))
+	pivot("coat_r",hips,Vector3(.12,-.015,.12))
+	pivot("scarf_tail",torso,Vector3(-.13,.46,.12))
 	CharacterSkin.new().build(self)
 	bind_skin()
 	weapon.visible = armed
 	if armed:
-		var scarf = cylinder(torso,.19,.22,.10,Vector3(0,.46,.01),Color("635848"),16)
+		var scarf = cylinder(torso,.145,.115,.105,Vector3(0,.46,.01),Color("70524a"),16)
 		scarf.rotation.z = -0.08
-		box(torso,Vector3(0.18,0.55,0.045),Vector3(-0.18,0.18,0.22),Color("50473d"))
+
 	if role in ["ledger_guard","lieutenant_kesran","halvek"]:
 		var shield=cylinder(joints.hand_l,.32,.32,.09,Vector3(0,.12,-.13),Color("6e7f82"),8)
 		shield.rotation.x=PI/2
@@ -197,13 +206,13 @@ func animate(delta: float, model: CombatModel, speed: float, displacement: Vecto
 	# NPCs have no locomotion; old callers may pass speed alone in fixtures.
 	if distance>0.00001: stride_direction=displacement.normalized()
 	# Stance travel / stance fraction matches distance covered per cycle.
-	phase+=distance*TAU/(1.0 if speed>4.5 else (.44/.60))
+	phase+=distance*TAU*AnimationPolicy.cadence(speed)/maxf(.1,speed)
 	gait_weight=move_toward(gait_weight,1.0 if speed>.1 and model.state in ["idle","guard","dodge","ashstep"] else 0.0,delta*9)
 	var pose = pose_values("idle")
 	if gait_weight>.01 and model.state in ["idle","guard","dodge","ashstep"]:
 		if model.state in ["guard","dodge","ashstep"]: pose=pose_values("guard" if model.state=="guard" else "dodge")
-		var left=AnimationPolicy.directional_leg(phase,speed>4.5,stride_direction)
-		var right=AnimationPolicy.directional_leg(phase+PI,speed>4.5,stride_direction)
+		var left=AnimationPolicy.directional_leg(phase,speed>4.5,stride_direction,speed)
+		var right=AnimationPolicy.directional_leg(phase+PI,speed>4.5,stride_direction,speed)
 		pose.leg_l=[rad_to_deg(left.x)*gait_weight,0,rad_to_deg(left.z)*gait_weight]
 		pose.leg_r=[rad_to_deg(right.x)*gait_weight,0,rad_to_deg(right.z)*gait_weight]
 		pose.knee_l=[rad_to_deg(left.y)*gait_weight,0,0]
@@ -216,27 +225,7 @@ func animate(delta: float, model: CombatModel, speed: float, displacement: Vecto
 			pose.torso=[4+run*9+acceleration_lean*.3,sin(phase)*5,-stride_direction.x*run*5]
 			pose.head=[-run*5,-sin(phase)*3,0]
 	elif model.state == "attack":
-		var heavy = model.attack.get("pose","")=="heavy" or model.attack_id in ["heavy","foreman_slam"]
-		var first = pose_values("heavy_windup" if heavy else "light_windup")
-		var second = pose_values("heavy_strike" if heavy else "light_strike")
-		var weights=AnimationPolicy.attack_blend(model)
-		var idle=pose_values("idle")
-		for key in second:
-			var a = first.get(key,[0,0,0])
-			var b = second[key]
-			var rest=idle.get(key,[0,0,0])
-			pose[key] = [rest[0]*weights.x+a[0]*weights.y+b[0]*weights.z,rest[1]*weights.x+a[1]*weights.y+b[1]*weights.z,rest[2]*weights.x+a[2]*weights.y+b[2]*weights.z]
-		# Weight transfers through the pelvis before the shoulders settle.
-		pose.hips=[0,lerpf(-12,18,weights.z)*weights.y+12*weights.z,0]
-		pose.leg_l=[18*weights.y-12*weights.z,0,-6]
-		pose.leg_r=[-10*weights.y+22*weights.z,0,6]
-		pose.knee_l=[-20*weights.y-12*weights.z,0,0]
-		pose.knee_r=[-12*weights.y-28*weights.z,0,0]
-		pose.head=[-6*weights.z,-float(pose.torso[1])*.35,0]
-		# Alternate diagonal cuts; heavy attacks retain their overhead silhouette.
-		if not heavy and model.swing_serial%2==0:
-			pose.torso[1]*=-.7
-			pose.arm_r[2]*=-.65
+		pose=CombatMotion.sample(model)
 		if model.attack.get("pose","")=="bow":
 			pose=pose_values("guard")
 			pose.arm_l=[95,0,-35]
@@ -250,9 +239,31 @@ func animate(delta: float, model: CombatModel, speed: float, displacement: Vecto
 	if model.parry_flash > 0 and model.state not in ["attack","dead","hit"]:
 		pose = pose_values("parry")
 	if model.story_fall: pose=pose_values("dead")
+	if model.state=="idle" and gait_weight<.1:
+		pose.torso=[sin(visual_clock*1.7)*.65,sin(visual_clock*.47)*1.2,0]
+		pose.head=[sin(visual_clock*.8)*.8,sin(visual_clock*.31)*2.5,0]
+	if model.state=="hit":
+		var recoil=exp(-model.elapsed*8)
+		pose.torso=[-26*recoil,12*recoil,-9*recoil]
+		pose.head=[14*recoil,-8*recoil,4*recoil]
+		pose.knee_l=[-22,0,0]; pose.knee_r=[-28,0,0]
+	if model.state=="guard":
+		pose.torso[0]+=sin(visual_clock*2)*1.2
+	for side in 2:
+		var suffix="l" if side==0 else "r"
+		var t=fposmod(phase+side*PI,TAU)/TAU
+		var leg_angles=pose.get("leg_"+suffix,[0,0,0])
+		var knee_angles=pose.get("knee_"+suffix,[0,0,0])
+		# Counter-rotate the ankle; add toe clearance only during swing.
+		pose["ankle_"+suffix]=[-float(leg_angles[0])-float(knee_angles[0])+sin(t*TAU)*12*gait_weight,0,-float(leg_angles[2])]
+	# Upper-body pivots point upward, unlike the hanging arm/leg chains.
+	# Positive X bends a torso backward; authored forward lean must be negative.
+	if pose.has("torso"): pose.torso[0]=-float(pose.torso[0])
+	if pose.has("hips"): pose.hips[0]=-float(pose.hips[0])
+	if model.state in ["idle","attack"] and pose.has("head"): pose.head[0]=-float(pose.head[0])
 	var entry=smoothstep(0,1,transition_age/(.065 if model.state=="hit" else .12))
 	for key in joints:
-		if key=="weapon" or key.begins_with("hand"): continue
+		if key=="weapon" or key.begins_with("coat") or key=="scarf_tail": continue
 		var angles=pose.get(key,[0,0,0])
 		var target=Quaternion.from_euler(Vector3(deg_to_rad(angles[0]),deg_to_rad(angles[1]),deg_to_rad(angles[2])))
 		# Quaternion transitions avoid Euler wrap and preserve the interrupted pose.
@@ -261,7 +272,7 @@ func animate(delta: float, model: CombatModel, speed: float, displacement: Vecto
 	rotation.z=dead_blend*1.47
 	position.y=-dead_blend*.68
 	var bounce=(cos(phase*2)*.012)*gait_weight
-	hips.position.y=.85-.055*gait_weight+bounce+sin(visual_clock*2)*.004*(1-gait_weight)
+	hips.position.y=.84-.07*gait_weight+bounce+sin(visual_clock*2)*.004*(1-gait_weight)
 	hips.position.x=sin(phase)*.018*gait_weight
 	if model.state in ["dodge","ashstep"] and not model.story_fall:
 		var duration=float(model.config.dodge.duration) if model.state=="dodge" else .5
@@ -269,4 +280,13 @@ func animate(delta: float, model: CombatModel, speed: float, displacement: Vecto
 		hips.position.y-=.12*crouch
 		hips.rotation.z=-stride_direction.x*.14*crouch
 	if model.state=="attack": hips.position.y-=.035*sin(clampf(model.elapsed/(model.attack.windup+model.attack.active+model.attack.recovery),0,1)*PI)
+	# Damped secondary motion, bounded at long frames and interrupted actions.
+	var step=minf(delta,1.0/30)
+	var target=Vector3(clampf(speed*.035+acceleration_lean*.012,-.14,.42),sin(visual_clock*3)*.025, -stride_direction.x*gait_weight*.12)
+	secondary_velocity+=(target-secondary_angles)*85*step-secondary_velocity*15*step
+	secondary_angles+=secondary_velocity*step
+	for side in [-1,1]:
+		var coat: Node3D=joints.coat_l if side<0 else joints.coat_r
+		coat.rotation=Vector3(-.10-secondary_angles.x-absf(sin(phase+side*.7))*.10*gait_weight,side*.12,side*.07+secondary_angles.z)
+	joints.scarf_tail.rotation=Vector3(-.12-secondary_angles.x*1.5,secondary_angles.y*2,secondary_angles.z*.7)
 	sync_skin()

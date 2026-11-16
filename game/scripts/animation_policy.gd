@@ -16,17 +16,27 @@ static func leg(phase: float, running: bool) -> Vector2:
 	var hip=atan2(-z,y)-atan2(lower*sin(knee),upper+lower*cos(knee))
 	return Vector2(hip,knee)
 
-static func directional_leg(phase: float, running: bool, direction: Vector3) -> Vector3:
+static func directional_leg(phase: float, running: bool, direction: Vector3, speed: float=0) -> Vector3:
+	if speed<=0: speed=5.7 if running else 3.4
 	var t=fposmod(phase,TAU)/TAU
-	var stance=.60
-	var half_stride=.30 if running else .22
+	var stance=stance_fraction(speed)
+	var half_stride=speed/cadence(speed)*stance*.5
 	var travel=lerpf(-half_stride,half_stride,t/stance) if t<stance else lerpf(half_stride,-half_stride,smoothstep(0,1,(t-stance)/(1-stance)))
-	var lift=0.0 if t<stance else sin((t-stance)/(1-stance)*PI)*(.14 if running else .085)
-	var target=Vector3(-direction.x*travel,-(.66-lift),-direction.z*travel)
+	var lift=0.0 if t<stance else sin((t-stance)/(1-stance)*PI)*(.24 if running else .12)
+	var target=Vector3(-direction.x*travel,-(.62-lift),-direction.z*travel)
 	var d=clampf(target.length(),.15,.728)
 	var knee=-acos(clampf((d*d-.37*.37-.36*.36)/(2*.37*.36),-1,1))
 	var pitch=atan2(-target.z,-target.y)-atan2(.36*sin(knee),.37+.36*cos(knee))
 	return Vector3(pitch,knee,atan2(target.x,-target.y))
+
+static func cadence(speed: float) -> float:
+	# Full left-to-left cycles/second; distance-driven phase stops at walls.
+	return lerpf(.8,2.05,clampf(speed/5.7,0,1))
+
+static func stance_fraction(speed: float) -> float:
+	# Contact length must fit the .73m leg chain. At a sprint this leaves
+	# flight time between feet rather than dragging a plant out of reach.
+	return clampf(.60*cadence(speed)/maxf(.1,speed),.215,.60)
 
 static func attack_blend(model: CombatModel) -> Vector3:
 	var w: float=model.attack.windup

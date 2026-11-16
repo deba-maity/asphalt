@@ -1,3 +1,7 @@
+# Current revision: 0.4.0-rc.3
+
+A deeper visual/motion pass replaces the excessive gait cadence and two-pose attacks, adds ground-aware planted feet, layered textured clothing and secondary cloth motion, and revises trees, rocks, ground, buildings, sky and camera. See [visual-revision.md](visual-revision.md) for implementation and acceptance limits. No graphical game execution was performed on this Remote Desktop. AAA production quality remains unmet.
+
 # Current animation revision ? 0.4.0-rc.2
 
 The user rejected the original visual quality. Weighted skeletal body assets and a revised procedural animation system now replace the rigid body parts. See [animation-revision.md](animation-revision.md) for changes and explicit limits. All 18 roles rebaked; 42 new skeletal tests and the existing campaign suite passed, as did Windows export and packaged quality/full campaign/Continue. No graphical play was performed here. This does not attain God of War/Wukong animation quality; professional art/motion content and rendered acceptance remain outstanding. Existing 0.4.0-rc.1 ZIP/evidence below are preserved historical results.

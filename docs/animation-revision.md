@@ -1,3 +1,5 @@
+> Historical rc.2 report. The newer [rc.3 visual revision](visual-revision.md) supersedes the gait, foot-contact, materials and environment descriptions below.
+
 # Animation and body revision â€” 0.4.0-rc.2
 
 The user's visual review rejected the original rigid characters as too toy-like and requested God of War / Wukong-level animation. That criticism exposes a material gap in the original delivery. **This revision does not attain that benchmark.** It replaces important technical limitations, but professional character art, authored/motion-captured performances, retargeting cleanup, foot-contact work and rendered iteration are still needed. No downloaded franchise assets or claimed mocap are used.

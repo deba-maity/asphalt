@@ -1,0 +1,35 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: Title with Continue [P: (68.0, 32.0), S: (520.0, 650.0)]
+PASS: Chapter select [P: (340.0, 72.0), S: (600.0, 580.0)]
+PASS: Settings and controls [P: (230.0, 38.0), S: (820.0, 644.0)]
+PASS: Settings and controls [P: (0.0, 0.0), S: (512.0, 512.0)]
+PASS: Settings and controls [P: (0.0, 0.0), S: (8.0, 8.0)]
+PASS: Settings and controls [P: (0.0, 0.0), S: (512.0, 512.0)]
+PASS: Settings and controls [P: (0.0, 0.0), S: (8.0, 8.0)]
+PASS: Settings and controls [P: (248.0, 167.0), S: (8.0, 8.0)]
+PASS: Settings · Display [P: (230.0, 38.0), S: (820.0, 644.0)]
+PASS: Settings · Display [P: (0.0, 0.0), S: (512.0, 512.0)]
+PASS: Settings · Display [P: (0.0, 0.0), S: (8.0, 8.0)]
+PASS: Settings · Display [P: (0.0, 0.0), S: (512.0, 512.0)]
+PASS: Settings · Display [P: (0.0, 0.0), S: (8.0, 8.0)]
+PASS: Settings · Display [P: (0.0, 0.0), S: (512.0, 512.0)]
+PASS: Settings · Display [P: (0.0, 0.0), S: (8.0, 8.0)]
+PASS: Settings · Display [P: (248.0, 167.0), S: (8.0, 8.0)]
+PASS: Settings · Audio [P: (230.0, 38.0), S: (820.0, 644.0)]
+PASS: Settings · Audio [P: (248.0, 167.0), S: (8.0, 8.0)]
+PASS: Settings · Controls [P: (230.0, 38.0), S: (820.0, 644.0)]
+PASS: Settings · Controls [P: (248.0, 167.0), S: (8.0, 8.0)]
+PASS: Journal [P: (230.0, 65.0), S: (820.0, 590.0)]
+PASS: Remembered conversations [P: (230.0, 55.0), S: (820.0, 620.0)]
+PASS: Remembered conversations [P: (248.0, 121.0), S: (8.0, 8.0)]
+PASS: Story subtitles [P: (110.0, 405.0), S: (1060.0, 280.0)]
+PASS: Extra-large longest subtitle [P: (110.0, 405.0), S: (1060.0, 280.0)]
+PASS: Opening chapter card [P: (330.0, 155.0), S: (620.0, 480.0)]
+PASS: Ending and credits [P: (260.0, 52.0), S: (760.0, 620.0)]
+PASS: Recovery UI [P: (290.0, 200.0), S: (700.0, 290.0)]
+RESULT: 28/28 headless layout bounds checks passed; no visual inspection claimed
+EXIT requested: 0 mode=load_failure
+Frame 0 - res://scripts/main.gd:163 in function 'finish'
+Frame 1 - res://tests/ui_layout.gd:55 in function 'run'
+Frame 2 - res://tests/ui_layout.gd:17 in function 'bounds'

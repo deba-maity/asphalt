@@ -1,0 +1,20 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+BAKED: rayan
+BAKED: mira
+BAKED: isha
+BAKED: saren
+BAKED: tova
+BAKED: oren
+BAKED: road_bandit
+BAKED: wood_scout
+BAKED: foreman
+BAKED: ledger_guard
+BAKED: ledger_brute
+BAKED: ledger_archer
+BAKED: ledger_elite
+BAKED: captain_varo
+BAKED: lieutenant_kesran
+BAKED: still_warden
+BAKED: marshal_serit
+BAKED: halvek

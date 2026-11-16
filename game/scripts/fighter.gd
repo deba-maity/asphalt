@@ -94,7 +94,7 @@ func _ready() -> void:
 		add_child(yaw)
 		pitch = SpringArm3D.new()
 		pitch.rotation.x = -0.31
-		pitch.spring_length = 5.6
+		pitch.spring_length = 4.25
 		pitch.margin = 0.24
 		var camera_shape = SphereShape3D.new()
 		camera_shape.radius = 0.2
@@ -103,7 +103,7 @@ func _ready() -> void:
 		pitch.add_excluded_object(get_rid())
 		yaw.add_child(pitch)
 		camera = Camera3D.new()
-		camera.fov = 64
+		camera.fov = 59
 		camera.near = 0.1
 		pitch.add_child(camera)
 		camera.current = true
@@ -288,10 +288,11 @@ func _physics_process(delta: float) -> void:
 	total_distance += Vector2(position.x-before.x,position.z-before.z).length()
 	var displacement=position-before
 	figure.animate(delta,model,Vector2(displacement.x,displacement.z).length()/maxf(.001,delta),global_basis.inverse()*displacement)
+	var visual_speed=Vector2(displacement.x,displacement.z).length()/maxf(.001,delta)
+	var contacts_before=figure.foot_placement.contact_count
+	figure.foot_placement.apply(figure,self,model.state,visual_speed)
 	if player:
-		next_step_distance+=Vector2(displacement.x,displacement.z).length()
-		if next_step_distance>0.9 and model.state in ["idle","guard"] and is_on_floor():
-			next_step_distance=0
+		if figure.foot_placement.contact_count>contacts_before and visual_speed>.3 and model.state in ["idle","guard"]:
 			Sound.footstep(Session.data.zone)
 		update_camera_collision(delta)
 	impact_time=maxf(0,impact_time-delta)

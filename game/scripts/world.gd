@@ -14,6 +14,7 @@ var elapsed: float = 0
 var npc_model: CombatModel = CombatModel.new()
 var rng = RandomNumberGenerator.new()
 var coordinator: EncounterCoordinator
+var art_theme: String="morning"
 
 func _ready() -> void:
 	rng.seed = 85171
@@ -58,7 +59,7 @@ func prepare_hero() -> void:
 	hero.camera_focus = Vector3.ZERO
 	hero.yaw.rotation.y = 0
 	hero.pitch.rotation.x = -0.31
-	hero.pitch.spring_length = 5.6
+	hero.pitch.spring_length = 4.25
 	hero.model.max_health = Session.data.max_health
 	hero.model.health = maxf(1,Session.data.health)
 	hero.model.resolve = Session.data.resolve
@@ -84,7 +85,9 @@ func solid_box(size: Vector3, at: Vector3, color: Color, visible_mesh: bool = tr
 	collider.shape = shape
 	body.add_child(collider)
 	if visible_mesh:
-		Figure.box(body,size,Vector3.ZERO,color)
+		var surface=Figure.box(body,size,Vector3.ZERO,color)
+		if size.y>=.5:
+			SurfaceLibrary.apply(surface,"wood" if minf(size.x,size.z)<.6 else "stone",color,1.0)
 	add_child(body)
 	return body
 
@@ -124,43 +127,31 @@ func label(text: String, at: Vector3, size: int = 30, color: Color = Color("efe0
 	l.set_meta("prompt_source",text)
 	l.position = at
 	l.font_size = size
-	l.pixel_size = 0.007
+	l.pixel_size = 0.0045
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.modulate = color
 	l.outline_size = 5
-	l.visibility_range_end = 18
+	l.visibility_range_end = 7.5
 	add_child(l)
 	return l
 
 func build_environment() -> void:
 	var environment = WorldEnvironment.new()
-	var env = Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color("7d949a")
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color("a4b3bd")
-	env.ambient_light_energy = 0.28
-	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
-	env.fog_enabled = true
-	env.fog_light_color = Color("a1a18b")
-	env.fog_density = 0.008
+	var env = ArtDirection.environment("morning")
 	environment.environment = env
 	add_child(environment)
 	sun = DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-37,-32,0)
 	sun.light_color = Color("ffe1b2")
-	sun.light_energy = 0.8
+	sun.light_energy = 1.15
 	sun.shadow_enabled = Preferences.shadows
 	sun.directional_shadow_max_distance = 45
 	add_child(sun)
-	solid_box(Vector3(38,0.5,108),Vector3(0,-0.25,-28),Color("646c4c"))
+	ArtDirection.ground(solid_box(Vector3(38,0.5,108),Vector3(0,-0.25,-28),Color("646c4c")),"morning")
 	for x in [-18.5,18.5]:
 		solid_box(Vector3(1,8,110),Vector3(x,3,-28),Color.BLACK,false)
 	for z in [25,-81]:
 		solid_box(Vector3(38,8,1),Vector3(0,3,z),Color.BLACK,false)
-	for i in 27:
-		var z = 21-i*3.8
-		Figure.box(self,Vector3(7+rng.randf_range(-0.3,0.3),0.045,3.9),Vector3(0,0.008,z),Color("a19370").darkened(rng.randf_range(0,0.07)))
 	for i in 75:
 		var x = rng.randf_range(6,18)*(1 if i%2 == 0 else -1)
 		var z = rng.randf_range(-79,23)
@@ -173,21 +164,25 @@ func build_environment() -> void:
 	for i in 130:
 		var x = rng.randf_range(4.2,13)*(1 if i%2 == 0 else -1)
 		var z = rng.randf_range(-78,-15)
-		for stem in 3:
-			var grass = Figure.cylinder(self,0.085,0,0.5,Vector3(x+stem*0.12,0.22,z),Color("7a8054"),3)
-			grass.rotation.z = (stem-1)*0.3
+		var grass=MeshInstance3D.new()
+		grass.mesh=SceneryGeometry.grass()
+		grass.material_override=SceneryGeometry.leaves_material()
+		grass.position=Vector3(x,0,z)
+		add_child(grass)
 	for i in 13:
-		var mountain = Figure.cylinder(self,15,0,24+rng.randf()*15,Vector3(-75+i*12,7,-108-rng.randf()*15),Color("657579"),5)
-		mountain.rotation.y = rng.randf()*PI
+		rock(Vector3(-75+i*12,1,-108-rng.randf()*15),Vector3(34,40+rng.randf()*24,28))
 
 func tree(at: Vector3, factor: float) -> void:
 	var root = Node3D.new()
 	root.position = at
 	root.scale = Vector3.ONE*factor
 	add_child(root)
-	Figure.cylinder(root,0.22,0.12,3.6,Vector3(0,1.8,0),Color("625342"))
-	for i in 3:
-		Figure.cylinder(root,1.6-i*0.32,0,2.7,Vector3(0,3.4+i*1.15,0),Color("344d46").lightened(i*0.035),6)
+	var variant=int(absf(at.x+at.z))%3
+	for foliage in [false,true]:
+		var part=MeshInstance3D.new()
+		part.mesh=SceneryGeometry.tree(variant,foliage)
+		part.material_override=SceneryGeometry.leaves_material(art_theme) if foliage else SurfaceLibrary.material("wood",Color("73644e"),1.0)
+		root.add_child(part)
 	var body = StaticBody3D.new()
 	body.position = at+Vector3(0,1.5,0)
 	var shape = CollisionShape3D.new()
@@ -200,13 +195,8 @@ func tree(at: Vector3, factor: float) -> void:
 
 func rock(at: Vector3, dimensions: Vector3) -> void:
 	var rock_mesh = MeshInstance3D.new()
-	var mesh = SphereMesh.new()
-	mesh.radial_segments = 5
-	mesh.rings = 2
-	mesh.height = 1
-	mesh.radius = 0.5
-	rock_mesh.mesh = mesh
-	rock_mesh.material_override = Figure.material(Color("777c72"))
+	rock_mesh.mesh = SceneryGeometry.rock(int(absf(at.z))%3)
+	rock_mesh.material_override = SurfaceLibrary.material("stone",Color("85877b"),.65)
 	rock_mesh.position = at
 	rock_mesh.scale = dimensions
 	rock_mesh.rotation.y = rng.randf()*PI
@@ -226,21 +216,31 @@ func roof(at: Vector3, width: float, depth: float) -> void:
 	st.generate_normals()
 	var mesh = MeshInstance3D.new()
 	mesh.mesh = st.commit()
-	var m = Figure.material(Color("795b4c"))
+	var m = SurfaceLibrary.material("wood",Color("685a4c"),1.7)
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mesh.material_override = m
 	mesh.position = at
 	add_child(mesh)
 
 func house(at: Vector3, width: float, depth: float, home: bool = false) -> void:
-	solid_box(Vector3(width,2.8,depth),at+Vector3(0,1.4,0),Color("c0ad87") if home else Color("a59a7c"))
+	SurfaceLibrary.apply(solid_box(Vector3(width,2.8,depth),at+Vector3(0,1.4,0),Color("c0ad87")),"plaster",Color("b9ae96") if home else Color("a59e89"),1.3)
+	SurfaceLibrary.apply(Figure.box(self,Vector3(width+.08,.52,depth+.08),at+Vector3(0,.26,0),Color.WHITE),"stone",Color("8e8c7f"),1.4)
+	# Roof courses and eave depth break the uninterrupted triangular silhouette.
+	for side in [-1,1]:
+		for course in 9:
+			var fraction=(course+.5)/9.0
+			var trim=Figure.box(self,Vector3((width+.6)/18.0+.045,.055,depth+.67),at+Vector3(side*fraction*(width+.6)/2,4.45-fraction*1.65,0),Color.WHITE)
+			trim.rotation.z=-side*atan2(1.65,(width+.6)/2)
+			SurfaceLibrary.apply(trim,"wood",Color("685a4c"),1.7)
+	for side in [-1,1]:
+		SurfaceLibrary.apply(Figure.box(self,Vector3(.16,2.8,depth+.18),at+Vector3(side*width*.5,1.4,0),Color.WHITE),"wood",Color("655647"),1.2)
 	roof(at+Vector3(0,2.8,0),width+0.6,depth+0.6)
 	for x in [-width/2+0.15,width/2-0.15]:
 		Figure.box(self,Vector3(0.13,2.9,0.15),at+Vector3(x,1.45,depth/2+0.03),Color("5a4d3f"))
 	Figure.box(self,Vector3(width,0.12,0.15),at+Vector3(0,2.3,depth/2+0.04),Color("5a4d3f"))
-	Figure.box(self,Vector3(0.9,1.95,0.10),at+Vector3(0,0.98,depth/2+0.06),Color("605545"))
+	SurfaceLibrary.apply(Figure.box(self,Vector3(0.9,1.95,0.10),at+Vector3(0,0.98,depth/2+0.06),Color.WHITE),"wood",Color("605545"),1.4)
 	for x in [-width*0.30,width*0.30]:
-		Figure.box(self,Vector3(0.65,0.75,0.14),at+Vector3(x,1.65,depth/2+0.06),Color("e7bd77"))
+		Figure.box(self,Vector3(0.65,0.75,0.14),at+Vector3(x,1.65,depth/2+0.06),Color("8c7956"))
 		Figure.box(self,Vector3(0.05,0.77,0.18),at+Vector3(x,1.65,depth/2+0.1),Color("554f43"))
 		Figure.box(self,Vector3(0.67,0.06,0.18),at+Vector3(x,1.65,depth/2+0.1),Color("554f43"))
 	Figure.cylinder(self,0.28,0.22,2,at+Vector3(width*0.27,3.5,-0.5),Color("6d7067"),6)
@@ -477,7 +477,7 @@ func talk(key: String, id: String, completion: Callable = Callable(), choice: bo
 	ui.show_dialogue(Session.chapter.dialogue[key],id,func(accepted: bool):
 		hero.model.state = "idle"
 		hero.model.elapsed = 0
-		hero.pitch.spring_length = 5.6
+		hero.pitch.spring_length = 4.25
 		hero.camera_focus = Vector3.ZERO
 		hero.yaw.rotation.y = saved_yaw
 		hero.pitch.rotation.x = saved_pitch

@@ -8,7 +8,7 @@
       "creation_method": "Original procedural weighted skeletal bodies in game/scripts/character_skin.gd, rig and equipment in figure.gd, committed via game/tests/bake_characters.gd",
       "author": "ASHEN VOW contributors",
       "license": "MIT",
-      "modifications": "18 rebaked role scenes: continuous weighted elbow/knee geometry, shaped torso and smaller heads, original equipment retained. No mocap or external models. Rendered acceptance outstanding.",
+      "modifications": "rc.3: UV/tangent-equipped weighted skins, ankle/coat/scarf bones, fingers, layered armour, boots/belt/pouches and a tapered sword; 18 rebaked roles. No external models or mocap.",
       "runtime_files": [
         "characters/captain_varo.tscn",
         "characters/foreman.tscn",
@@ -34,14 +34,16 @@
     {
       "id": "asset_animation",
       "source_url": null,
-      "creation_method": "Original pose targets with explicit anticipation/active/recovery weights; analytic hard-jointed leg solution driven by measured displacement; authored in figure.gd and animation_policy.gd.",
+      "creation_method": "Original eight-key combat clips, bounded distance-driven gait, world-space ground contacts with two-bone IK, quaternion pose transitions and damped secondary cloth animation.",
       "author": "ASHEN VOW contributors",
       "license": "MIT",
       "modifications": "Original; no third-party skeleton or animation",
       "runtime_files": [
         "../content/poses.json",
         "../scripts/figure.gd",
-        "../scripts/animation_policy.gd"
+        "../scripts/animation_policy.gd",
+        "../scripts/combat_motion.gd",
+        "../scripts/foot_placement.gd"
       ],
       "attribution_requirements": "Retain root MIT notice"
     },
@@ -51,11 +53,16 @@
       "creation_method": "Original procedural environments in world.gd and campaign_zone.gd: village/aftermath, mill/drained return, fortress/bridge, Counting Shore, Dawn Court and memorial; static geometry instanced.",
       "author": "ASHEN VOW contributors",
       "license": "MIT",
-      "modifications": "Pass three: purposeful bird/bowl/books/letters, original Ledger insignia, home table, baker awning, route lanterns and court strips. Decorative shapes have no blocking collision.",
+      "modifications": "rc.3: original branching opaque-leaf trees, irregular rocks, grass blades, ground blending, textured masonry/timber and roof courses, sky/fog/light treatment and closer collision-aware camera.",
       "runtime_files": [
         "../scripts/world.gd",
         "../scripts/campaign_zone.gd",
-        "../scripts/scenery_details.gd"
+        "../scripts/scenery_details.gd",
+        "../scripts/scenery_geometry.gd",
+        "../scripts/art_direction.gd",
+        "../scripts/surface_library.gd",
+        "surfaces/ground.gdshader",
+        "surfaces/foliage.gdshader"
       ],
       "attribution_requirements": "Retain root MIT notice"
     },
@@ -128,6 +135,31 @@
       "runtime_files": [
         "branding/ashen-vow.svg",
         "branding/ashen-vow.png"
+      ],
+      "attribution_requirements": "Retain root MIT notice"
+    },
+    {
+      "id": "asset_surface_maps",
+      "source_url": null,
+      "creation_method": "Original deterministic periodic noise, masonry, grain and weave patterns authored in tools/author_surfaces.py; fourteen 512px color/normal maps.",
+      "author": "ASHEN VOW contributors",
+      "license": "MIT",
+      "modifications": "Original; no downloaded textures, scans or images.",
+      "runtime_files": [
+        "surfaces/cloth.png",
+        "surfaces/cloth_normal.png",
+        "surfaces/earth.png",
+        "surfaces/earth_normal.png",
+        "surfaces/leather.png",
+        "surfaces/leather_normal.png",
+        "surfaces/plaster.png",
+        "surfaces/plaster_normal.png",
+        "surfaces/steel.png",
+        "surfaces/steel_normal.png",
+        "surfaces/stone.png",
+        "surfaces/stone_normal.png",
+        "surfaces/wood.png",
+        "surfaces/wood_normal.png"
       ],
       "attribution_requirements": "Retain root MIT notice"
     }

@@ -1,3 +1,11 @@
+# Current asset pipeline: 0.4.0-rc.3
+
+See [visual-revision.md](visual-revision.md) and the asset manifest for the current weighted, textured meshes, foot placement, original material maps and environment geometry. The pass-three descriptions below are historical. All new content remains original MIT-licensed work.
+
+# Current asset pipeline: 0.4.0-rc.3
+
+See [visual-revision.md](visual-revision.md) and the asset manifest for the current weighted, textured character meshes, foot placement, original material maps and environment geometry. The pass-three descriptions below are historical and no longer describe the current rig/material limitations. All new content remains original MIT-licensed work.
+
 # Asset pipeline and provenance — pass three
 
 Pass three adds original `scenery_details.gd` props: thread-mended wooden bird, bowl/last crust, book/letter evidence, three-loop Ledger signs, home table, baker awning, route lanterns and court pattern strips. They reinforce existing story/route motifs. Decorative additions have no blocking collision. Palette changes distinguish warmth, cinders, cold pursuit, the realm, return and dawn. No concept images are offered as game evidence.

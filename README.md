@@ -1,6 +1,6 @@
 # ASHEN VOW
 
-**Current source: 0.4.0-rc.2 animation revision.** Weighted skeletal bodies replace the original rigid body parts across all 18 roles. Directional gait, quaternion pose transitions, continuous attack release and pelvis/head follow-through are implemented. Read [animation revision](docs/animation-revision.md) for actual checks and limits. This is an unreviewed visual development candidate; AAA animation quality has not been attained. The older 0.4.0-rc.1 archive/evidence below remains historical and is not silently replaced.
+**Current source: 0.4.0-rc.3 visual and motion revision.** Ground-aware foot placement, authored multi-key attack clips, layered character clothing, textured materials, branching foliage, revised ground/sky and a closer camera. Read [visual revision](docs/visual-revision.md) for changes, verification and remaining limits. AAA quality is not attained; graphical game and target-laptop acceptance remain outstanding. The older rc.1 archive/evidence below remains historical.
 
 An original offline, single-player, third-person sword adventure. Rayan begins with family and paid protection work; **six playable chapters** lead through revenge, a costly resurrection and an ending with credits. Checkpoints, save migration and chapter replay are implemented. Native **Godot 4.7.2 stable standard / GDScript / Compatibility**, no Electron or runtime network dependency.
 

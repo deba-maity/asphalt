@@ -1,18 +1,27 @@
 {
-  "format": "ashen-articulated-v1",
+  "format": "ashen-skinned-v3",
   "author": "ASHEN VOW contributors, created with Codex assistance",
   "license": "MIT",
-  "method": "Original low-polygon hard-jointed figure; editable GDScript mesh construction and JSON poses. No external skeleton or downloaded animations.",
-  "geometry_source": "game/scripts/figure.gd",
-  "animation_source": "game/content/poses.json",
+  "method": "Original weighted skeletal meshes with UVs/tangents, layered equipment and original material maps; no downloaded model or animation.",
+  "geometry_source": [
+    "game/scripts/figure.gd",
+    "game/scripts/character_skin.gd",
+    "game/scripts/weapon_geometry.gd"
+  ],
+  "animation_source": [
+    "game/content/poses.json",
+    "game/scripts/combat_motion.gd",
+    "game/scripts/animation_policy.gd",
+    "game/scripts/foot_placement.gd"
+  ],
   "baker": "game/tests/bake_characters.gd",
   "runtime": "game/assets/characters/*.tscn",
   "role_variants": "18 runtime scenes. Original guard shields, archer bow/quiver, wide heavy weapons, elite/Warden headgear, and Ledger three-loop cord are authored in figure.gd and baked with the common articulated rig.",
   "units": "one Godot unit = one metre",
   "orientation": "Y up, -Z forward",
   "adult_height_metres": 1.9,
-  "hierarchy": "hips > torso > head / arm_l > elbow_l > hand_l / arm_r > elbow_r > hand_r > weapon; hips > leg_l > knee_l / leg_r > knee_r",
+  "hierarchy": "hips > torso > head / arm_l > elbow_l > hand_l / arm_r > elbow_r > hand_r > weapon; hips > leg_l > knee_l > ankle_l / leg_r > knee_r > ankle_r; hips > coat_l / coat_r; torso > scarf_tail",
   "weapon_attachment": "right hand, local negative Y blade axis; grip centred at hand",
-  "animation_policy": "In-place physics-driven movement. Measured horizontal displacement drives a stance/return cycle with analytic two-link hard-jointed legs. Authored anticipation/active/recovery weights share the combat clock; hit/death/attack owns its pose. Exponential blending handles other states. Terrain-aware planted-foot IK is not implemented.",
-  "limitations": "Hard joints, no skin deformation, finger motion, facial animation, IK or exact planted-foot solver. These are original stylized fallback assets, not motion capture or production-polished animation."
+  "animation_policy": "Distance-driven bounded cadence, combat-clock-authored eight-key melee clips, quaternion state transitions, ground raycast world-space foot locks and two-bone IK, pelvis reach adjustment, ankle ground alignment and damped secondary cloth bones.",
+  "limitations": "Original procedural characters, not production sculpted assets. No mocap, facial animation or articulated finger animation. Rendered acceptance, residual clipping and target-GPU performance remain unverified."
 }

@@ -1,0 +1,7 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+POSE idle hand=(0.393132, 0.930041, -0.343745) tip=(0.508187, 0.271451, -1.153387) shoulder=(15.0, 0.0, 8.0)
+POSE run hand=(0.413523, 0.829542, -0.207476) tip=(0.573635, 0.118999, -0.963778) shoulder=(-3.738471, 0.0, 12.0)
+POSE cut hand=(-0.218237, 1.158728, -0.721455) tip=(-0.972144, 0.755816, -1.331197) shoulder=(77.21296, -14.90161, -28.43286)
+POSE heavy hand=(-0.213694, 0.812263, -0.679584) tip=(-0.960556, 0.36414, -1.266) shoulder=(71.21296, 8.137732, -8.13773)
+Exported isolated posed asset geometry for offline inspection

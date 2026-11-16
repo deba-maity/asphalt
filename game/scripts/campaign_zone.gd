@@ -62,34 +62,24 @@ func add_rest(id: String, at: Vector3) -> void:
 
 func build_setting() -> void:
 	var theme: String = definition.theme
+	art_theme=theme
 	var realm = theme=="ashes"
 	var night = theme=="cinders"
 	var environment=WorldEnvironment.new()
-	var env=Environment.new()
-	env.background_mode=Environment.BG_COLOR
-	var palettes={"morning":"a9afa0","cinders":"343b42","mill":"708b98","fortress":"6a7e8d","ashes":"25323b","returned":"747f94","dawn":"b2a58e","court":"bcae90","memorial":"b1b39d"}
-	env.background_color=Color(palettes.get(theme,"81969d"))
-	env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color=Color("9fbbcc")
-	env.ambient_light_energy=.4 if realm or night else .3
-	env.fog_enabled=true
-	env.fog_density=.014 if realm else .006
-	env.fog_light_color=env.background_color
+	var env=ArtDirection.environment(theme)
 	environment.environment=env
 	add_child(environment)
 	sun=DirectionalLight3D.new()
 	sun.rotation_degrees=Vector3(-35,-28,0)
 	sun.light_color=Color("a8d3e5") if realm else (Color("c8d7e4") if theme in ["mill","fortress","returned"] else Color("ffe0ae"))
-	sun.light_energy=.45 if night else .75
+	sun.light_energy=.65 if night else 1.1
 	sun.shadow_enabled=Preferences.shadows and not realm
 	sun.directional_shadow_max_distance=38
 	add_child(sun)
 	var length: float=definition.length
-	solid_box(Vector3(36,.5,length+30),Vector3(0,-.25,(-length+14)/2),Color("475965") if realm else (Color("514c43") if night else Color("6c7358")))
+	ArtDirection.ground(solid_box(Vector3(36,.5,length+30),Vector3(0,-.25,(-length+14)/2),Color.WHITE),theme)
 	for x in [-18,18]: solid_box(Vector3(.5,8,length+30),Vector3(x,3,(-length+14)/2),Color.BLACK,false)
 	for z in [15,-length-4]: solid_box(Vector3(36,8,.5),Vector3(0,3,z),Color.BLACK,false)
-	for i in int((length+22)/4):
-		Figure.box(self,Vector3(7,.04,4.1),Vector3(0,.025,11-i*4),Color("a0a2a0") if realm else Color("9a8b6b"))
 	if realm:
 		for i in 18:
 			var at=Vector3((-1 if i%2 else 1)*rng.randf_range(6,15),rng.randf_range(1,6),-i*4)
@@ -99,6 +89,12 @@ func build_setting() -> void:
 		for i in 23:
 			var at=Vector3((1 if i%2 else -1)*rng.randf_range(12,17),0,rng.randf_range(-length,12))
 			tree(at,rng.randf_range(.65,1.15))
+	for i in (0 if realm else 100):
+		var grass=MeshInstance3D.new()
+		grass.mesh=SceneryGeometry.grass()
+		grass.material_override=SceneryGeometry.leaves_material(theme)
+		grass.position=Vector3((1 if i%2 else -1)*rng.randf_range(3.8,16),0,rng.randf_range(-length,12))
+		add_child(grass)
 	for i in 9:
 		rock(Vector3((1 if i%2 else -1)*14,0,-i*9),Vector3(3,2,3))
 

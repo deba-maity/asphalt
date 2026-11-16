@@ -1,0 +1,3 @@
+Passed: C:\Users\debajyothi.m\wuk\ashen-vow\tools\logs\build-import.log
+Passed: C:\Users\debajyothi.m\wuk\ashen-vow\tools\logs\export.log
+Built C:\Users\debajyothi.m\wuk\ashen-vow\exports\windows\AshenVow.exe (0.4.0-rc.3, unsigned).
