@@ -89,6 +89,22 @@ func run() -> void:
 	check(hero.yaw.global_position.distance_to(hero.position)<4,"Camera settles around the interpolated encounter")
 	check(hero.camera.fov>=55 and hero.camera.fov<=62,"Camera field of view stays within the comfort range")
 	check(hero.pitch.spring_length>=3.6 and hero.pitch.spring_length<=4.6,"Encounter framing has bounded camera distance")
+	check(hero.camera.get_parent()!=hero.pitch and hero.camera.get_parent().get_parent()==hero.pitch,"Camera easing uses a separate spring-arm collision mount")
+	hero.position=Vector3(0,.04,0); hero.rotation.y=0; hero.velocity=Vector3.ZERO
+	main.world.warden.position=Vector3(0,.04,-4)
+	hero.reset_physics_interpolation()
+	var obstruction=main.world.solid_box(Vector3(6,8,.4),Vector3(0,2,2),Color.GRAY)
+	await frames(40)
+	var constrained_distance=hero.camera.global_position.distance_to(hero.yaw.global_position)
+	check(hero.pitch.get_hit_length()<2.7 and constrained_distance<=hero.pitch.get_hit_length()+.02,"Trial camera retracts inside an actual wall constraint")
+	obstruction.queue_free()
+	await frames(3)
+	var released_distance=hero.camera.global_position.distance_to(hero.yaw.global_position)
+	check(released_distance<hero.pitch.get_hit_length()-.3 and released_distance>=constrained_distance-.05,"Removing an obstruction eases the camera outward without snapping")
+	var pillars=main.world.find_children("PillarCollision","StaticBody3D",true,false)
+	var outside=pillars.size()==8
+	for pillar in pillars: outside=outside and Vector2(pillar.global_position.x,pillar.global_position.z).length()>12
+	check(outside,"Collidable courtyard columns remain outside the fighting ring")
 	check(hero.figure.interpolator.ready,"Runtime captures post-IK poses for rendering")
 	check(PerformanceMotion.stride("Jog_Right")<PerformanceMotion.stride("Jog_Fwd"),"Directional gait uses its own authored stride")
 	check(hero.figure.phase_offsets.Jog_Left!=hero.figure.phase_offsets.Jog_Fwd,"Lateral gait has a measured contact phase")

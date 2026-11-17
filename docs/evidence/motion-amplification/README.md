@@ -1,6 +1,6 @@
 # Motion amplification evidence
 
-Source regression: **413/413 assertions passed**, plus full campaign traversal, Continue, quit and resume transition checks. The focused trial passes 48 checks at 30/60 actual physics ticks; motion quality passes 47 at each rate; physical combat passes 18 at each rate. Test logs describe stress fixtures and do not establish natural human play or rendered quality.
+Source regression: **417/417 assertions passed**, plus full campaign traversal, Continue, quit and resume transition checks. The focused trial passes 48 checks at 30/60 actual physics ticks; motion quality passes 51 at each rate; physical combat passes 18 at each rate. Test logs describe stress fixtures and do not establish natural human play or rendered quality.
 
 The Windows candidate is built as 0.6.0-rc.1. Portable verification and the still-running endurance results are recorded separately when complete. The three-hour run uses an early frozen candidate; the later 90-minute run uses the corrected runtime. These scopes must not be conflated.
 

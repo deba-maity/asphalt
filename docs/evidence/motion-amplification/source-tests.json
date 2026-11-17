@@ -1,6 +1,8 @@
 {
   "status": "passed",
-  "scope": "headless source; no rendered or input/audio acceptance",
+  "scope": "final camera/court runtime; headless source; no rendered or input/audio acceptance",
+  "assertions": 417,
+  "completed_utc": "2026-11-17T06:21:29.203294+00:00",
   "checks": [
     {
       "name": "unit_tests",
@@ -8,8 +10,8 @@
       "checks": [
         "RESULT: 31/31 checks passed"
       ],
-      "original_log_sha256": "8d38678dacdc9e2f0bad43a51d4a07c5d6ed052e5ede532f1f055b324326b46e",
       "log_sha256": "2019345449fe559f5d9a74dd4aeb28819484198ace93941d8202acf26bdf2b82",
+      "original_log_sha256": "8d38678dacdc9e2f0bad43a51d4a07c5d6ed052e5ede532f1f055b324326b46e",
       "log_encoding": "UTF-8, normalized LF; original capture digest retained separately"
     },
     {
@@ -18,8 +20,8 @@
       "checks": [
         "RESULT: 34/34 campaign logic checks passed"
       ],
-      "original_log_sha256": "13cd6facc3fe4a7a951af44ffa8e2e2d5aa1d23077b015879a3150c79df45298",
       "log_sha256": "5c83ca09b1afdce7607464172bdf65323a8687827728ffdd1011b8524277bd1e",
+      "original_log_sha256": "13cd6facc3fe4a7a951af44ffa8e2e2d5aa1d23077b015879a3150c79df45298",
       "log_encoding": "UTF-8, normalized LF; original capture digest retained separately"
     },
     {
@@ -28,8 +30,8 @@
       "checks": [
         "RESULT: 30/30 headless layout bounds checks passed; no visual inspection claimed"
       ],
-      "original_log_sha256": "35b26896644ea6f9a32289ab6641c2226332c3068d67b16b53ea4e01de73695d",
       "log_sha256": "1a0bbac2a7a00707db251b2c77cc7c6305638bad6d584cefd33045f8de46a2b9",
+      "original_log_sha256": "35b26896644ea6f9a32289ab6641c2226332c3068d67b16b53ea4e01de73695d",
       "log_encoding": "UTF-8, normalized LF; original capture digest retained separately"
     },
     {
@@ -38,8 +40,8 @@
       "checks": [
         "RESULT: 42/42 skeletal/animation checks passed; rendered acceptance not performed"
       ],
-      "original_log_sha256": "263a5d86e82cc77dfaff3cedaaaf1306fb440e5bb655f7e46780c4be5911e98d",
       "log_sha256": "af7bf07213b3afd0ba99875e654909f1726e8fd24482b0545c894e98c4cfc3f5",
+      "original_log_sha256": "263a5d86e82cc77dfaff3cedaaaf1306fb440e5bb655f7e46780c4be5911e98d",
       "log_encoding": "UTF-8, normalized LF; original capture digest retained separately"
     },
     {
@@ -48,8 +50,8 @@
       "checks": [
         "RESULT: 40/40 motion/geometry checks passed"
       ],
-      "original_log_sha256": "b214b8da832498a90351927df7083fec5c89ae76b7573a93a72f87e3281e4af8",
       "log_sha256": "08c9e2d008cd928a835b2a99d1631f651a3523c96586ffbbe0fdc03e5d5b1a38",
+      "original_log_sha256": "b214b8da832498a90351927df7083fec5c89ae76b7573a93a72f87e3281e4af8",
       "log_encoding": "UTF-8, normalized LF; original capture digest retained separately"
     },
     {
@@ -58,8 +60,8 @@
       "checks": [
         "RESULT: 22/22 checks passed"
       ],
-      "original_log_sha256": "51bdee5966a0a1fd9f91aeaf98b292ee6dc732e2b960763dfb3ef356a09f7fed",
       "log_sha256": "7379686c8036be6df2f7877831d5bcc99c50e03e321077e8a32bd15ea61d8095",
+      "original_log_sha256": "51bdee5966a0a1fd9f91aeaf98b292ee6dc732e2b960763dfb3ef356a09f7fed",
       "log_encoding": "UTF-8, normalized LF; original capture digest retained separately"
     },
     {
@@ -68,8 +70,8 @@
       "checks": [
         "RESULT: 63/63 transition/system checks passed"
       ],
-      "original_log_sha256": "eb1e878449e9ba48fbba3a6b3c6dda833edef0982bfaf0422de1ebf7348d8026",
-      "log_sha256": "83858e5d4873c1e7f44db02278a897bf4d58d47dd5e28e8049c7093caf9ef04a",
+      "log_sha256": "446f87546c42288d52d8e665d68780b84282f80d15da0d861e0a4e2341996098",
+      "original_log_sha256": "8cfefab892cfe04f1d06f3341121badb1ec1c7d294f8704012d60a5b0bd10c8c",
       "log_encoding": "UTF-8, normalized LF; original capture digest retained separately"
     },
     {
@@ -78,8 +80,8 @@
       "checks": [
         "RESULT: 38/38 pass-three behavior checks passed"
       ],
-      "original_log_sha256": "8afdeb75c2eae760bf1d6a2e1106d706348e862abc1399c1d827f3874436f348",
-      "log_sha256": "892fb1ad4b09c17dd4bbe62505a9990940b6362c6c86ff964eb34b31f65ea899",
+      "log_sha256": "654cfeecdb8d8d205f1c7cdd6deb2188aa3c567e69b10435bf59f606ca7a9997",
+      "original_log_sha256": "52d16c2a248f85e8e323e0df1e5203d86efe0e351171e0cd1e30a69f504913b8",
       "log_encoding": "UTF-8, normalized LF; original capture digest retained separately"
     },
     {
@@ -88,18 +90,18 @@
       "checks": [
         "RESULT: 48/48 trial checks passed; headless, no rendered quality claim"
       ],
-      "original_log_sha256": "a03a8c34176e555e1969cdd6cf1ad96276f000c04ed223701f5127f2838a2eb0",
       "log_sha256": "b6c065c8439656044b8b7dac8867fc730e3290d5131eb08361ec047521418b18",
+      "original_log_sha256": "a03a8c34176e555e1969cdd6cf1ad96276f000c04ed223701f5127f2838a2eb0",
       "log_encoding": "UTF-8, normalized LF; original capture digest retained separately"
     },
     {
       "name": "test-motion-quality",
       "status": "passed",
       "checks": [
-        "RESULT: 47/47 motion quality checks passed; 60 physics ticks"
+        "RESULT: 51/51 motion quality checks passed; 60 physics ticks"
       ],
-      "original_log_sha256": "b0210d18f2cbb408813843783ecefa759765147fe7ea9fcd1ebbd8f263b3591b",
-      "log_sha256": "9fd3db8c4f252d93ad3a9327362f35500a08d3e071419d7f1ace51db119841de",
+      "log_sha256": "01c9b7399b5304bd5983473b4b2d6222627b977da00d1c6e736c5ce9ffe35932",
+      "original_log_sha256": "83913fdff34a03f91e164f8e55532567ee608684e259b9fe3ad96c7992edfc53",
       "log_encoding": "UTF-8, normalized LF; original capture digest retained separately"
     },
     {
@@ -108,24 +110,24 @@
       "checks": [
         "RESULT: 18/18 physical combat checks passed; 60 physics ticks"
       ],
-      "original_log_sha256": "507d6ddd5ff1836e6ada601d011b1b695c35f62e1456bfa24e5549684255bedd",
       "log_sha256": "93f8650763c6785a6e67531c116a988b2046f3b7b31d64337901ca2c6d12620c",
+      "original_log_sha256": "507d6ddd5ff1836e6ada601d011b1b695c35f62e1456bfa24e5549684255bedd",
       "log_encoding": "UTF-8, normalized LF; original capture digest retained separately"
     },
     {
       "name": "test-quit-transition",
       "status": "passed",
       "checks": [],
-      "original_log_sha256": "fcd61b6706639792b6a343675c18d45397e55ba58d6bc6f6e0a936c458bae810",
       "log_sha256": "6f12c7c720e054b6b4fd25eaa068fd903292b0fbe5013a0c5b5b0a98e4338d17",
+      "original_log_sha256": "fcd61b6706639792b6a343675c18d45397e55ba58d6bc6f6e0a936c458bae810",
       "log_encoding": "UTF-8, normalized LF; original capture digest retained separately"
     },
     {
       "name": "test-resume-transition",
       "status": "passed",
       "checks": [],
-      "original_log_sha256": "cf63b0e7ced559eb8d31fd60cdea5479714ba5dd514ebedf2c3dcb1b834cee53",
       "log_sha256": "7104ae3f04dde03d7a4ea5f2248b289c5678be7aacc6adc2c620fe7264bec76a",
+      "original_log_sha256": "cf63b0e7ced559eb8d31fd60cdea5479714ba5dd514ebedf2c3dcb1b834cee53",
       "log_encoding": "UTF-8, normalized LF; original capture digest retained separately"
     },
     {
@@ -134,8 +136,8 @@
       "checks": [
         "PLAY: PASS: all six chapters, canonical death/resurrection, five later named confrontations, memorial and credits."
       ],
-      "original_log_sha256": "b140207f98184359cb415f800b8bf37b4dc4c403d405c6390cc7ad3f04dcb140",
-      "log_sha256": "3c690bde1fbfbdd41cbe065c1212e4d787e771db43904f7be15aa47b213c38b0",
+      "log_sha256": "711f29f77c69be915f549066fb5b55d6c26e08644ba61056de532f605c5270e4",
+      "original_log_sha256": "d10dcc96d8811bed82f9d02484531f01c8601ba24ec7b7115f3f952a60041a67",
       "log_encoding": "UTF-8, normalized LF; original capture digest retained separately"
     },
     {
@@ -144,11 +146,9 @@
       "checks": [
         "PLAY: Relaunch Continue restored ending, credits, memorial and exactly one canonical death/resurrection."
       ],
-      "original_log_sha256": "dd47969d86e401983f916c7ad77d1f390d5a1c8b36bdffe4d475ca0153a1044e",
       "log_sha256": "f62289c1172783dfd631591cd4775d89224b12aad9155704a41ba6c465be284b",
+      "original_log_sha256": "dd47969d86e401983f916c7ad77d1f390d5a1c8b36bdffe4d475ca0153a1044e",
       "log_encoding": "UTF-8, normalized LF; original capture digest retained separately"
     }
-  ],
-  "assertions": 413,
-  "completed_utc": "2026-11-17T05:57:57.093668+00:00"
+  ]
 }

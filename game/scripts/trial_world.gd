@@ -32,6 +32,7 @@ func _ready() -> void:
 	hero.pitch.rotation.x=-.24
 	hero.camera.fov=56
 	hero.smooth_camera_distance=3.7
+	hero.previous_camera_distance=3.7
 	hero.camera_focus=Vector3(.25,-.05,0)
 	warden=Fighter.new()
 	warden.use_performance=true
@@ -109,8 +110,15 @@ func build_court() -> void:
 		cap.rotation.y=angle
 	for i in 8:
 		var angle=TAU*i/8
-		var base=Vector3(sin(angle)*10.8,0,cos(angle)*10.8)
+		# Keep the colonnade outside the fighting ring. Decorative columns must
+		# neither intersect the fighters nor create unplanned AI cover pockets.
+		var base=Vector3(sin(angle)*13.4,0,cos(angle)*13.4)
 		var pillar=Node3D.new(); pillar.position=base; add_child(pillar)
+		var collision=StaticBody3D.new(); collision.name="PillarCollision"
+		collision.collision_layer=1; collision.collision_mask=0
+		var shape=CollisionShape3D.new(); var box=BoxShape3D.new()
+		box.size=Vector3(1.1,3.85,1.1); shape.shape=box; shape.position.y=1.925
+		collision.add_child(shape); pillar.add_child(collision)
 		Figure.box(pillar,Vector3(1.1,.3,1.1),Vector3.UP*.15,Color("888b81"))
 		for row in 6:
 			var block=Figure.box(pillar,Vector3(.70,.48,.7),Vector3.UP*(.55+row*.5),Color("757a73"))

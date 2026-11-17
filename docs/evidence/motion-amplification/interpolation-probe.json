@@ -1,0 +1,9 @@
+{
+  "between_tick_samples": 76,
+  "engine": "4.7.2-stable (official)",
+  "maximum_position_error_m": 0.0,
+  "passed": true,
+  "physics_hz": 10,
+  "rendered": false,
+  "teleport_reset_error_m": 0.0
+}

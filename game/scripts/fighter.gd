@@ -47,6 +47,7 @@ var intent: ActionBuffer=ActionBuffer.new()
 var next_step_distance: float=0
 var shake_time: float=0
 var smooth_camera_distance: float=5.6
+var previous_camera_distance: float=5.6
 var camera_obstruction: bool=false
 var impact_ring: MeshInstance3D
 var impact_time: float=0
@@ -123,7 +124,12 @@ func _ready() -> void:
 		camera = Camera3D.new()
 		camera.fov = 59
 		camera.near = 0.1
-		pitch.add_child(camera)
+		if use_performance:
+			# SpringArm owns its direct child's position. A mount lets the camera
+			# retain an inward offset while easing back out after obstruction.
+			var mount=Node3D.new(); mount.name="CollisionMount"
+			pitch.add_child(mount); mount.add_child(camera)
+		else: pitch.add_child(camera)
 		camera.current = true
 		Preferences.input_reset.connect(clear_intent)
 		if use_performance: add_child(TrialCamera.new())
@@ -569,6 +575,7 @@ func update_camera_collision(delta: float) -> void:
 	var safe=pitch.get_hit_length()
 	if safe<=0: safe=.18
 	camera_obstruction=safe<pitch.spring_length-.15
+	previous_camera_distance=smooth_camera_distance
 	smooth_camera_distance=minf(safe,move_toward(smooth_camera_distance,safe,delta*5))
 	camera.position.z=minf(0,smooth_camera_distance-safe)
 	shake_time=maxf(0,shake_time-delta)

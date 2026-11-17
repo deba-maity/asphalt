@@ -16,9 +16,9 @@ The improvements are implemented in the playable project. The underlying charact
 
 ## Presentation and sound
 
-The camera follows interpolated movement, eases encounter framing and changes field of view modestly during sprinting. Short blade ribbons and bounded impact particles follow contact; reduced-effects settings suppress them. The trial HUD removes the campaign objective panel, separates messages from the boss bar and shows delayed damage on the boss health display.
+The camera follows interpolated movement, eases encounter framing and changes field of view modestly during sprinting. A separate spring-arm collision mount preserves the camera offset: wall retraction is immediate, while outward release is interpolated. Short blade ribbons and bounded impact particles follow contact; reduced-effects settings suppress them. The trial HUD removes the campaign objective panel, separates messages from the boss bar and shows delayed damage on the boss health display.
 
-The courtyard uses CC0 Poly Haven stone/ground maps, mossy rock meshes, a castle door and forest panorama. Architectural edges are beveled. Character and environment textures use mipmaps and high-quality compressed imports up to 2048 pixels. Sources are pinned in the provenance files; game startup makes no network requests.
+The courtyard uses CC0 Poly Haven stone/ground maps, mossy rock meshes, a castle door and forest panorama. Architectural edges are beveled. The collidable colonnade sits outside the fighting ring, leaving the duel floor clear. Character and environment textures use mipmaps and high-quality compressed imports up to 2048 pixels. Sources are pinned in the provenance files; game startup makes no network requests.
 
 Seventeen CC0 Kenney foley clips play through a bounded spatial voice pool, with contact-driven steps, variation and restrained room reverb. An original 16-bar D-minor score uses CC0 VSCO 2 Community Edition instrument recordings. Its two 48-second PCM stems share one synchronized stream; the second layer rises during the Warden's second phase without restarting the music.
 

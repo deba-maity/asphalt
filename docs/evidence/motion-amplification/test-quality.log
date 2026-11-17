@@ -37,7 +37,7 @@ PASS: Authored animation/damage clock recovers coherently at 30 FPS
 PASS: Authored animation/damage clock recovers coherently at 60 FPS
 PASS: Analytic leg solution has a bent knee at 30 Hz
 PASS: Analytic leg solution has a bent knee at 60 Hz
-BENCHMARK_REPORT C:/Users/debajyothi.m/AppData/Roaming/AshenVow/benchmarks/2026-11-17T00-53-20-3372977/report.json
+BENCHMARK_REPORT C:/Users/debajyothi.m/AppData/Roaming/AshenVow/benchmarks/2026-11-17T01-15-49-2033201/report.json
 PASS: Benchmark report separates headless measurements from rendered telemetry
 RESULT: 38/38 pass-three behavior checks passed
 EXIT requested: 0 mode=play

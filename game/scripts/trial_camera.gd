@@ -38,6 +38,12 @@ func _process(delta: float) -> void:
 	var speed=Vector2(actor.velocity.x,actor.velocity.z).length()
 	var desired_fov=56.0+smoothstep(3.8,6.0,speed)*5.0
 	actor.camera.fov=lerpf(actor.camera.fov,desired_fov,1-exp(-delta*4))
+	var safe=actor.pitch.get_hit_length()
+	var fraction=Engine.get_physics_interpolation_fraction() if get_tree().is_physics_interpolation_enabled() else 1.0
+	var eased_distance=lerpf(actor.previous_camera_distance,actor.smooth_camera_distance,fraction)
+	# Inward correction is immediate. Outward movement follows the interpolated
+	# distance, while the spring arm positions the separate collision mount.
+	actor.camera.position.z=minf(0,eased_distance-safe)
 	var amount=clampf(actor.shake_time/.12,0,1)
 	actor.camera.h_offset=sin(clock*71)*.025*amount*amount if Preferences.camera_shake else 0
 	actor.camera.v_offset=sin(clock*53)*.012*amount*amount if Preferences.camera_shake else 0

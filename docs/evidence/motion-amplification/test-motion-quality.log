@@ -21,6 +21,10 @@ PASS: Reduced effects suppress particles
 PASS: Camera settles around the interpolated encounter
 PASS: Camera field of view stays within the comfort range
 PASS: Encounter framing has bounded camera distance
+PASS: Camera easing uses a separate spring-arm collision mount
+PASS: Trial camera retracts inside an actual wall constraint
+PASS: Removing an obstruction eases the camera outward without snapping
+PASS: Collidable courtyard columns remain outside the fighting ring
 PASS: Runtime captures post-IK poses for rendering
 PASS: Directional gait uses its own authored stride
 PASS: Lateral gait has a measured contact phase
@@ -47,8 +51,8 @@ PASS: Trial toast and boss bar do not overlap
 PASS: Trial uses the compact encounter HUD
 PASS: Defeat creates a physical dropped weapon
 PASS: Released weapon is not also shown in the hand
-RESULT: 47/47 motion quality checks passed; 60 physics ticks
+RESULT: 51/51 motion quality checks passed; 60 physics ticks
 EXIT requested: 0 mode=play
 Frame 0 - res://scripts/main.gd:182 in function 'finish'
-Frame 1 - res://tests/motion_quality_tests.gd:157 in function 'run'
+Frame 1 - res://tests/motion_quality_tests.gd:173 in function 'run'
 Frame 2 - res://tests/motion_quality_tests.gd:13 in function 'frames'
