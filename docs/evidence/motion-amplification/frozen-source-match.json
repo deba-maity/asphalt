@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "source_commit": "d6eb9e79ddd80eec37de3f5e0786d9c3e6ee0734",
+  "game_tree_git_id": "7f53bdbf231eb4e62fd9e91d8fef007f05745dd9",
+  "tracked_game_files_checked": 386,
+  "mismatches": [],
+  "normalization": "CRLF to LF for GDScript, XML/SVG, configs, JSON and license text. Binary art/audio and pinned glTF are byte-compared. The isolated Godot user directory override is undone before comparison.",
+  "snapshot": "amplify-final-court-20261117",
+  "source_archive_sha256": "212848635b224b19068cb74fea148fa0dbae935f35e1ac43ea54780154693408",
+  "note": "Verifies the final endurance candidate against the source archive used for the portable build, after the stated text normalization. This is not rendered acceptance."
+}

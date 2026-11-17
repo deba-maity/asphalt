@@ -1,5 +1,7 @@
 # Pass-four release verification
 
+This is the historical **0.4.0-rc.1** record. For the current **0.6.0-rc.1** trial, use [motion amplification evidence](evidence/motion-amplification/). Historical executable hashes and acceptance statements below apply only to their named candidate.
+
 Client date: **2026-11-16**. Exact engine: Godot **4.7.2 stable standard**, Compatibility. Game verification remains **headless** under the user's Remote Desktop instruction. Website browser checks are headless Chromium, not game play. Current Windows candidate is unsigned. No public release/site/hosted workflow result is claimed.
 
 | Check | Result | Evidence / scope |

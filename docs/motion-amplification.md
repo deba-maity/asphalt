@@ -28,7 +28,7 @@ Display settings now offer 30/60/90/120 FPS caps, 540p through 1080p rendering, 
 
 All Godot execution for this revision is headless. No graphical game was opened, no desktop input was captured, and no human duel or subjective audio listening acceptance is claimed.
 
-The [evidence directory](evidence/motion-amplification/) records the final test results, build identity, source hashes and endurance scope. The original three-hour run freezes an early candidate. A separate later run checks the more complete candidate; these are distinct snapshots, not a claim that the final executable received every minute of earlier testing.
+The [evidence directory](evidence/motion-amplification/) records 417 passing source assertions, nine passing portable checks, the build identity and frozen source hashes. The final runtime completed a 90-minute real-time headless stress run with 44 rematches and zero failures. An early candidate separately completed three hours with 89 rematches and zero failures. Those are distinct snapshots; the earlier duration is not attributed to the final executable. The Windows delivery was built from `d6eb9e7`; subsequent documentation/evidence changes do not change that build identity.
 
 The isolated review captures actual runtime post-IK joints, cloth and props under scripted input. A hidden browser renders those recordings with Three.js and independent lighting. Its stills/video are **not Godot screenshots**, do not reproduce the game's camera or shading, and cannot establish laptop GPU performance. No concept art or unrelated footage is used as gameplay evidence.
 

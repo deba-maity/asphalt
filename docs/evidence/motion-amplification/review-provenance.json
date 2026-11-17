@@ -7,5 +7,7 @@
   "segments": 16,
   "recording_sha256": "ec28019956ca79e3a0db11df2f37e9a1bbb2a6fb992fd1990c5ec883d646dde6",
   "renderer": "Hidden Chromium / SwiftShader, independent lighting and camera",
-  "limits": "Shows recorded physics poses and props, not Godot rendering, camera, input feel or laptop performance."
+  "limits": "Shows recorded physics poses and props, not Godot rendering, camera, input feel or laptop performance.",
+  "runtime_source_commit": "624812bdeedaa74b1869fc389ef40f1e610fea75",
+  "video_sha256": "7d6f8a9885119b3dd0c341def6eeb30a4a1b20554c6aa9ed8a29999901d6ca01"
 }

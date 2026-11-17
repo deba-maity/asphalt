@@ -1,0 +1,11 @@
+{
+  "pid": 26268,
+  "start_epoch": 1794889382.1285882,
+  "duration": 10800,
+  "snapshot": "exports/verification/amplify-soak-20261117",
+  "process_exit_code": 0,
+  "unified_exec_session": 13816,
+  "completion_observed_utc": "2026-11-17T07:23:44.342797+00:00",
+  "report_complete": true,
+  "note": "Exit code returned by the original three-hour launcher; observation time is not an exact process-exit timestamp."
+}

@@ -21,7 +21,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\build.ps1
 .\exports\windows\AshenVow.exe
 ```
 
-The final command opens the game on your PC. **Enter the Ashen Trial** shows the new work; **Continue** opens the older campaign. Setup downloads missing pinned tools; the compiled character and motion assets are committed. No Blender or asset account is required.
+The final command opens the game on your PC. **Enter the Ashen Trial** shows the new work; **Continue** opens the older campaign. Setup downloads missing pinned tools; the compiled character and motion assets are committed. The first import can take several minutes while the higher-resolution textures are prepared. No Blender or asset account is required.
 
 For a new checkout, first run `git clone --branch ashen-vow https://github.com/deba-maity/asphalt.git`, then `Set-Location asphalt`, followed by setup/build/open above. Python 3 is required by build tools. The exported executable embeds its data and needs neither Godot, Python nor internet. Keep the accompanying notices with it.
 

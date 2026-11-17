@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "source_commit": "d6eb9e79ddd80eec37de3f5e0786d9c3e6ee0734",
+  "clean_after_import_and_tests": true,
+  "checks": [
+    "RESULT: 34/34 campaign logic checks passed",
+    "RESULT: 40/40 motion/geometry checks passed",
+    "RESULT: 42/42 skeletal/animation checks passed; rendered acceptance not performed",
+    "RESULT: 51/51 motion quality checks passed; 60 physics ticks",
+    "RESULT: 38/38 pass-three behavior checks passed",
+    "RESULT: 63/63 transition/system checks passed",
+    "RESULT: 18/18 physical combat checks passed; 60 physics ticks",
+    "RESULT: 48/48 trial checks passed; headless, no rendered quality claim",
+    "RESULT: 30/30 headless layout bounds checks passed; no visual inspection claimed",
+    "RESULT: 31/31 checks passed",
+    "RESULT: 22/22 checks passed"
+  ],
+  "asset_hashes_checked": 37,
+  "path_contains_spaces": true,
+  "notes": "New detached worktree imported with no pre-existing .godot cache at 3024e34; updated to final source and reran all checks. Art bytes unchanged across those revisions. Source/portable validators serialize through Local\\AshenVowValidation."
+}

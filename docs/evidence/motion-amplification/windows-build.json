@@ -1,0 +1,11 @@
+{
+  "version": "0.6.0-rc.1",
+  "source_commit": "d6eb9e79ddd80eec37de3f5e0786d9c3e6ee0734",
+  "engine": "4.7.2",
+  "file": "AshenVow.exe",
+  "size_bytes": 304177200,
+  "sha256": "62a61babd27f2e06c1370f848f1a6ae061daf8a3294c859372baab021fcb362b",
+  "signature": "unsigned",
+  "portable_checks": "passed in fresh temporary extraction outside the checkout",
+  "rendered_acceptance": "not run: Remote Desktop user restriction"
+}

@@ -1,0 +1,58 @@
+{
+  "collected_utc": "2026-11-17T07:45:34.130785+00:00",
+  "early_snapshot": {
+    "status": "passed",
+    "scope": "Early development snapshot, before final combat/camera/cloth/audio fixes",
+    "elapsed_seconds": 10800.008,
+    "requested_seconds": 10800.0,
+    "completed_rematches": 89,
+    "attempted_actions": 25668,
+    "failures": 0,
+    "minute_samples": 180,
+    "warmup_seconds": 180,
+    "failure_thresholds_after_warmup": {
+      "extra_nodes": 12,
+      "extra_static_memory_bytes": 67108864
+    },
+    "settled_node_min": 326,
+    "settled_node_max": 326,
+    "baseline_static_memory_bytes": 309302849,
+    "last_static_memory_bytes": 309461829,
+    "static_memory_change_from_warmup_bytes": 158980,
+    "sampled_peak_static_memory_bytes": 309467225,
+    "limits": "Headless real-time stress fixture with health/stamina refills and forced rematches. Actions are requests, not all completed attacks. Minute-sampled Godot static memory is not process/GPU memory. Not natural play, rendered quality or frame-rate acceptance.",
+    "start_utc": "2026-11-17T04:23:02.128588+00:00",
+    "process_exit_code": 0,
+    "frozen_gdscript_hashes_checked": 36
+  },
+  "final_candidate": {
+    "status": "passed",
+    "scope": "Final runtime used in the d6eb9e7 Windows delivery package",
+    "elapsed_seconds": 5400.015,
+    "requested_seconds": 5400.0,
+    "completed_rematches": 44,
+    "attempted_actions": 13122,
+    "failures": 0,
+    "minute_samples": 90,
+    "warmup_seconds": 180,
+    "failure_thresholds_after_warmup": {
+      "extra_nodes": 12,
+      "extra_static_memory_bytes": 67108864
+    },
+    "settled_node_min": 313,
+    "settled_node_max": 313,
+    "baseline_static_memory_bytes": 261084239,
+    "last_static_memory_bytes": 261168659,
+    "static_memory_change_from_warmup_bytes": 84420,
+    "sampled_peak_static_memory_bytes": 261172279,
+    "limits": "Headless real-time stress fixture with health/stamina refills and forced rematches. Actions are requests, not all completed attacks. Minute-sampled Godot static memory is not process/GPU memory. Not natural play, rendered quality or frame-rate acceptance.",
+    "start_utc": "2026-11-17T06:15:26.227457+00:00",
+    "end_utc": "2026-11-17T07:45:27.731077+00:00",
+    "process_exit_code": 0,
+    "unchanged_source_files_checked": 386,
+    "frozen_snapshot_files_checked": 386,
+    "package_source_commit": "d6eb9e79ddd80eec37de3f5e0786d9c3e6ee0734"
+  },
+  "scope_note": "The three-hour run is an early snapshot. The final runtime received a separate 90-minute run; do not add the durations and attribute them to one candidate. Intermediate stopped runs are excluded.",
+  "game_window_opened": false
+}

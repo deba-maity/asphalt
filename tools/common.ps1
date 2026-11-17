@@ -26,6 +26,8 @@ function Resolve-Godot([string]$GodotPath) {
 function Invoke-Godot([string]$Exe, [string[]]$Arguments, [string]$LogPath) {
     if (-not $LogPath) { $LogPath = Join-Path $script:RepoRoot 'tools\logs\last-engine.log' }
     New-Item -ItemType Directory -Path (Split-Path -Parent $LogPath) -Force | Out-Null
+    if ($Arguments -contains '--import') { Write-Output 'Importing project assets; the first texture import can take several minutes.' }
+    if ($Arguments -contains '--export-release') { Write-Output 'Exporting the native game and embedded assets.' }
     $previous = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try { $output = & $Exe @Arguments 2>&1; $code = $LASTEXITCODE } finally { $ErrorActionPreference = $previous }
