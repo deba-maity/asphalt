@@ -12,7 +12,7 @@ The following images are **isolated software asset inspections**, not in-game ca
 |---|---|
 | ![Earlier procedural car](evidence/revision-1.1/car-before.png) | ![Adapted touring model](evidence/revision-1.1/car-after.png) |
 
-Motorcycle riders now have connected, better proportioned body segments and helmets. Their hands follow the actual steering assembly; the body shifts into a turn and tucks with speed/boost. Forks connect to the axle instead of extending below the tire, and tire radius matches the contact plane. These riders remain procedural models, not scanned or artist-sculpted characters.
+Motorcycle riders now have connected, better proportioned body segments and helmets. Their hands follow the actual steering assembly; the body shifts into a turn and tucks with speed/boost. Forks connect the axle to the handlebars, and tire radius matches the contact plane. Headlamps and rear lamps sit in attached housings. These riders remain procedural models, not scanned or artist-sculpted characters.
 
 | Earlier rider | Updated rider |
 |---|---|
@@ -30,15 +30,22 @@ Battery saver is the fresh-profile default. All quality modes have absolute pixe
 
 The relay now rejects malformed/scalar input safely, limits payloads, message rates and queued output, validates finite position data and allowed identities, rejects unrelated browser origins, limits room size and transfers host ownership. Only the host can start a race, and clients wait for the server acknowledgement. Full lobbies, cancelled joins and disconnected sessions resolve cleanly. Local-only binding is the default; LAN access is explicit. This remains a casual relay, not an authoritative anti-cheat service.
 
-The client safely handles blocked/full browser storage. Driver names and vehicle labels are escaped, CSS colors are constrained, and startup errors use text content. Touch release no longer masks a held physical key. Audio effects, actor cleanup, particle storage, tire marks and repeated race teardown have bounded lifetime checks. Previously tracked browser profiles and generated bundles were removed from this branch's index and ignored; local copies and Git history are preserved.
+The client safely handles blocked/full browser storage, including an unsuccessful replacement or deletion of an older stored value. Driver names and vehicle labels are escaped, CSS colors are constrained, and startup errors use text content. Touch release no longer masks a held physical key or cancels a second finger on the same button. Pause and focus loss clear held controls and their appearance. Audio effects, actor cleanup, particle storage, tire marks and repeated race teardown have bounded lifetime checks. Previously tracked browser profiles and generated bundles were removed from this branch's index and ignored; local copies and Git history are preserved.
+
+A rematch resets the network clock so position updates resume immediately. A guest's rematch request keeps the result/home controls visible while waiting for the host. Two advertised chase-role modes did not contain their promised rules; their menu entries are replaced with a one-lap Sprint against rivals and open-ended Free Drive. Race, Time Trial and Police Escape retain their three-lap, one-lap and one-lap finish rules respectively.
 
 ## Evidence
 
-- 21 unit/integration tests cover render-rate-independent dynamics, long stalls, springs, pixel budgets, drift recovery, traffic continuity, particle/trail lifetime, storage, markup escaping and the LAN protocol.
+- 23 unit/integration tests cover render-rate-independent dynamics, long stalls, springs, pixel budgets, drift recovery, traffic continuity, particle/trail lifetime, storage, markup escaping, guest waiting state and the LAN protocol.
 - Headless browser smoke covers all four maps, all 26 vehicles, repeated race teardown, 30 FPS presentation bounds, a settled garage, suspended pause/audio, reduced-motion persistence, mixed keyboard/touch input, multi-touch and focus loss.
 - Asset contracts exercise 180 animation samples for each vehicle, verify finite transforms, rider-hand attachment, matching suspension across detail levels, lower distant triangle counts, and particle/trail shader compilation.
 - Four browser WebSocket clients verify synchronized start, full-lobby rejection, host transfer and cancelled connection handling.
+- Two actual game clients verify moving peers, race completion, guest waiting, rematch position updates, host transfer and remote-actor disposal.
+- Twenty map/mode progression fixtures verify finish laps, open-ended Free Drive, bounded police counts and rival wins. Synthetic gamepad triggers verify partial throttle. These fixtures deliberately place actors at gates; they are not human-completed race or physical-controller evidence.
 - The production bundle boots with its packaged car assets, starts a race, pauses/returns to the menu, includes credits, omits development control hooks, and remains usable when local storage is blocked.
 - Blender 4.5.16 reproduces the car, distance model and rig metadata byte-for-byte from the pinned source. Logs and hashes are under [evidence/revision-1.1](evidence/revision-1.1).
+- A clean detached checkout passed unit, build, browser smoke, animation, mode, production and two-client race checks. Source text agrees after Git line-ending normalization; model assets are byte-identical. GitHub's [checks for runtime commit `1a1b231`](https://github.com/deba-maity/asphalt/actions/runs/44111162724) also passed on Linux.
+
+Runtime commit: `1a1b231eab5a4bbecea8528f483f1affa8e81a78`. The frozen working-copy runtime fingerprint is `3106ca95512d9d9b717b07bb17929ab11612275b8bf402f11e4e032b02e54ba2`; its manifest records each source and asset hash. Documentation/evidence commits may follow without changing those runtime files.
 
 The real-time frozen endurance report is added when complete. Browser checks use headless Chromium and software rendering; no graphical game window or desktop input was used. Physical controllers, native graphics, audio listening, temperature and subjective driving acceptance remain untested.

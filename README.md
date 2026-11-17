@@ -32,12 +32,13 @@ Use that worktree command once. If you already created a local `nightshift` bran
 
 ## What changed
 
+- Sprint is a one-lap race against rivals; Free Drive leaves the route open for practice. These replace two menu entries whose advertised chase roles were not implemented. Race, Time Trial and Police Escape remain available.
 - Apex GT and Eclipse V8 use a detailed, credited touring model with separate rolling wheels, steering pivots and stationary brake calipers. A simpler mesh takes over at distance. The other vehicles retain their procedural art.
 - Motorcycles have rebuilt forks, better proportioned riders, hands attached to the steering bars, and responsive lean/tuck. Car bodies use damped suspension pitch and roll while the wheels remain grounded.
 - Driving uses fixed 60 Hz simulation, interpolated moving bodies, analog steering, travel-vector drift and gradual grip recovery. A damped chase camera responds to speed; Reduced camera motion removes shake and field-of-view changes.
 - Tire marks and particles use fixed storage and a small number of draw calls. Traffic follows the sampled road with continuous lane position and heading. Collision responses remove inward momentum; LAN cars turn along the shortest angle.
 - Menus settle instead of continuously rendering the garage. Pausing or switching apps stops the race render loop and suspends engine audio. Battery saver also disables decorative menu animations.
-- The LAN relay validates and bounds messages, limits packet rates and queued data, transfers host ownership, and reports full/disconnected rooms. Local play binds to this machine only by default.
+- The LAN relay validates and bounds messages, limits packet rates and queued data, transfers host ownership, and reports full/disconnected rooms. Rematches immediately resume position updates, and guests keep their result screen while waiting for the host. Local play binds to this machine only by default.
 
 This is still an independent prototype. The detailed car does not replace every vehicle or environment, and these changes do not establish AAA visual quality. Native GPU frame rate, temperature, physical controllers and subjective driving feel still require testing on your PC.
 

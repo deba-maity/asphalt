@@ -1,0 +1,35 @@
+
+> nightshift-pursuit@1.1.0-rc.1 test:unit
+> node --test scripts/*.test.mjs
+
+✔ 30, 60, 90, 120 and 144 Hz presentation replay identical physics (15.7502ms)
+✔ long stalls have a finite catch-up budget and report discarded time (0.7368ms)
+✔ all fleet variants remain finite and within their speed/boost envelopes (45.1218ms)
+✔ drift creates slip, then recovers smoothly when the handbrake releases (1.7976ms)
+✔ braking reduces travel momentum and reverse speed is limited (3.4362ms)
+✔ camera and suspension springs have frame-independent step response (0.434ms)
+✔ absolute pixel budgets hold at laptop, retina, 4K and 8K sizes (0.1735ms)
+✔ traffic carries distance across a segment without snapping backwards (0.2395ms)
+✔ lane position and yaw remain continuous at sampled road joints (0.2736ms)
+✔ remote yaw uses the short arc at the -pi/pi seam (0.2458ms)
+✔ collision removes inward momentum and preserves motion along a barrier (0.2137ms)
+✔ continuous particle bursts reuse storage and fully expire after emission stops (46.0345ms)
+✔ tire marks are bounded, fade away, and never bridge a recovery teleport (62.2842ms)
+✔ positions accept finite bounded values and sanitize style/identity fields (1.7086ms)
+✔ malformed, scalar and binary packets do not crash the lobby (33.1292ms)
+✔ host controls start; position identity and result sender cannot be forged (108.0643ms)
+✔ full lobbies return an error; departing host transfers ownership and rooms are released (139.9646ms)
+✔ oversized packets and floods are closed within fixed resource limits (12.0686ms)
+✔ browser connections from unrelated origins are rejected (3.3795ms)
+✔ blocked or full browser storage preserves usable settings in memory (1.1916ms)
+✔ lobby names and vehicle labels escape markup; color cannot inject style attributes (0.5077ms)
+✔ failed replacement and deletion take priority over stale stored values (0.2977ms)
+✔ a guest rematch keeps the result visible while waiting for the host (0.5493ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 23
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 463.9357

@@ -1,0 +1,53 @@
+FRAME BUDGET {
+  runningFrames: 3,
+  pausedFrames: 0,
+  elapsed: 0.4333333333333333,
+  pausedElapsed: 0.4333333333333333,
+  audioState: 'suspended',
+  calls: 207
+}
+{
+  "result": "PASS",
+  "fleet": 26,
+  "stats": {
+    "runningFrames": 3,
+    "pausedFrames": 0,
+    "elapsed": 0.4333333333333333,
+    "pausedElapsed": 0.4333333333333333,
+    "audioState": "suspended",
+    "calls": 207
+  },
+  "maps": [
+    {
+      "map": "neon",
+      "calls": 207,
+      "geometries": 66
+    },
+    {
+      "map": "coast",
+      "calls": 140,
+      "geometries": 70
+    },
+    {
+      "map": "dock",
+      "calls": 124,
+      "geometries": 63
+    },
+    {
+      "map": "mesa",
+      "calls": 160,
+      "geometries": 81
+    },
+    {
+      "map": "neon",
+      "calls": 207,
+      "geometries": 70
+    },
+    {
+      "map": "neon",
+      "calls": 207,
+      "geometries": 70
+    }
+  ],
+  "mobile": "landscape, portrait, multi-touch, release, focus"
+}

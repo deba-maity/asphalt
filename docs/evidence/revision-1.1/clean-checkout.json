@@ -1,0 +1,37 @@
+{
+  "source_commit": "1a1b231eab5a4bbecea8528f483f1affa8e81a78",
+  "recorded_utc": "2026-11-17T15:15:05.207980+00:00",
+  "checks": [
+    {
+      "check": "unit",
+      "exit_code": 0
+    },
+    {
+      "check": "build",
+      "exit_code": 0
+    },
+    {
+      "check": "smoke",
+      "exit_code": 0
+    },
+    {
+      "check": "visual",
+      "exit_code": 0
+    },
+    {
+      "check": "modes",
+      "exit_code": 0
+    },
+    {
+      "check": "production",
+      "exit_code": 0
+    },
+    {
+      "check": "network-race",
+      "exit_code": 0
+    }
+  ],
+  "scope": "Detached checkout; dependencies unchanged from verified npm ci; headless software-rendered browser checks; no desktop or native GPU acceptance",
+  "normalized_runtime_match": true,
+  "normalization": "CRLF to LF for JS/JSON/CSS/HTML/TXT only; all other assets must be byte-identical"
+}
