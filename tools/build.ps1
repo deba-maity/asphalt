@@ -1,5 +1,6 @@
 param([string]$GodotPath, [string]$TemplateDirectory, [string]$OutputDirectory)
 . (Join-Path $PSScriptRoot 'common.ps1')
+Assert-BuildPython
 $exe = Resolve-Godot $GodotPath
 $templates = Get-MatchingTemplates $TemplateDirectory
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $script:RepoRoot 'exports\windows' }
@@ -10,7 +11,7 @@ $rcedit = Join-Path $PSScriptRoot 'cache\rcedit-x64.exe'
 if (-not (Test-Path -LiteralPath $rcedit)) { throw 'Missing pinned resource editor. Run tools\setup.ps1 -ReleaseTools.' }
 if ((Get-FileHash -LiteralPath $rcedit -Algorithm SHA256).Hash.ToLowerInvariant() -ne $script:EnginePin.rcedit.sha256) { throw 'rcedit integrity check failed; re-run setup after removing only that cached file.' }
 & python (Join-Path $PSScriptRoot 'prepare_export.py') --templates $templates
-if ($LASTEXITCODE -ne 0) { throw 'Export preparation failed. Python 3 is required for build tools.' }
+if ($LASTEXITCODE -ne 0) { throw 'Export preparation failed. Read the Python error above.' }
 try {
     Invoke-Godot $exe @('--headless','--path',(Join-Path $script:RepoRoot 'game'),'--editor','--import','--quit') (Join-Path $PSScriptRoot 'logs\build-import.log')
     Invoke-Godot $exe @('--headless','--path',(Join-Path $script:RepoRoot 'game'),'--export-release','Windows Preview',(Join-Path $output 'AshenVow.exe')) (Join-Path $PSScriptRoot 'logs\export.log')

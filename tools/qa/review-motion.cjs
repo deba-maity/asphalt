@@ -19,6 +19,20 @@ const server=http.createServer((req,res)=>{
  await page.goto(`http://127.0.0.1:${server.address().port}/${court?'court-review.html':''}?character=${character}`,{timeout:60000});await page.waitForFunction(()=>window.ready,{timeout:90000});
  if(court){for(const angle of [0,1]){await page.evaluate(a=>window.review.sample(a),angle);await page.screenshot({path:path.join(output,'court-'+angle+'.png')});}if(errors.length)throw Error(errors.join('\n'));console.log('Static courtyard reviewed in an independent renderer.');return;}
  const clips=await page.evaluate(()=>window.review.clips);fs.writeFileSync(path.join(output,'clips.json'),JSON.stringify(clips,null,2));
+ if(process.argv.includes('--all-clips')){
+  const samples=[];
+  for(const clip of clips){
+   for(const fraction of [.15,.5,.85]){
+    const time=clip.duration*fraction;
+    const stats=await page.evaluate(([name,time])=>window.review.sample(name,time),[clip.name,time]);
+    if(!stats.bounds.every(Number.isFinite)||stats.bounds.some(value=>Math.abs(value)>5))throw Error('Unexpected skinned bounds: '+clip.name);
+    samples.push({clip:clip.name,time,...stats});
+    if(fraction===.5)await page.screenshot({path:path.join(output,character+'-all-'+clip.name+'.png')});
+   }
+  }
+  fs.writeFileSync(path.join(output,character+'-all-clips.json'),JSON.stringify({scope:'Independent asset renderer; bounded skinning samples, not native gameplay acceptance',samples},null,2));
+  if(errors.length)throw Error(errors.join('\n'));console.log('Sampled',samples.length,'skinned poses across',clips.length,'clips; saved midpoint inspections.');return;
+ }
  for(const [name,time] of [['Sword_Idle',.3],['Sword_Regular_A',.267],['Sword_Heavy_A',.49],['Sword_Dash',.33],['Sword_Light_A',.25],['Roll',.65],['Jog_Fwd',.32],['Drink',1.2]]){
   const stats=await page.evaluate(([name,time])=>window.review.sample(name,time),[name,time]);
   await page.screenshot({path:path.join(output,character+'-'+name+'.png')});console.log(character,name,stats);

@@ -2,6 +2,21 @@ $ErrorActionPreference = 'Stop'
 $script:RepoRoot = Split-Path -Parent $PSScriptRoot
 $script:EnginePin = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'engine-version.json') -Raw | ConvertFrom-Json
 
+function Assert-BuildPython {
+    if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+        throw 'Python 3.11 or newer is required for build tools. Install it, reopen PowerShell, and check python --version.'
+    }
+    try {
+        $pythonVersion = & python -c 'import sys; print(sys.version.split()[0]); sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>&1
+        $pythonExit = $LASTEXITCODE
+    } catch {
+        throw 'Could not run Python. Activate Python 3.11 or newer in this PowerShell session and check python --version.'
+    }
+    if ($pythonExit -ne 0) {
+        throw "Python 3.11 or newer is required for build tools (active result: $pythonVersion). Activate a supported Python and check python --version before retrying."
+    }
+}
+
 function Resolve-Godot([string]$GodotPath) {
     if ($GodotPath -and -not (Test-Path -LiteralPath $GodotPath -PathType Leaf)) { throw "Explicit Godot executable does not exist: '$GodotPath'. Pass its actual full path." }
     $candidates = @($GodotPath, $env:GODOT_EXE, (Join-Path $PSScriptRoot "engine\Godot_v$($script:EnginePin.version)-stable_win64_console.exe"))

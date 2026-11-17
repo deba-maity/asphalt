@@ -45,7 +45,8 @@ window.review={clips:asset.animations.map(c=>({name:c.name,duration:c.duration})
  camera.position.set(Math.sin(angle)*4.7,2.0,Math.cos(angle)*4.7);camera.lookAt(0,.95,0);
  document.querySelector('#label').textContent=`ISOLATED ASSET REVIEW / ${character} / ${name} / ${time.toFixed(3)}s\nThird-party WebGL lighting; not a game screenshot.`;
  renderer.render(scene,camera);
- return {calls:renderer.info.render.calls,triangles:renderer.info.render.triangles};
+ const bounds=new THREE.Box3().setFromObject(asset.scene,true);
+ return {calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,bounds:[...bounds.min.toArray(),...bounds.max.toArray()]};
 }};
 window.review.sample('Sword_Idle',.3);window.ready=true;
 </script></html>

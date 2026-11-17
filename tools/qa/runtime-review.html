@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><meta charset="utf-8"><title>Runtime motion inspection</title>
 <style>body{margin:0;background:#22282b;color:#e2ddd1;font:14px sans-serif}#label{position:absolute;left:20px;top:16px;white-space:pre-line;line-height:1.5;pointer-events:none}canvas{display:block}</style>
-<div id="label">Loading isolated runtime recordingâ€¦</div>
+<div id="label">Loading isolated runtime recording...</div>
 <script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from 'three';
@@ -18,6 +18,10 @@ scene.add(new THREE.HemisphereLight(0xb9d3e4,0x3d362d,.8));
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(60,60),new THREE.MeshStandardMaterial({color:0x4b4d47,roughness:.95}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
 const character=new URLSearchParams(location.search).get('character')==='warden'?'warden':'rayan';
 const [asset,data]=await Promise.all([new GLTFLoader().loadAsync('/models/'+character+'.glb'),fetch('/models/'+(character==='warden'?'runtime-warden.json':'runtime.json')).then(r=>r.json())]);
+// The current recording stores global translation/rotation separately from
+// unscaled local joints. Match PerformanceMotion.configure's actor scale;
+// cloth positions are already recorded in world space and must stay unscaled.
+asset.scene.scale.setScalar(character==='warden'?1.12:1);
 scene.add(asset.scene);const tint=new THREE.Color(character==='rayan'?'#70413a':'#353e3c');
 asset.scene.traverse(n=>{if(!n.isMesh)return;n.castShadow=true;n.receiveShadow=true;
  if(!n.name.startsWith('ForgedArmor'))n.material=Array.isArray(n.material)?n.material.map(m=>m.clone()):n.material.clone();
@@ -74,7 +78,7 @@ function sample(index,angle=.5){
  const positions=clothGeometry.getAttribute('position');frame.cloth.forEach((p,i)=>positions.setXYZ(i,...p));positions.needsUpdate=true;clothGeometry.computeVertexNormals();clothGeometry.computeBoundingSphere();
  const center=asset.scene.position.clone();camera.position.copy(center).add(new THREE.Vector3(Math.sin(angle)*4.2,1.85,Math.cos(angle)*4.2));camera.lookAt(center.clone().add(new THREE.Vector3(0,.9,0)));
  light.position.copy(center).add(new THREE.Vector3(-4,7,5));light.target.position.copy(center);light.target.updateMatrixWorld();
- document.querySelector('#label').textContent=`RUNTIME JOINT / CLOTH RECORDING Â· ${character} Â· ${frame.label}\n${frame.clip} Â· ${frame.time.toFixed(3)}s Â· independent WebGL renderer, not a game screenshot`;
+ document.querySelector('#label').textContent=`RUNTIME JOINT / CLOTH RECORDING | ${character} | ${frame.label}\n${frame.clip} | ${frame.time.toFixed(3)}s | independent WebGL renderer, not a game screenshot`;
  renderer.render(scene,camera);return {state:frame.state,clip:frame.clip,label:frame.label};
 }
 window.review={data,sample,async video(){

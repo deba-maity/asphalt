@@ -1,6 +1,7 @@
 param([switch]$Templates, [switch]$ReleaseTools, [string]$GodotPath)
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'common.ps1')
+if ($Templates) { Assert-BuildPython }
 $repo = Split-Path -Parent $PSScriptRoot
 $pin = Get-Content -LiteralPath (Join-Path $repo 'engine-version.json') -Raw | ConvertFrom-Json
 $engineDir = Join-Path $PSScriptRoot 'engine'

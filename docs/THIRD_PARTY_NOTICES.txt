@@ -2501,7 +2501,7 @@ credit/disclaimer to use in compliance with this license.  We thus
 encourage you to use the following text:
 
 """
-Portions of this software are copyright Â© <year> The FreeType
+Portions of this software are copyright © <year> The FreeType
 Project (https://freetype.org).  All rights reserved.
 """
 
