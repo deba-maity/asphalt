@@ -1,6 +1,7 @@
 """Extract into a fresh path with spaces and exercise only the packaged engine."""
 from pathlib import Path
 import argparse, hashlib, json, os, subprocess, tempfile, zipfile
+from validation_lock import validation_lock
 
 def main():
     p=argparse.ArgumentParser(); p.add_argument('--release-dir',type=Path,required=True); args=p.parse_args()
@@ -38,4 +39,6 @@ def main():
     (directory/'SHA256SUMS.txt').write_text(''.join(hashlib.file_digest((directory/name).open('rb'),'sha256').hexdigest()+'  '+name+'\n' for name in names),encoding='ascii')
     print('Fresh ZIP: quality, campaign/Continue and trial/motion/combat at 30/60 physics ticks passed.')
 
-if __name__=='__main__': main()
+if __name__=='__main__':
+    with validation_lock():
+        main()
