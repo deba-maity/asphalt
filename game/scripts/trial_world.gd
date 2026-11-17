@@ -10,6 +10,10 @@ var foley: TrialAudio
 var boss_echo: ProgressBar
 var echo_delay: float=0
 var score: TrialScore
+var duel: TrialDuel
+var composure_bar: ProgressBar
+var composure_label: Label
+var outcome_pending: bool=false
 
 func _ready() -> void:
 	rng.seed=7251
@@ -45,10 +49,11 @@ func _ready() -> void:
 	warden.slain.connect(_enemy_died)
 	enemies.append(warden)
 	hero.target=warden
+	duel=TrialDuel.new(self)
 	coordinator=EncounterCoordinator.new()
 	coordinator.world=self
 	add_child(coordinator)
-	boss_panel=ui.panel(ui.hud,Vector2(370,600),Vector2(540,58),Color(.045,.055,.06,.4))
+	boss_panel=ui.panel(ui.hud,Vector2(370,584),Vector2(540,80),Color(.045,.055,.06,.4))
 	var column=ui.column(boss_panel,4)
 	var title=ui.text(column,"THE CINDER WARDEN",17,ui.GOLD)
 	title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
@@ -64,6 +69,13 @@ func _ready() -> void:
 	boss_bar.add_theme_stylebox_override("fill",ui.bar_style(Color("a88062")))
 	boss_bar.add_theme_stylebox_override("background",ui.bar_style(Color.TRANSPARENT))
 	boss_bar.value=100
+	composure_label=ui.text(column,"COMPOSURE",11,Color("a8a89a"))
+	composure_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	composure_bar=ProgressBar.new(); composure_bar.show_percentage=false
+	composure_bar.custom_minimum_size=Vector2(500,4)
+	composure_bar.add_theme_stylebox_override("fill",ui.bar_style(Color("d2b57b")))
+	composure_bar.add_theme_stylebox_override("background",ui.bar_style(Color("303333")))
+	column.add_child(composure_bar)
 	ui.help_caption.text=Preferences.prompt("{journal} Trial guide · {pause} Pause")
 
 func _exit_tree() -> void:
@@ -153,11 +165,17 @@ func _process(delta: float) -> void:
 				for part in ["windup","active","recovery"]: attack[part]/=1.12
 			ui.announce("THE LAST EMBER")
 			ui.toast("The Warden quickens. Keep enough stamina to escape.",4)
+			duel.phase_changed()
 		ui.update_hud(hero,{})
 		ui.chapter_label.text="ASHEN TRIAL"
 		ui.objective_text.text="Defeat the Cinder Warden.\nWatch the shoulders; punish recovery."
 		ui.tutorial.text=Preferences.prompt("{light} Chain strikes · {heavy} Heavy · {guard} Guard / parry · {dodge} Roll · {lock_on} Lock")
 		ui.status.text="%d HP · %d draughts" % [hero.model.health,Session.data.heals]
+		if hero.model.posture>=30: ui.status.text+="\nGuard strain %d%%" % hero.model.posture
+		composure_bar.value=duel.composure
+		composure_label.text="OPEN - RIPOSTE" if duel.riposte_window>0 else "COMPOSURE"
+		if duel.riposte_window>0:
+			ui.threat_text.text=Preferences.prompt("{heavy} RIPOSTE" if duel.can_riposte() else "COMPOSURE BROKEN - close the distance")
 		var next_health=warden.model.health/warden.model.max_health*100
 		if next_health<boss_bar.value: echo_delay=.45
 		boss_bar.value=next_health
@@ -169,6 +187,9 @@ func _process(delta: float) -> void:
 		warden.tell_ring.visible=false
 	boss_panel.visible=ui.mode=="play"
 
+func _physics_process(delta: float) -> void:
+	if duel!=null: duel.tick(delta)
+
 func can_play() -> bool:
 	return super.can_play() and not won and result_delay<0
 
@@ -177,11 +198,23 @@ func interact() -> void: pass
 func save_current() -> void: pass # A trial is a fresh duel; campaign persistence is untouched.
 
 func _enemy_died(_enemy: Fighter) -> void:
-	won=true
-	result_delay=2.6
-	ui.announce("VOW KEPT")
-	Sound.play("reward")
+	queue_outcome()
 
 func _hero_died(_fighter: Fighter) -> void:
 	hero.velocity=Vector3.ZERO
-	result_delay=2.5
+	queue_outcome()
+
+func queue_outcome() -> void:
+	if outcome_pending or result_delay>=0: return
+	outcome_pending=true
+	call_deferred("resolve_outcome")
+
+func resolve_outcome() -> void:
+	outcome_pending=false
+	# Resolve both actors after the physics step, including a simultaneous fall.
+	won=warden.model.health<=0 and hero.model.health>0
+	duel.finished=true
+	result_delay=2.6
+	if won:
+		ui.announce("VOW KEPT")
+		Sound.play("reward")

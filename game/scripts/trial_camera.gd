@@ -6,6 +6,8 @@ var pivot: Vector3
 var initialized: bool=false
 var last_physics_position: Vector3=Vector3.INF
 var manual_orbit: float=0
+var manual_offset: float=0
+var target_id: int=0
 var clock: float=0
 
 func _ready() -> void:
@@ -15,6 +17,11 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(actor.world): return
+	sync_target()
+	if actor.world.can_play() and Preferences.gameplay_input_ready():
+		orbit(-Input.get_axis("look_left","look_right")*delta*2.4,-Input.get_axis("look_up","look_down")*delta*1.7*(-1 if Preferences.invert else 1))
+	manual_orbit=maxf(0,manual_orbit-delta)
+	if manual_orbit<=0: manual_offset=lerpf(manual_offset,0,1-exp(-delta*3.5))
 	clock+=delta
 	var transform=actor.get_global_transform_interpolated()
 	var center=transform.origin+Vector3.UP*1.4
@@ -24,7 +31,7 @@ func _process(delta: float) -> void:
 		var separation=other-transform.origin
 		distance=separation.length()
 		center+=separation.limit_length(5)*.18
-		var desired_yaw=atan2(-separation.x,-separation.z)
+		var desired_yaw=atan2(-separation.x,-separation.z)+manual_offset
 		actor.yaw.rotation.y=lerp_angle(actor.yaw.rotation.y,desired_yaw,1-exp(-delta*6.5))
 	center+=actor.yaw.basis.x*.28
 	if not initialized or transform.origin.distance_to(last_physics_position)>3:
@@ -47,3 +54,24 @@ func _process(delta: float) -> void:
 	var amount=clampf(actor.shake_time/.12,0,1)
 	actor.camera.h_offset=sin(clock*71)*.025*amount*amount if Preferences.camera_shake else 0
 	actor.camera.v_offset=sin(clock*53)*.012*amount*amount if Preferences.camera_shake else 0
+
+func sync_target() -> void:
+	var current=actor.target.get_instance_id() if is_instance_valid(actor.target) else 0
+	if current!=target_id:
+		target_id=current
+		release_orbit()
+
+func release_orbit() -> void:
+	manual_orbit=0
+	manual_offset=0
+
+func orbit(horizontal: float, vertical: float) -> void:
+	if not is_finite(horizontal) or not is_finite(vertical): return
+	if absf(horizontal)+absf(vertical)<.000001: return
+	sync_target()
+	if is_instance_valid(actor.target):
+		manual_offset=clampf(manual_offset+horizontal,-.38,.38)
+		manual_orbit=1.2
+	else:
+		actor.yaw.rotation.y+=horizontal
+	actor.pitch.rotation.x=clampf(actor.pitch.rotation.x+vertical,-.85,.28)

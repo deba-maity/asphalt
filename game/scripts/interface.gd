@@ -172,6 +172,7 @@ func build_hud() -> void:
 
 func trial_layout(enabled: bool) -> void:
 	objective_panel.visible=not enabled
+	threat_text.position=Vector2(360,254) if enabled else Vector2(360,225)
 	player_panel.add_theme_stylebox_override("panel",style(Color(.035,.045,.05,.35),Color.TRANSPARENT) if enabled else style(Color(.055,.08,.10,.94),Color(.75,.64,.42,.35)))
 	toast_label.position=Vector2(265,520) if enabled else Vector2(265,594)
 	tutorial.visible=true; tutorial.modulate.a=1
@@ -429,7 +430,7 @@ func update_hud(actor: Fighter, nearby: Dictionary) -> void:
 		if not is_instance_valid(enemy) or enemy.model.state=="dead" or enemy.position.distance_to(actor.position)>10: continue
 		if enemy.model.state=="attack" and enemy.model.elapsed<float(enemy.model.attack.windup):
 			var attack=enemy.model.attack
-			threat_text.text="EVADE · cannot guard" if not attack.get("blockable",true) else "Incoming · guard / parry / dodge"
+			threat_text.text=attack.get("telegraph","EVADE · cannot guard" if not attack.get("blockable",true) else "Incoming · guard / parry / dodge")
 			break
 	if actor.model.counter_window>0: threat_text.text="OPENING COUNTER · "+Preferences.label_for("heavy")
 	var current=Campaign.chapter(Session.data.chapter)
@@ -450,8 +451,12 @@ func update_hud(actor: Fighter, nearby: Dictionary) -> void:
 	interact_text.text = Preferences.label_for("interact")+" · "+nearby.name if not nearby.is_empty() else ""
 	lock_label.visible = is_instance_valid(actor.target)
 	if lock_label.visible:
-		var point = actor.target.global_position+Vector3(0,1.25,0)
-		lock_label.position = actor.camera.unproject_position(point)-Vector2(15,24)
+		var point = actor.target.get_global_transform_interpolated().origin+Vector3(0,1.25,0)
+		lock_label.visible=not actor.camera.is_position_behind(point)
+		if lock_label.visible:
+			var projected=actor.camera.unproject_position(point)
+			lock_label.visible=get_viewport().get_visible_rect().grow(-20).has_point(projected)
+			lock_label.position=projected-Vector2(15,24)
 
 func _process(delta: float) -> void:
 	toast_timer = maxf(0,toast_timer-delta)
@@ -582,9 +587,10 @@ func show_trial_result(won: bool) -> void:
 	hud.visible=false
 	clear_overlay()
 	shade(.45)
-	var c=column(panel(overlay,Vector2(370,220),Vector2(540,275)),16)
+	var c=column(panel(overlay,Vector2(330,150),Vector2(620,420)),12)
 	text(c,"VOW KEPT" if won else "RISE THROUGH THE ASH",30,GOLD)
-	text(c,"The Cinder Warden yields." if won else "Read the wind-up. Leave room to recover.",19)
+	text(c,"A voice from the ash: 'Carry that vow home.'" if won else "Read the shoulders. Leave yourself a way out.",19)
+	if world is TrialWorld and world.duel!=null: text(c,world.duel.summary(),17)
 	text(c,"Your story campaign progress is preserved.",16)
 	button(c,"Challenge the Warden again",func(): main.start_trial()).grab_focus()
 	button(c,"Return to title",show_menu)
@@ -596,7 +602,7 @@ func show_trial_guide() -> void:
 	shade()
 	var c=column(panel(overlay,Vector2(230,90),Vector2(820,530)),16)
 	text(c,"THE ASHEN TRIAL",30,GOLD)
-	text(c,"Defeat the Cinder Warden in a single duel.",22)
-	text(c,"Light attacks form a three-move chain; the finisher cuts twice.\nQueue the next move as the current swing finishes.\nA heavy attack commits longer and deals more damage.\nGuard just before impact to parry; evade to escape.\nThe Warden's recovery is your opening.\nA draught restores health when you drink; a hit can interrupt it.",19)
-	text(c,Preferences.help_text(),16)
+	text(c,"The Warden keeps the names the fire could not take.\nEarn a road home without forgetting why you left.",19)
+	text(c,"Chain light attacks as each swing finishes; the finisher cuts twice.\nParries and heavy hits break the Warden's composure.\nClose in and use {heavy} during the break for a riposte.\nHis raised cleave cannot be blocked: evade or parry.\nPatterns end in a breathing beat. Use it to recover stamina.\nA draught heals when you drink; taking a hit interrupts it.",18)
+	text(c,Preferences.trial_help_text(),16)
 	button(c,"Return to the duel",play).grab_focus()

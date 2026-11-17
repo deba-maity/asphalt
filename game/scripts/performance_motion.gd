@@ -50,14 +50,28 @@ static func configure(model: CombatModel, enemy: bool=false) -> void:
 	# The authored finisher has two separate cuts, not one long damage volume.
 	# Windows are clip seconds; rate converts the simulation clock in active().
 	model.config.attacks.trial_finish["hit_windows"]=[[.14,.27],[.62,.73]]
+	var dodge_cancels={"light":.455,"trial_second":.46,"trial_finish":.91,"heavy":.68}
+	for id in dodge_cancels: model.config.attacks[id]["dodge_cancel_clip"]=dodge_cancels[id]
+	var riposte: Dictionary=model.config.attacks.heavy.duplicate(true)
+	riposte["damage"]=66.0
+	riposte["cost"]=26
+	var riposte_rate_change=1.15/float(riposte.rate)
+	riposte["rate"]=1.15
+	for part in ["windup","active","recovery"]: riposte[part]/=riposte_rate_change
+	model.config.attacks["trial_riposte"]=riposte
 	model.config.dodge.duration=.92
 	model.config.dodge.invulnerable_start=.14
 	model.config.dodge.invulnerable_end=.44
 	model.config["heal_duration"]=2.3
 	model.config["heal_apply_at"]=.88
+	model.config["parry_rearm"]=.34
+	model.config["parry_posture_relief"]=22.0
+	model.config["guard_break_stagger"]=.35
 	model.config.stamina.regeneration=30
 	model.config.stamina.delay=.35
 	if enemy:
+		model.config.attacks.heavy["blockable"]=false
+		model.config.attacks.heavy["telegraph"]="CLEAVE - evade or parry"
 		var definition: Dictionary=model.config.enemies.still_warden.duplicate(true)
 		definition.merge({"health":340,"scale":1.04,"speed":1.55,"notice":30,
 			"behavior":"warden","attacks":["light","trial_second","heavy","trial_finish"]},true)
@@ -65,6 +79,11 @@ static func configure(model: CombatModel, enemy: bool=false) -> void:
 
 static func attack_time(model: CombatModel) -> float:
 	return model.elapsed*float(model.attack.get("rate",1.0))
+
+static func cancel_time(model: CombatModel, action: String) -> float:
+	var rate=float(model.attack.get("rate",1.0))
+	if action=="dodge": return float(model.attack.get("dodge_cancel_clip",model.attack.get("clip_length",1.0)))/rate
+	return float(model.attack.get("clip_length",1.0))/rate+.07
 
 static func attack_root(model: CombatModel, time: float) -> Vector3:
 	var clip: String=model.attack.get("clip","")

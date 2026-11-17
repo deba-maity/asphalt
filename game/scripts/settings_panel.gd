@@ -26,7 +26,7 @@ func draw(owner_ui: GameInterface, previous: String, section: String="Play") -> 
 	match tab:
 		"Play":
 			choice("Difficulty",["Standard · intended timings","Story · 40% less incoming damage, wider parry"],0 if Preferences.difficulty=="standard" else 1,func(i): Preferences.difficulty="standard" if i==0 else "story")
-			ui.text(c,"Every chapter, reward and ending is available on either setting.",17)
+			ui.text(c,"Both settings support the full campaign and the Ashen Trial.",17)
 			choice("Subtitle size",["Standard (23)","Large (27)","Extra large (31)"],[23,27,31].find(Preferences.subtitle_size),func(i): Preferences.subtitle_size=[23,27,31][i])
 			toggle("Camera impact shake (off by default)","camera_shake")
 			toggle("Reduced effects · keep static attack cues","reduced_effects")
@@ -51,7 +51,7 @@ func draw(owner_ui: GameInterface, previous: String, section: String="Play") -> 
 				var id: String=action
 				ui.button(c,id.replace("_"," ").capitalize()+"   ["+Preferences.label_for(id)+"]",func(): ui.begin_rebind(id,back))
 			ui.button(c,"Restore default bindings",func(): Preferences.reset_bindings(); ui.show_settings(back,"Controls"))
-			ui.text(c,Preferences.help_text(),16)
+			ui.text(c,Preferences.trial_help_text() if ui.main.trial_active else Preferences.help_text(),16)
 	ui.button(root,"Save settings & return",func():
 		Preferences.apply()
 		Preferences.save()

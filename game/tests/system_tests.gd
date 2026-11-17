@@ -54,6 +54,7 @@ func run() -> void:
 	var angle = hero.yaw.rotation.y
 	var motion = InputEventMouseMotion.new()
 	motion.relative = Vector2(100,0)
+	motion.screen_relative = Vector2(100,0)
 	Input.parse_input_event(motion)
 	await wait()
 	if DisplayServer.get_name()=="headless": print("SKIP: Captured-mouse orbit requires a graphics window; none opened.")

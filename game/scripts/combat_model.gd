@@ -26,6 +26,9 @@ var posture: float = 0
 var story_fall: bool = false
 var parry_multiplier: float=1.0
 var heal_pending: bool=false
+var parry_rearm: float=0
+var parry_armed: bool=true
+var last_guard_broken: bool=false
 
 func can_begin() -> bool:
 	return state == "idle" or state == "guard"
@@ -65,10 +68,12 @@ func dodge() -> bool:
 	elapsed = 0
 	return true
 
-func guard(pressed: bool) -> void:
+func guard(pressed: bool, fresh_press: bool=true) -> void:
 	if pressed and state == "idle":
 		state = "guard"
 		elapsed = 0
+		parry_armed=fresh_press and parry_rearm<=0
+		if fresh_press: parry_rearm=float(config.get("parry_rearm",0))
 	elif not pressed and state == "guard":
 		state = "idle"
 		elapsed = 0
@@ -126,6 +131,7 @@ func invulnerable() -> bool:
 	return state == "dodge" and elapsed >= float(config.dodge.invulnerable_start) and elapsed <= float(config.dodge.invulnerable_end)
 
 func receive(amount: float, in_front: bool = true, armored: bool = false, rules: Dictionary = {}) -> String:
+	last_guard_broken=false
 	if state in ["dead", "talk", "transition"]:
 		return "ignored"
 	if invulnerable() and rules.get("dodgeable",true):
@@ -135,13 +141,15 @@ func receive(amount: float, in_front: bool = true, armored: bool = false, rules:
 		return "ignored"
 	if state == "guard" and in_front:
 		var window=float(config.parry_window)*parry_multiplier
-		if elapsed <= window and rules.get("parryable",true) and spend(5):
+		if parry_armed and elapsed <= window and rules.get("parryable",true) and spend(5):
 			parry_flash = 0.3
+			posture=maxf(0,posture-float(config.get("parry_posture_relief",0)))
 			if ash_unlocked: counter_window = 2.5
 			resolve = minf(3,resolve+0.75)
 			return "parry"
 		posture=minf(100,posture+float(rules.get("posture",10)))
 		if rules.get("blockable",true) and posture<100 and spend(amount*1.15+float(rules.get("stamina_damage",0))): return "guard"
+		last_guard_broken=rules.get("blockable",true)
 	health = maxf(0, health - amount)
 	if health <= 0:
 		state = "dead"
@@ -149,11 +157,15 @@ func receive(amount: float, in_front: bool = true, armored: bool = false, rules:
 		return "dead"
 	if not armored:
 		state = "hit"
-		elapsed = 0
+		elapsed = -float(config.get("guard_break_stagger",0)) if last_guard_broken else 0.0
+		if last_guard_broken and config.has("guard_break_stagger"):
+			posture=minf(posture,45)
+			regen_delay=maxf(regen_delay,float(config.stamina.delay))
 	return "hit"
 
 func tick(delta: float) -> void:
 	elapsed += delta
+	parry_rearm=maxf(0,parry_rearm-delta)
 	if state!="heal": heal_pending=false
 	if state=="heal" and heal_pending and elapsed>=float(config.get("heal_apply_at",0)):
 		health=minf(max_health,health+48)
