@@ -1,0 +1,47 @@
+{
+  "version": "0.7.0-rc.1",
+  "runtime_commit": "db5951e72a0dab2f1be482ba6dc521d3a4b7b900",
+  "runtime_sha256": "5554295e15c65469375db9520e1eaa82b03a4135960f0041fb197ac3093c229d",
+  "recorded_utc": "2026-11-17T11:17:19.515050+00:00",
+  "source_assertions": 556,
+  "source_campaign_and_relaunch": "passed",
+  "portable_checks": 15,
+  "portable_status": "passed",
+  "source_clean_cache": "passed",
+  "armor_rebuild": "byte-identical",
+  "endurance": {
+    "seconds": 3600.034,
+    "requested_seconds": 3600.0,
+    "matches": 29,
+    "actions": 8242,
+    "failures": 0,
+    "pose_samples": 25296,
+    "phase_two_samples": 10833,
+    "advancing_swings": 177,
+    "peak_memory": 200801726
+  },
+  "artifacts": [
+    {
+      "kind": "windows-portable",
+      "platform": "windows",
+      "architecture": "x86_64",
+      "filename": "AshenVow-v0.7.0-rc.1-windows-x86_64.zip",
+      "size_bytes": 122818169,
+      "sha256": "555819c611b4a2249161ed2599b3e27726fa033321ef6f6371592a32a1b8c474",
+      "download_url": null
+    },
+    {
+      "kind": "source",
+      "filename": "AshenVow-v0.7.0-rc.1-source.zip",
+      "size_bytes": 86401943,
+      "sha256": "b725abf844bbe6c072ee886505a4fb5305cebc14a2541ba8b72e18faea724864",
+      "download_url": null
+    }
+  ],
+  "binary_sha256": "df536d204a1bcd2c93bd811cb3b4a720f6c46b866dbc5d7033aa0e40e709a55f",
+  "published": false,
+  "native_rendered_acceptance": "not_run",
+  "audio_listening_and_physical_controller": "not_run",
+  "reference_scope": "Official images and selected video frames inspected; franchise assets not distributed",
+  "limits": "Independent previews are not native game screenshots; stress fixture refills health/stamina and is not a balance or human-input playtest"
+}

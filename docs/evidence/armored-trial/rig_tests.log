@@ -1,0 +1,63 @@
+﻿Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SKIN: vertices=5067 blended=280 weight error=0.00001528859138
+PASS: captain_varo.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: captain_varo.tscn: skin and weapon joint hierarchy share the sampled pose
+SKIN: vertices=5067 blended=280 weight error=0.00001528859138
+PASS: foreman.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: foreman.tscn: skin and weapon joint hierarchy share the sampled pose
+SKIN: vertices=5067 blended=280 weight error=0.00001528859138
+PASS: halvek.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: halvek.tscn: skin and weapon joint hierarchy share the sampled pose
+SKIN: vertices=3104 blended=221 weight error=0.00001528859138
+PASS: isha.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: isha.tscn: skin and weapon joint hierarchy share the sampled pose
+SKIN: vertices=5067 blended=280 weight error=0.00001528859138
+PASS: ledger_archer.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: ledger_archer.tscn: skin and weapon joint hierarchy share the sampled pose
+SKIN: vertices=5067 blended=280 weight error=0.00001528859138
+PASS: ledger_brute.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: ledger_brute.tscn: skin and weapon joint hierarchy share the sampled pose
+SKIN: vertices=5067 blended=280 weight error=0.00001528859138
+PASS: ledger_elite.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: ledger_elite.tscn: skin and weapon joint hierarchy share the sampled pose
+SKIN: vertices=5067 blended=280 weight error=0.00001528859138
+PASS: ledger_guard.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: ledger_guard.tscn: skin and weapon joint hierarchy share the sampled pose
+SKIN: vertices=5067 blended=280 weight error=0.00001528859138
+PASS: lieutenant_kesran.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: lieutenant_kesran.tscn: skin and weapon joint hierarchy share the sampled pose
+SKIN: vertices=5067 blended=280 weight error=0.00001528859138
+PASS: marshal_serit.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: marshal_serit.tscn: skin and weapon joint hierarchy share the sampled pose
+SKIN: vertices=3104 blended=221 weight error=0.00001528859138
+PASS: mira.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: mira.tscn: skin and weapon joint hierarchy share the sampled pose
+SKIN: vertices=3104 blended=221 weight error=0.00001528859138
+PASS: oren.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: oren.tscn: skin and weapon joint hierarchy share the sampled pose
+SKIN: vertices=5067 blended=280 weight error=0.00001528859138
+PASS: rayan.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: rayan.tscn: skin and weapon joint hierarchy share the sampled pose
+SKIN: vertices=5067 blended=280 weight error=0.00001528859138
+PASS: road_bandit.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: road_bandit.tscn: skin and weapon joint hierarchy share the sampled pose
+SKIN: vertices=3104 blended=221 weight error=0.00001528859138
+PASS: saren.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: saren.tscn: skin and weapon joint hierarchy share the sampled pose
+SKIN: vertices=5067 blended=280 weight error=0.00001528859138
+PASS: still_warden.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: still_warden.tscn: skin and weapon joint hierarchy share the sampled pose
+SKIN: vertices=3104 blended=221 weight error=0.00001528859138
+PASS: tova.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: tova.tscn: skin and weapon joint hierarchy share the sampled pose
+SKIN: vertices=5067 blended=280 weight error=0.00001528859138
+PASS: wood_scout.tscn: normalized skin weights, blended joints and bounded vertex count
+PASS: wood_scout.tscn: skin and weapon joint hierarchy share the sampled pose
+PASS: light: no pose discontinuity at damage onset
+PASS: heavy: no pose discontinuity at damage onset
+PASS: Directional leg solve remains finite through stance/swing: (0.0, 0.0, -1.0)
+PASS: Directional leg solve remains finite through stance/swing: (0.0, 0.0, 1.0)
+PASS: Directional leg solve remains finite through stance/swing: (-1.0, 0.0, 0.0)
+PASS: Directional leg solve remains finite through stance/swing: (1.0, 0.0, 0.0)
+RESULT: 42/42 skeletal/animation checks passed; rendered acceptance not performed

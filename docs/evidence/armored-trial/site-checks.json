@@ -1,0 +1,11 @@
+{
+  "scope": "Existing hidden browser checks after final onboarding/credits copy changes, not the game",
+  "stats": {
+    "startTime": "2026-11-17T11:00:07.670Z",
+    "duration": 8586.193000000001,
+    "expected": 7,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

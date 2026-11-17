@@ -1,0 +1,55 @@
+﻿Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: Trial loads authored characters
+PASS: Trial uses isolated persistence
+PASS: Trial timing leaves campaign combat definitions intact
+PASS: Root curves scale to target skeleton proportions
+PASS: Blade crosses the target during every damage window: light
+PASS: Blade crosses the target during every damage window: trial_second
+PASS: Blade crosses the target during every damage window: trial_finish
+PASS: Blade crosses the target during every damage window: heavy
+PASS: Finisher first cut hits once
+PASS: Finisher second cut re-arms after an inactive gap
+PASS: Rejected attack does not skip a combo stage
+PASS: 65-bone retarget: rayan
+PASS: 45 authored clips: rayan
+PASS: Locomotion loops: rayan
+PASS: Ready stance breathes continuously: rayan
+PASS: All retargeted clips produce finite orthonormal bones: rayan
+PASS: 65-bone retarget: warden
+PASS: 45 authored clips: warden
+PASS: Locomotion loops: warden
+PASS: Ready stance breathes continuously: warden
+PASS: All retargeted clips produce finite orthonormal bones: warden
+PASS: Authored locomotion moves through physics
+PASS: Distance-driven gait is active
+PASS: Imported feet generate floor contacts
+PASS: Foot correction remains bounded
+PASS: Movement decelerates to rest
+PASS: Authored first sword attack begins
+PASS: Sword strike deals damage during active window
+PASS: One damage event per swing
+PASS: Recovery input chains into authored second strike
+PASS: Combo uses distinct authored motion
+PASS: Directional roll begins
+PASS: Lateral evasion selects its authored sidestep
+PASS: Authored root curve drives directional roll
+PASS: Roll returns to locomotion
+PASS: Forward evasion selects authored roll
+PASS: Authored root movement respects walls
+PASS: Draught begins
+PASS: Healing exposes the full authored drinking action
+PASS: Drink recovery completes
+PASS: Warden enters second phase
+PASS: Phase tempo keeps preparation, pose and damage clocks synchronized
+PASS: Defeat plays death animation then victory flow
+PASS: Retry rebuilds a fresh duel
+PASS: Player defeat reaches retry flow
+PASS: Return restores campaign save store
+PASS: Trial leaves campaign Continue unchanged
+PASS: Campaign restores its own actor pipeline
+RESULT: 48/48 trial checks passed; headless, no rendered quality claim
+EXIT requested: 0 mode=play
+Frame 0 - res://scripts/main.gd:185 in function 'finish'
+Frame 1 - res://tests/trial_tests.gd:160 in function 'run'
+Frame 2 - res://tests/trial_tests.gd:15 in function 'frames'

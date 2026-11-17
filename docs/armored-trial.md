@@ -24,6 +24,17 @@ Official references were inspected as reference material only; no franchise asse
 
 Reference videos and images remain in the ignored authoring cache. They are not distributed with the game.
 
+Additional selected frames were inspected from the public God of War attack clip at 1.5, 1.8 and 2.1 seconds; Wukong footage at 44.8, 45.2 and 45.6 seconds; and Elden Ring exploration, costume and boss-combat footage at 8:00, 10:00, 13:00, 17:00 and 18:30. This is frame inspection, not a claim that every minute of each video was watched.
+
+The comparison still exposes specific gaps:
+
+| Area | What the references show | Current trial limit |
+|---|---|---|
+| Character identity | Distinct body shapes, layered costume construction, hair/fur and material response | A shared armored body with two treatments; no bespoke face or hair production |
+| Combat motion | Large changes of support, body rotation, strong follow-through and opponent reactions designed for each move | Retargeted clips and synchronized physical contacts; limited reaction variety and no paired performance |
+| Setting | Irregular stonework, ground debris, vegetation and foreground/background layers arranged around the encounter | A deliberately small courtyard; more repetitive geometry and unverified native lighting |
+| Presentation | Character, opponent, effects and camera composed together in actual gameplay | Isolated asset review and headless logic checks; a rendered comparison is still required |
+
 ## Rebuilding the character assets
 
 Normal setup/build uses committed assets. Blender is needed only to reproduce the art conversion. Python authoring also uses NumPy and Pillow. Obtain Blender from its official distribution and verify its published checksum.
@@ -40,10 +51,40 @@ python .\tools\optimize_knight_assets.py
 
 The fetcher pins the source SHA-256 and extracts only `armor.blend`. Embedded scripts are disabled. Only the armor mesh and its four maps are selected; the source's unrelated packed sample photograph is excluded. Lossless PNG compression and shared external maps avoid duplicate textures. About 77 MB of unused ranger maps were removed. Provenance and modifications are recorded in `game/assets/performance/knight_provenance.json` and `KNIGHT_LICENSE.txt`; the complete attribution also accompanies the portable executable.
 
+## Audit fixes
+
+- Losing the ground ray now releases the foot's planted state and its old anchor together. Previously, reacquiring the ground could index an anchor that no longer existed.
+- Combat resource and contact checks reject non-finite, negative, zero-damage and future-time inputs as appropriate. Save validation requires whole-number inventory/progression fields, bounded lists and unique IDs, and checks the serialized size before writing a temporary file.
+- Settings have a 64 KiB read limit and strict scalar/type/range validation. The reader preserves the generated INI format without passing writable settings text through Godot's general object-capable Variant parser. This is local input hardening, not a claim of a demonstrated remote exploit.
+- Release packaging verifies the clean source commit, runtime fingerprint, executable hash and a completed campaign/source test record. An old successful report or executable can no longer stand in for the current candidate.
+- Build tools now check for Python 3.11 or newer before expensive work; this is the minimum for the `hashlib.file_digest` calls they use. Supported, unsupported and failed-interpreter paths were checked. The site guide now names the current trial/archive menu entries and correctly distinguishes credited trial assets from original campaign art.
+
 ## Validation status and limits
 
-The visual checkpoint passed 512 headless assertions, complete campaign traversal and relaunch/Continue. It also passed the new physical-contact checks for both advancing cuts, both finisher contacts, ordinary and second-phase heavy strikes. Final audit and portable-package evidence will be recorded here after completion.
+The tested runtime is commit `db5951e72a0dab2f1be482ba6dc521d3a4b7b900`, version `0.7.0-rc.1`, with runtime SHA-256 `5554295e15c65469375db9520e1eaa82b03a4135960f0041fb197ac3093c229d`. Later evidence, documentation, build-tool and independent-viewer corrections do not change those runtime bytes.
+
+- **556 headless assertions** passed, plus complete campaign traversal, relaunch/Continue and transition exit/recovery checks. The six trial, motion, physical-combat, duel, presentation and audit suites also passed at 30 physics ticks.
+- **15 checks of a fresh portable ZIP extraction** passed: quality, campaign/Continue, and those six suites at both 30 and 60 physics ticks. This uses the packaged executable without the editor or a project path.
+- A fresh source ZIP imported without any prior `.godot` cache, passed trial/presentation/audit checks, and produced the same runtime fingerprint.
+- Rebuilding from the checksum-pinned Knight archive in a separate directory reproduced both GLBs and all three shared texture files byte for byte.
+- Release identity fixtures accepted a matching candidate and rejected six stale or incomplete variants. The existing seven site/browser checks also passed after updating credits.
+- The independent asset viewer sampled skinned mesh bounds at three points in each of the 45 clips (135 poses); representative backward/side locomotion, turns, reactions and death poses were visually inspected. `npm audit` reported zero known advisories for the QA tool dependencies on this date; these dependencies are not shipped in the game executable.
+- The frozen real-time endurance run completed **3,600.034 seconds** with **zero failures**, 29 scripted rematches, 8,242 action requests, 25,296 actor pose samples, 10,833 second-phase samples and 177 sampled advancing swings. Node count stayed at 313 in every minute report. The source manifest still matched the final game files exactly. Health/stamina refills make this a stress fixture, not a balance or human-input playtest.
+
+The unsigned local candidate is in `exports/releases/v0.7.0-rc.1-delivery`; it has not been published as a GitHub release. [Machine-readable results and source logs](evidence/armored-trial/) accompany this document. The package's embedded build identity refers to the tested runtime commit above, not a later documentation/tooling commit.
+
+The [session record](evidence/armored-trial/session.json) records the requested work periods in UTC: gameplay work from 07:48:23 to 08:50:32, visual/reference work from 08:50:32 to 10:03:34, and the subsequent audit through 11:17:19 on 2026-11-17. The final endurance run lasted from 10:16:43 to 11:16:44. An earlier short audit run was deliberately terminated to include the final settings parser; it is not counted as a completed soak. [Final validation summary](evidence/armored-trial/validation-summary.json).
 
 All Godot execution was headless. Blender used background mode with automatic script execution disabled. Separate hidden WebGL viewers inspected the imported poses and actual recorded runtime joints/cloth across 19 action segments per fighter. A static courtyard export was also inspected. These use independent lighting, and their images are explicitly labeled **not game screenshots**. They do not verify Godot's rendered materials, sustained GPU frame rate, human input feel, physical controller behavior or audio listening.
 
 This is still below the requested AAA visual/animation level. It is a more detailed armored duel with a stronger asset foundation, not evidence of parity with those games. Native rendered acceptance remains outstanding under the user's restriction against opening the game on this Remote Desktop.
+
+## Isolated asset previews
+
+These are independent WebGL inspections, **not screenshots of the running game**. Rayan and the Warden use the same credited base model with different palette, scale and mantle. The courtyard view uses independent lighting and does not reproduce Godot's sky, material projection, post-processing or complete combat presentation.
+
+![Recorded Rayan ready pose in the independent asset viewer](evidence/armored-trial/rayan-ready.png)
+
+![Recorded Warden cleave recovery in the independent asset viewer](evidence/armored-trial/warden-cleave.png)
+
+[Static courtyard inspection](evidence/armored-trial/court-static.png). Armor: [Knight by piacenti, CC BY 3.0](https://opengameart.org/content/knight-2), modified as described above; authored motion and rig reference: Quaternius / Gonzalo Furnier, CC0. Original mantle and weapon geometry: ASHEN VOW.

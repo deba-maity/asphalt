@@ -1,0 +1,51 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: Invalid stamina cost cannot grant energy: -10.0
+PASS: Invalid damage cannot heal, poison or stagger: -10.0
+PASS: Invalid stamina cost cannot grant energy: nan
+PASS: Invalid damage cannot heal, poison or stagger: nan
+PASS: Invalid stamina cost cannot grant energy: inf
+PASS: Invalid damage cannot heal, poison or stagger: inf
+PASS: Invalid stamina cost cannot grant energy: -inf
+PASS: Invalid damage cannot heal, poison or stagger: -inf
+PASS: Zero damage does not create a free parry or stagger
+PASS: Zero-damage guarding has no resource side effects
+PASS: Invalid deltas cannot rewind or corrupt an action
+PASS: Non-finite and negative swept contact times are rejected
+PASS: A future swept contact cannot damage before the combat clock
+PASS: A real contact within the elapsed physics interval is retained
+PASS: Typed malformed preference values load with safe fallbacks
+PASS: Mouse settings reject NaN and string booleans
+PASS: Audio settings reject invalid types and clamp finite ranges
+PASS: Display and difficulty settings require supported values
+PASS: Out-of-range saved bindings restore the complete default map
+PASS: Oversized settings are refused without changing active preferences
+PASS: Object and Resource literals never reach an object-capable settings parser
+PASS: Malformed settings sections leave the current values intact
+PASS: Whole-number save field rejects fractions: schema
+PASS: Whole-number save field rejects fractions: currency
+PASS: Whole-number save field rejects fractions: max_health
+PASS: Whole-number save field rejects fractions: heals
+PASS: Whole-number save field rejects fractions: max_heals
+PASS: Whole-number save field rejects fractions: story_deaths
+PASS: Whole-number save field rejects fractions: resurrections
+PASS: Draught count cannot exceed the saved capacity
+PASS: Duplicate progression identifiers cannot inflate state
+PASS: Oversized progression identifiers are refused
+PASS: Audit save fixture writes valid progress
+PASS: Oversized serialization cannot replace valid progress
+PASS: A future schema is preserved even when an older valid backup exists
+PASS: Oversized primary save recovers the prior valid backup
+PASS: Foot reacquisition fixture starts on actual solid ground
+PASS: Losing ground clears every dependent foot-contact state
+PASS: Ground reacquisition remains finite and bounded
+PASS: Camera impact response agrees at 30 and 120 render samples
+PASS: Camera impulse settles without residual drift
+PASS: Invalid camera delta cannot poison its spring
+PASS: Disabling shake clears pending camera impulse
+PASS: Negative economy amounts cannot change progress
+RESULT: 44/44 audit checks passed; 60 physics ticks
+EXIT requested: 0 mode=play
+Frame 0 - res://scripts/main.gd:185 in function 'finish'
+Frame 1 - res://tests/audit_tests.gd:130 in function 'run'
+Frame 2 - res://tests/audit_tests.gd:14 in function 'seconds'

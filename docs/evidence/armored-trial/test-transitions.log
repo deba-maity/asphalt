@@ -1,0 +1,81 @@
+﻿Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: Local transition request accepted
+PASS: Duplicate committed request refused
+TRANSITION {"background_ms":106.334,"graphics_stage":"unmeasured; headless","instantiate_ms":0.037,"low_memory":true,"main_thread_swap_ms":17.966,"nodes":358,"old_zone_freed_before_construct":true,"old_zone_release_frame_ms":1.833,"ready_geometry_and_scripts_ms":8.002,"static_memory_bytes":126611728,"zone":"zone_cinder_errand"}
+PASS: Transition settles without a blocking wait
+PASS: New zone preserves the one player node
+PASS: Previous zone actually freed rather than hidden
+PASS: Coordinator releases PackedScene reference after commit
+PASS: Missing packaged resource detected before unload
+PASS: Failed request presents recoverable loading UI
+PASS: Failed transition retains previous zone/checkpoint
+PASS: Recovery restarts a valid checkpoint with one player
+PASS: Transition settles without a blocking wait
+PASS: Logical cancellation discards stale result without committing it
+PASS: Configured speculative budget refuses oversized preload
+TRANSITION {"background_ms":169.717,"graphics_stage":"unmeasured; headless","low_memory":true,"main_thread_swap_ms":1.975,"nodes":79,"old_zone_freed_before_construct":true,"old_zone_release_frame_ms":0.934,"static_memory_bytes":126195976,"zone":"zone_cinder_home"}
+PASS: Transition settles without a blocking wait
+PASS: Failed scene construction rolls progress back after releasing the old zone
+PASS: Construction failure recovers the checkpoint with the same player
+PASS: Repeated zone request 0
+TRANSITION {"background_ms":165.759,"graphics_stage":"unmeasured; headless","instantiate_ms":0.036,"low_memory":true,"main_thread_swap_ms":33.751,"nodes":497,"old_zone_freed_before_construct":true,"old_zone_release_frame_ms":0.906,"ready_geometry_and_scripts_ms":20.649,"static_memory_bytes":130549337,"zone":"zone_cinder_home"}
+PASS: Transition settles without a blocking wait
+PASS: Unload/reload releases old nodes and retains player 0
+PASS: Exactly one active zone after transition 0
+PASS: Repeated zone request 1
+TRANSITION {"background_ms":51.489,"graphics_stage":"unmeasured; headless","instantiate_ms":0.036,"low_memory":false,"main_thread_swap_ms":25.183,"nodes":358,"old_zone_release_frame_ms":0.0,"ready_geometry_and_scripts_ms":8.353,"static_memory_bytes":128511584,"zone":"zone_cinder_errand"}
+PASS: Transition settles without a blocking wait
+PASS: Unload/reload releases old nodes and retains player 1
+PASS: Exactly one active zone after transition 1
+PASS: Repeated zone request 2
+TRANSITION {"background_ms":167.546,"graphics_stage":"unmeasured; headless","instantiate_ms":0.036,"low_memory":true,"main_thread_swap_ms":38.344,"nodes":497,"old_zone_freed_before_construct":true,"old_zone_release_frame_ms":0.988,"ready_geometry_and_scripts_ms":21.635,"static_memory_bytes":130657493,"zone":"zone_cinder_home"}
+PASS: Transition settles without a blocking wait
+PASS: Unload/reload releases old nodes and retains player 2
+PASS: Exactly one active zone after transition 2
+PASS: Repeated zone request 3
+TRANSITION {"background_ms":51.24,"graphics_stage":"unmeasured; headless","instantiate_ms":0.048,"low_memory":false,"main_thread_swap_ms":25.53,"nodes":358,"old_zone_release_frame_ms":0.0,"ready_geometry_and_scripts_ms":9.439,"static_memory_bytes":128548648,"zone":"zone_cinder_errand"}
+PASS: Transition settles without a blocking wait
+PASS: Unload/reload releases old nodes and retains player 3
+PASS: Exactly one active zone after transition 3
+PASS: Repeated zone request 4
+TRANSITION {"background_ms":167.786,"graphics_stage":"unmeasured; headless","instantiate_ms":0.037,"low_memory":true,"main_thread_swap_ms":36.859,"nodes":497,"old_zone_freed_before_construct":true,"old_zone_release_frame_ms":0.959,"ready_geometry_and_scripts_ms":21.459,"static_memory_bytes":130661813,"zone":"zone_cinder_home"}
+PASS: Transition settles without a blocking wait
+PASS: Unload/reload releases old nodes and retains player 4
+PASS: Exactly one active zone after transition 4
+PASS: Repeated zone request 5
+TRANSITION {"background_ms":53.919,"graphics_stage":"unmeasured; headless","instantiate_ms":0.056,"low_memory":false,"main_thread_swap_ms":27.694,"nodes":358,"old_zone_release_frame_ms":0.0,"ready_geometry_and_scripts_ms":8.353,"static_memory_bytes":128552632,"zone":"zone_cinder_errand"}
+PASS: Transition settles without a blocking wait
+PASS: Unload/reload releases old nodes and retains player 5
+PASS: Exactly one active zone after transition 5
+PASS: Repeated zone request 6
+TRANSITION {"background_ms":173.338,"graphics_stage":"unmeasured; headless","instantiate_ms":0.064,"low_memory":true,"main_thread_swap_ms":39.472,"nodes":497,"old_zone_freed_before_construct":true,"old_zone_release_frame_ms":1.897,"ready_geometry_and_scripts_ms":22.877,"static_memory_bytes":130665725,"zone":"zone_cinder_home"}
+PASS: Transition settles without a blocking wait
+PASS: Unload/reload releases old nodes and retains player 6
+PASS: Exactly one active zone after transition 6
+PASS: Repeated zone request 7
+TRANSITION {"background_ms":59.634,"graphics_stage":"unmeasured; headless","instantiate_ms":0.034,"low_memory":false,"main_thread_swap_ms":22.582,"nodes":358,"old_zone_release_frame_ms":0.0,"ready_geometry_and_scripts_ms":7.951,"static_memory_bytes":128557144,"zone":"zone_cinder_errand"}
+PASS: Transition settles without a blocking wait
+PASS: Unload/reload releases old nodes and retains player 7
+PASS: Exactly one active zone after transition 7
+PASS: Repeated equal-zone loads do not accumulate scene nodes
+PASS: Ordinary death screen: ch02_night_cinders
+PASS: Ordinary restart preserves correct body/abilities: ch02_night_cinders
+PASS: Ordinary death screen: ch05_returned
+PASS: Ordinary restart preserves correct body/abilities: ch05_returned
+PASS: Skipping story commits objective and restores camera/input
+PASS: One-time story callback is idempotent
+PASS: Story pause retains subtitle/callback state
+PASS: Saving/quitting an unfinished story retains required progress without committing it
+PASS: Optional affordable flask upgrade persists without grinding
+PASS: Defeating Warden before its lesson leaves a nonlethal remnant tutorial, avoiding a soft lock
+PASS: Authored betrayal uses a separate input-locked fall, not ordinary defeat
+TRANSITION {"background_ms":67.633,"graphics_stage":"unmeasured; headless","instantiate_ms":0.038,"low_memory":false,"main_thread_swap_ms":14.796,"nodes":175,"old_zone_release_frame_ms":0.0,"ready_geometry_and_scripts_ms":2.819,"static_memory_bytes":129121565,"zone":"zone_counting_shore"}
+PASS: Transition settles without a blocking wait
+PASS: Skipping betrayal twice commits exactly one canonical death
+PASS: Chapter replay leaves campaign Continue save unchanged
+RESULT: 63/63 transition/system checks passed
+EXIT requested: 0 mode=menu
+Frame 0 - res://scripts/main.gd:185 in function 'finish'
+Frame 1 - res://tests/transition_tests.gd:154 in function 'run'
+Frame 2 - res://tests/transition_tests.gd:23 in function 'wait_idle'

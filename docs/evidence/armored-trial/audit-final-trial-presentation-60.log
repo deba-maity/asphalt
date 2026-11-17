@@ -1,0 +1,48 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: Artist armor stays within the imported geometry budget: rayan
+PASS: Imported armor has finite geometry and normalized anatomical weights: rayan
+PASS: Armor retains color, normal, metallic and roughness maps: rayan
+PASS: Explicit pose sampling updates hand props in the same pass: rayan
+PASS: Mantle has woven trim and an original vow seal: rayan
+PASS: Artist armor stays within the imported geometry budget: warden
+PASS: Imported armor has finite geometry and normalized anatomical weights: warden
+PASS: Armor retains color, normal, metallic and roughness maps: warden
+PASS: Explicit pose sampling updates hand props in the same pass: warden
+PASS: Mantle has woven trim and an original vow seal: warden
+PASS: Warden's mantle has an open split hem
+PASS: Mantles have distinct silhouettes
+PASS: New cloister masonry leaves the fighting space clear
+PASS: Radial stone arches have finite geometry and unit normals
+PASS: Anticipation shows the preparation pose without early damage
+PASS: First finisher cut stays synchronized after anticipation
+PASS: Finisher gap stays harmless after anticipation
+PASS: Second finisher cut remains independently synchronized
+PASS: Preparation clock joins the strike without a pose jump
+PASS: Preparation footsteps and body motion use the same stretched clock
+PRESENTATION CUT trial_dash contacts=1 damage=34.0
+PASS: Visible blade connects once per authored cut: trial_dash
+PASS: New timing and actual damage agree: trial_dash
+PRESENTATION CUT trial_dash contacts=1 damage=28.0
+PASS: Visible blade connects once per authored cut: trial_dash
+PASS: New timing and actual damage agree: trial_dash
+PRESENTATION CUT trial_finish contacts=2 damage=33.6
+PASS: Visible blade connects once per authored cut: trial_finish
+PASS: New timing and actual damage agree: trial_finish
+PRESENTATION CUT heavy contacts=1 damage=30.8
+PASS: Visible blade connects once per authored cut: heavy
+PASS: New timing and actual damage agree: heavy
+PRESENTATION CUT heavy contacts=1 damage=30.8
+PASS: Visible blade connects once per authored cut: heavy
+PASS: New timing and actual damage agree: heavy
+PASS: Forward sprint plus heavy selects the authored advancing cut
+PASS: Advancing cut has bounded authored root travel
+PASS: Committed advancing cut does not home toward a moving target
+PASS: Second-phase Warden selects its new cut from real encounter spacing
+PASS: Advancing attacks have a visible recovery and bounded frequency
+PASS: Target-height gaze stays anatomically bounded
+RESULT: 36/36 presentation checks passed; 60 physics ticks
+EXIT requested: 0 mode=play
+Frame 0 - res://scripts/main.gd:185 in function 'finish'
+Frame 1 - res://tests/trial_presentation_tests.gd:132 in function 'run'
+Frame 2 - res://tests/trial_presentation_tests.gd:13 in function 'seconds'

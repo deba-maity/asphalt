@@ -1,0 +1,30 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+AI TELEMETRY swings=7 contacts=6 health_lost=91.0
+PASS: Warden approaches and executes its live attack sequence
+PASS: Warden's visible blade can reach the player from its chosen spacing
+PASS: Swept contacts cannot damage during windup or between finisher cuts
+PASS: Swept contacts retain separate once-only finisher windows
+PASS: An interrupted attacker cannot claim a swept hit
+PASS: Sweep joint chain matches the rendered hand: light
+CUT light contacts=1 damage=20.0
+PASS: Physical blade contacts each authored cut exactly once: light
+PASS: Visible contact and damage agree: light
+PASS: Sweep joint chain matches the rendered hand: trial_second
+CUT trial_second contacts=1 damage=23.0
+PASS: Physical blade contacts each authored cut exactly once: trial_second
+PASS: Visible contact and damage agree: trial_second
+PASS: Sweep joint chain matches the rendered hand: trial_finish
+CUT trial_finish contacts=2 damage=48.0
+PASS: Physical blade contacts each authored cut exactly once: trial_finish
+PASS: Visible contact and damage agree: trial_finish
+PASS: Sweep joint chain matches the rendered hand: heavy
+CUT heavy contacts=1 damage=44.0
+PASS: Physical blade contacts each authored cut exactly once: heavy
+PASS: Visible contact and damage agree: heavy
+PASS: An out-of-reach blade does not damage a distant target
+RESULT: 18/18 physical combat checks passed; 60 physics ticks
+EXIT requested: 0 mode=play
+Frame 0 - res://scripts/main.gd:185 in function 'finish'
+Frame 1 - res://tests/trial_combat_tests.gd:69 in function 'run'
+Frame 2 - res://tests/trial_combat_tests.gd:14 in function 'seconds'

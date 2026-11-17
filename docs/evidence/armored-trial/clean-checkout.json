@@ -1,0 +1,24 @@
+{
+  "source_commit": "db5951e72a0dab2f1be482ba6dc521d3a4b7b900",
+  "source_archive": "AshenVow-v0.7.0-rc.1-source.zip",
+  "import": "passed",
+  "import_seconds": 118.65,
+  "project": "fresh extraction of the committed source ZIP; no initial .godot cache",
+  "initial_cache": false,
+  "game_window_opened": false,
+  "checks": [
+    {
+      "name": "trial",
+      "passed": true
+    },
+    {
+      "name": "trial-presentation",
+      "passed": true
+    },
+    {
+      "name": "audit",
+      "passed": true
+    }
+  ],
+  "status": "passed"
+}

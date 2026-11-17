@@ -1,0 +1,23 @@
+{
+  "scope": "Targeted PowerShell build-tool preflight checks; older/failing interpreters simulated inside child scopes",
+  "recorded_utc": "2026-11-17T11:01:04.844253+00:00",
+  "active_python": "3.14.6",
+  "checks": [
+    {
+      "name": "supported active interpreter",
+      "status": "passed"
+    },
+    {
+      "name": "simulated Python 3.10 rejected before build work",
+      "status": "passed"
+    },
+    {
+      "name": "simulated interpreter launch failure explained",
+      "status": "passed"
+    },
+    {
+      "name": "PowerShell tool files parse without syntax errors",
+      "status": "passed"
+    }
+  ]
+}

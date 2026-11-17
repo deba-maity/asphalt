@@ -1,0 +1,46 @@
+{
+  "baseline_commit": "b268f0730f746e5d3196bdc1eb9765f78eeefec5",
+  "started_utc": "2026-11-17T07:48:23Z",
+  "gameplay_phase_minimum_end_utc": "2026-11-17T08:48:23Z",
+  "research_phase_started_utc": "2026-11-17T08:50:32Z",
+  "bug_phase_started_utc": "2026-11-17T10:03:34Z",
+  "restriction": "No graphical game execution, no desktop input. Headless Godot only. Reference images and source inspection are allowed.",
+  "implemented": [
+    "Trial composure, stagger and physical riposte",
+    "Distinct phase patterns with recovery beats",
+    "Guard rearm, guard-break feedback and stale-intent cancellation",
+    "Dodge recovery cancels after the final authored cut",
+    "Render-rate controller camera and scale-independent mouse look",
+    "Lock occlusion grace and behind-camera marker suppression",
+    "Body-width obstacle avoidance with stable turning preference",
+    "Round statistics, trial narrative and simultaneous-outcome resolution"
+  ],
+  "next": [
+    "Commit evidence and push the reviewed branch; no graphical game execution or binary publication."
+  ],
+  "audit_targets": [
+    "Non-finite or negative combat amounts",
+    "Malformed/oversized save and settings data",
+    "Save crash/recovery and transition edges",
+    "Asset/archive extraction boundaries",
+    "Pause/input focus and visual effect lifetime",
+    "Action timing and physical sweep boundaries after animation changes"
+  ],
+  "gameplay_phase_completed_utc": "2026-11-17T08:50:32Z",
+  "visual_phase_completed_utc": "2026-11-17T10:03:34Z",
+  "bug_phase_minimum_end_utc": "2026-11-17T11:03:34Z",
+  "user_screenshot_response": "Acknowledged old campaign does not look close; replaced trial art foundation with licensed Knight, clarified archive menu, inspected official footage/images.",
+  "bug_phase_completed_utc": "2026-11-17T11:17:19.515050+00:00",
+  "completed_utc": "2026-11-17T11:17:19.515050+00:00",
+  "final_endurance": {
+    "label": "armored-audit-20261117-b",
+    "complete": true,
+    "seconds": 3600.034,
+    "failures": 0,
+    "source_matches": true
+  },
+  "superseded_endurance": {
+    "label": "armored-audit-20261117-a",
+    "status": "intentionally terminated before completion to include final settings parser; not counted as a completed soak"
+  }
+}

@@ -1,0 +1,65 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: Unavailable dodges explain stamina without flooding feedback
+PASS: Empty healing stock has an explicit reason
+PASS: Full-health drinking does not spend a draught
+PASS: Trial controls explain why the campaign ability is unavailable
+PASS: Trial guide advertises only the duel's available actions
+PASS: Cleave has explicit evade/parry counterplay
+PASS: Warden rules do not mutate player or campaign rules
+PASS: A fresh guard press can parry
+PASS: Rapid guard tapping cannot continually restart the parry window
+PASS: A deliberate new guard press rearms after recovery
+PASS: Exhausted blocking produces an explicit guard-break recovery
+PASS: A broken guard does not retain permanent full strain
+PASS: An unblockable attack is distinct from an exhausted guard
+PASS: Holding guard through a stagger blocks without granting a fresh parry
+PASS: A recent guard press buffers across the last instant of recovery
+PASS: Hit stop preserves a newly pressed defensive input
+PASS: Riposte pose/damage clocks agree: hero
+PASS: Riposte pose/damage clocks agree: boss
+PASS: Successful defensive timing builds pressure
+PASS: Successful defensive timing builds pressure
+PASS: Successful defensive timing builds pressure
+PASS: Three parries produce one composure break
+PASS: Break creates a nearby punish window
+PASS: Composure pressure does not secretly damage health
+PASS: Break cooldown prevents immediate repeat staggering
+PASS: An unaffordable riposte does not consume the opening
+PASS: Heavy input uses the earned riposte
+PASS: Accepted riposte consumes the opening once
+PASS: Starting the riposte is not automatic damage
+PASS: Riposte damage requires a real blade contact
+PASS: Round statistics count landed blade contacts
+PASS: A stagger clears previously queued attacks
+PASS: A queued escape cannot cancel the finisher's second cut
+PASS: Dodge can leave the finisher's long recovery after both cuts
+PASS: Recovery escape preserves both actual finisher contacts
+PASS: An opening never teleports a distant attacker into range
+PASS: Unused openings expire
+PASS: Pressure persists briefly between deliberate attacks
+PASS: Composure recovers after disengaging
+PASS: Pause freezes duel timing and openings
+PASS: Duel timing resumes after pause
+PASS: Composure HUD leaves the controls unobstructed
+PASS: Trial guide fits the reference viewport
+PASS: Mouse look uses physical motion independently of viewport scaling
+PASS: Controller orbit integrates consistently at 30 and 120 render steps
+PASS: Manual locked orbit and camera elevation remain bounded
+PASS: Lock framing returns smoothly after manual orbit ends
+PASS: Brief occlusion does not drop an established lock
+PASS: Sustained occlusion releases lock ownership
+PASS: Targets behind the camera do not project a false on-screen lock marker
+NAV RESULT widest=1.90094435214996 boss=(0.659655, -0.00919, 1.383714) damage=30.1000000000004
+PASS: Warden steers its body around a blocking wall
+PASS: Warden can re-engage after losing direct line of sight
+PASS: Round statistics include lethal damage capped to the remaining health
+PASS: A simultaneous fall cannot award a surviving-player victory
+PASS: Results freeze round statistics
+PASS: A rematch resets all duel progress
+PASS: Duel outcomes preserve campaign Continue
+RESULT: 57/57 duel behavior checks passed; 30 physics ticks
+EXIT requested: 0 mode=menu
+Frame 0 - res://scripts/main.gd:185 in function 'finish'
+Frame 1 - res://tests/trial_duel_tests.gd:222 in function 'run'
+Frame 2 - res://tests/trial_duel_tests.gd:17 in function 'seconds'

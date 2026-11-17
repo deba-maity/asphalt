@@ -1,0 +1,43 @@
+{
+  "scope": "Isolated rebuild from checksum-pinned source, no game window; production assets untouched.",
+  "steps": [
+    {
+      "name": "blender",
+      "seconds": 2.02,
+      "passed": true
+    },
+    {
+      "name": "optimize",
+      "seconds": 12.62,
+      "passed": true
+    }
+  ],
+  "outputs": [
+    {
+      "file": "game/assets/performance/rayan.glb",
+      "sha256": "208b2d239b28203d41e37493a1793b2214d038a7577e423c74541e9b0df02f4f",
+      "identical_to_committed_asset": true
+    },
+    {
+      "file": "game/assets/performance/textures/knight-armor_default_color.png",
+      "sha256": "b5553c16e2b7c872fe3b1feaa12ab5c17cf54970f97eb9f6d7053b575aeda909",
+      "identical_to_committed_asset": true
+    },
+    {
+      "file": "game/assets/performance/textures/knight-armor_default_metalness-armor_default_rough.png",
+      "sha256": "16e520743d2b83d1eb32d18ffa3460c45ac8aeea395152a5fa4f218ad9ca1c70",
+      "identical_to_committed_asset": true
+    },
+    {
+      "file": "game/assets/performance/textures/knight-armor_default_nmap.png",
+      "sha256": "e48bff13c20a6bb29839ddade3e7675fb63f49484827b35d231737736e69b7c8",
+      "identical_to_committed_asset": true
+    },
+    {
+      "file": "game/assets/performance/warden.glb",
+      "sha256": "208b2d239b28203d41e37493a1793b2214d038a7577e423c74541e9b0df02f4f",
+      "identical_to_committed_asset": true
+    }
+  ],
+  "all_outputs_identical": true
+}

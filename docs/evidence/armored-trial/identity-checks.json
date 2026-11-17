@@ -1,0 +1,40 @@
+{
+  "status": "passed",
+  "clean_checkout_runtime_matches": true,
+  "checks": [
+    {
+      "case": "matching build and full campaign report",
+      "accepted": true
+    },
+    {
+      "case": "old source commit",
+      "rejected": true,
+      "reason": "Executable was not built from this clean commit. Rebuild after committing source."
+    },
+    {
+      "case": "dirty build",
+      "rejected": true,
+      "reason": "Executable was not built from this clean commit. Rebuild after committing source."
+    },
+    {
+      "case": "old runtime assets",
+      "rejected": true,
+      "reason": "Executable runtime source/version differs from the current checkout."
+    },
+    {
+      "case": "changed executable",
+      "rejected": true,
+      "reason": "Executable bytes differ from their recorded build identity."
+    },
+    {
+      "case": "old test report",
+      "rejected": true,
+      "reason": "A full campaign/source validation of these runtime bytes is required."
+    },
+    {
+      "case": "missing campaign checks",
+      "rejected": true,
+      "reason": "A full campaign/source validation of these runtime bytes is required."
+    }
+  ]
+}
