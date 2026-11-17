@@ -99,7 +99,7 @@ func active() -> bool:
 	return state == "attack" and elapsed >= float(attack.windup) and elapsed < float(attack.windup) + float(attack.active)
 
 func active_window() -> int:
-	var time=elapsed*float(attack.get("rate",1.0))
+	var time=elapsed*float(attack.get("rate",1.0))-float(attack.get("lead_in",0))
 	var windows: Array=attack.get("hit_windows",[])
 	for index in windows.size():
 		if time>=float(windows[index][0]) and time<float(windows[index][1]): return index
@@ -114,7 +114,7 @@ func claim_swept_hit(target_id: int, contact_time: float) -> bool:
 	if state!="attack": return false
 	var window=-1
 	if attack.has("hit_windows"):
-		var clip_time=contact_time*float(attack.get("rate",1.0))
+		var clip_time=contact_time*float(attack.get("rate",1.0))-float(attack.get("lead_in",0))
 		for index in attack.hit_windows.size():
 			if clip_time>=float(attack.hit_windows[index][0]) and clip_time<float(attack.hit_windows[index][1]): window=index
 		if window<0: return false

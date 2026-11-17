@@ -177,7 +177,12 @@ def motions():
 
 
 if __name__ == '__main__':
+    import argparse
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--legacy-characters',action='store_true',help='Explicitly rebuild the earlier ranger characters, replacing the current Knight assets')
+    options=parser.parse_args()
     OUT.mkdir(parents=True,exist_ok=True)
-    character('Male','rayan.glb')
-    character('Female','warden.glb')
+    if options.legacy_characters:
+        character('Male','rayan.glb')
+        character('Female','warden.glb')
     motions()

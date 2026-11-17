@@ -14,12 +14,14 @@ const server=http.createServer((req,res)=>{
 });
 (async()=>{await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
- try{const page=await browser.newPage({viewport:{width:800,height:700}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto(`http://127.0.0.1:${server.address().port}`,{timeout:60000});await page.waitForFunction(()=>window.ready,{timeout:90000});
+ try{const court=process.argv.includes('--court');const page=await browser.newPage({viewport:court?{width:1280,height:800}:{width:800,height:700}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const character=process.argv.includes('--warden')?'warden':'rayan';
+ await page.goto(`http://127.0.0.1:${server.address().port}/${court?'court-review.html':''}?character=${character}`,{timeout:60000});await page.waitForFunction(()=>window.ready,{timeout:90000});
+ if(court){for(const angle of [0,1]){await page.evaluate(a=>window.review.sample(a),angle);await page.screenshot({path:path.join(output,'court-'+angle+'.png')});}if(errors.length)throw Error(errors.join('\n'));console.log('Static courtyard reviewed in an independent renderer.');return;}
  const clips=await page.evaluate(()=>window.review.clips);fs.writeFileSync(path.join(output,'clips.json'),JSON.stringify(clips,null,2));
- for(const [name,time] of [['Sword_Idle',.3],['Sword_Regular_A',.267],['Sword_Heavy_A',.49],['Roll',.65],['Jog_Fwd',.32],['Drink',1.2]]){
+ for(const [name,time] of [['Sword_Idle',.3],['Sword_Regular_A',.267],['Sword_Heavy_A',.49],['Sword_Dash',.33],['Sword_Light_A',.25],['Roll',.65],['Jog_Fwd',.32],['Drink',1.2]]){
   const stats=await page.evaluate(([name,time])=>window.review.sample(name,time),[name,time]);
-  await page.screenshot({path:path.join(output,name+'.png')});console.log(name,stats);
+  await page.screenshot({path:path.join(output,character+'-'+name+'.png')});console.log(character,name,stats);
  }
  if(errors.length)throw Error(errors.join('\n'));
  }finally{await browser.close();server.close();}

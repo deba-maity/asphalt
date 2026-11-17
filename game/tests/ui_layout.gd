@@ -23,7 +23,9 @@ func run() -> void:
 	session.validation=true
 	main=load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
-	await bounds("Title with Continue")
+	await bounds("Trial title")
+	main.ui.show_archive(); await bounds("Prototype archive with Continue")
+	main.ui.show_asset_credits(); await bounds("Artist credits and license links")
 	main.ui.show_chapter_select(); await bounds("Chapter select")
 	main.ui.show_settings("menu"); await bounds("Settings and controls")
 	for tab in ["Display","Audio","Controls"]:

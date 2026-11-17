@@ -14,12 +14,17 @@ They do not claim current-build visual acceptance or Ryzen laptop performance.
 
 Optional source asset conversion: Pillow (HPND), a development tool only.
 Windows resource stamping: electron/rcedit v2.0.0 (MIT), a development tool only.
-Ashen Trial character models/textures: Quaternius.
+Ashen Trial armor model/textures: Knight by piacenti, CC BY 3.0.
+https://opengameart.org/content/knight-2
+https://creativecommons.org/licenses/by/3.0/
+Modified: shield removal, rigging, bind pose, texture packing and runtime palettes.
+Original motion-rig reference: Quaternius (CC0).
 Ashen Trial authored animation: Quaternius and Gonzalo Furnier.
 Universal Base Characters, Modular Character Outfits - Fantasy,
 Universal Animation Library 1 and 2: CC0 1.0 public-domain dedication.
 Sources: https://quaternius.com and game/assets/performance/provenance.json.
-Selected assets are modified, combined and retargeted for this game.
+The current trial replaces the earlier ranger outfits with the credited Knight.
+Animation is retargeted to its new rig.
 See PERFORMANCE_ASSET_LICENSE.txt. No franchise assets or paid assets used.
 
 Ashen Trial courtyard art: Poly Haven, CC0 1.0.
@@ -36,6 +41,7 @@ See TRIAL_AUDIO_LICENSE.txt and game/assets/trial_audio/ for provenance.
 
 Optional offline authoring/review: NumPy (BSD-3-Clause), SoundFile (BSD-3-Clause),
 libsndfile (LGPL-2.1-or-later), Three.js (MIT), Playwright (Apache-2.0).
+Blender 4.5 LTS (GPL-3.0-or-later) is an optional offline asset compiler.
 These development tools are not distributed in the game executable.
 
 ASHEN VOW is a working title, not a claim of trademark clearance.

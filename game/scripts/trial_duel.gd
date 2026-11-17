@@ -24,6 +24,7 @@ var breaks: int=0
 var ripostes: int=0
 var damage_taken: float=0
 var attacks_started: int=0
+var advance_cooldown: float=2.5
 
 func _init(owner_world: Node) -> void:
 	world=owner_world
@@ -96,6 +97,7 @@ func drive_warden(actor: Fighter, delta: float) -> void:
 	if hero.model.state=="dead": return
 	actor.ai_cooldown=maxf(0,actor.ai_cooldown-delta)
 	recovery=maxf(0,recovery-delta)
+	advance_cooldown=maxf(0,advance_cooldown-delta)
 	if was_attacking and actor.model.state!="attack":
 		recovery=maxf(recovery,(.75 if actor.phase==1 else .5) if pattern_finished else .16)
 		was_attacking=false
@@ -114,6 +116,14 @@ func drive_warden(actor: Fighter, delta: float) -> void:
 		move_tactically(actor,forward,float(actor.definition.speed))
 		return
 	if distance>1.85:
+		# A committed, authored advancing cut. Only range, current state and
+		# clear space select it; the player's buttons are never inspected.
+		if actor.phase==2 and distance>=2.8 and distance<=4.0 and advance_cooldown<=0 and recovery<=0 and actor.ai_cooldown<=0:
+			var space=actor.get_world_3d().direct_space_state
+			if corridor_clear(space,actor.global_position+Vector3.UP*.85,forward,2.7) and world.coordinator.may_attack(actor):
+				if actor.try_attack("trial_dash"):
+					advance_cooldown=7.5; was_attacking=true; pattern_finished=true
+					return
 		move_tactically(actor,forward,float(actor.definition.speed))
 		return
 	var patterns: Array=FIRST_PATTERNS if actor.phase==1 else LAST_PATTERNS
@@ -155,10 +165,10 @@ func move_tactically(actor: Fighter, direction: Vector3, speed: float) -> void:
 	actor.velocity.x=chosen.x*speed
 	actor.velocity.z=chosen.z*speed
 
-func corridor_clear(space: PhysicsDirectSpaceState3D, origin: Vector3, direction: Vector3) -> bool:
+func corridor_clear(space: PhysicsDirectSpaceState3D, origin: Vector3, direction: Vector3, distance: float=.9) -> bool:
 	var side=Vector3(-direction.z,0,direction.x)*.34
 	for offset in [Vector3.ZERO,side,-side]:
-		var ray=PhysicsRayQueryParameters3D.create(origin+offset,origin+offset+direction*.9,1)
+		var ray=PhysicsRayQueryParameters3D.create(origin+offset,origin+offset+direction*distance,1)
 		ray.hit_from_inside=true
 		if not space.intersect_ray(ray).is_empty(): return false
 	return true

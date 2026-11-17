@@ -20,6 +20,7 @@ func _ready() -> void:
 	ui.trial_layout(true)
 	build_court()
 	CourtArt.dress(self)
+	CourtArchitecture.dress(self)
 	batch_scenery()
 	foley=TrialAudio.new(); add_child(foley)
 	score=TrialScore.new(); add_child(score)
@@ -89,21 +90,22 @@ func build_court() -> void:
 	panorama.panorama=load("res://assets/court/sunset_forest.hdr")
 	var sky=Sky.new(); sky.sky_material=panorama
 	atmosphere.environment.sky=sky
-	atmosphere.environment.background_energy_multiplier=.65
-	atmosphere.environment.fog_density=.005
-	atmosphere.environment.ambient_light_energy=.52
+	atmosphere.environment.background_energy_multiplier=.55
+	atmosphere.environment.fog_density=.006
+	atmosphere.environment.fog_light_color=Color("8c9c9c")
+	atmosphere.environment.ambient_light_energy=.38
 	add_child(atmosphere)
 	sun=DirectionalLight3D.new()
 	sun.rotation_degrees=Vector3(-24,-47,0)
 	sun.light_color=Color("f3cf9f")
-	sun.light_energy=1.8
+	sun.light_energy=1.55
 	sun.shadow_enabled=Preferences.shadows
 	sun.directional_shadow_max_distance=35
 	add_child(sun)
 	var fill=DirectionalLight3D.new()
 	fill.rotation_degrees=Vector3(-40,130,0)
 	fill.light_color=Color("95b4d3")
-	fill.light_energy=.45
+	fill.light_energy=.32
 	add_child(fill)
 	var floor=solid_box(Vector3(30,.5,30),Vector3(0,-.26,0),Color("777975"))
 	for mesh in floor.get_children():
@@ -143,10 +145,6 @@ func build_court() -> void:
 			var fire=StandardMaterial3D.new(); fire.albedo_color=Color("efba79"); fire.emission_enabled=true; fire.emission=Color("ef9a51"); fire.emission_energy_multiplier=1.4
 			bowl.material_override=fire
 	for side in [-1,1]:
-		for i in 14:
-			var angle=PI*float(i)/13
-			var block=Figure.box(self,Vector3(.53,.65,.9),Vector3(cos(angle)*2.2,3+sin(angle)*2.2,side*11),Color("858b81"))
-			block.rotation.z=angle
 		for x in [-2.2,2.2]: solid_box(Vector3(.75,3,.9),Vector3(x,1.5,side*11),Color("727a72"))
 
 func _process(delta: float) -> void:

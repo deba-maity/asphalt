@@ -133,7 +133,8 @@ func run() -> void:
 	await frames(5)
 	check(world.warden.phase==2,"Warden enters second phase")
 	var fast_attack: Dictionary=world.warden.model.config.attacks.heavy
-	check(absf(float(fast_attack.rate)*(float(fast_attack.windup)+float(fast_attack.active)+float(fast_attack.recovery))-1.733333)<.001,"Phase tempo keeps pose and damage clocks synchronized")
+	var fast_end=float(fast_attack.windup)+float(fast_attack.active)+float(fast_attack.recovery)
+	check(absf(PerformanceMotion.clip_time(fast_attack,fast_end)-1.733333)<.001 and absf(PerformanceMotion.clip_time(fast_attack,float(fast_attack.windup))-.44)<.001,"Phase tempo keeps preparation, pose and damage clocks synchronized")
 	world.warden.model.health=1
 	hero.model.attack={"damage":20}
 	world.warden.take_damage(20,hero)

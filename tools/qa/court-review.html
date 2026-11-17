@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Courtyard asset inspection</title>
+<style>body{margin:0;background:#253038;color:#fff;font:15px sans-serif}#label{position:absolute;left:24px;top:20px;text-shadow:0 1px 3px #000}canvas{display:block}</style>
+<div id="label">STATIC ASSET REVIEW / Independent WebGL lighting / Not a game screenshot</div>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(1280,800);
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);const scene=new THREE.Scene();scene.background=new THREE.Color('#84908e');scene.fog=new THREE.Fog('#84908e',25,70);
+scene.environment=new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(),.04).texture;
+const key=new THREE.DirectionalLight('#f3cf9f',2.4);key.position.set(-12,12,8);key.castShadow=true;key.shadow.mapSize.set(2048,2048);Object.assign(key.shadow.camera,{left:-18,right:18,top:18,bottom:-18,far:55});key.shadow.bias=-.0002;scene.add(key);
+scene.add(new THREE.HemisphereLight('#a4b9ca','#343a34',.5));
+const loader=new GLTFLoader();const court=await loader.loadAsync('/models/court.glb');scene.add(court.scene);
+court.scene.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=true;}});
+for(const [id,z,rotation,tint] of [['rayan',3.6,Math.PI,'#a99a88'],['warden',-3.5,0,'#6d7a80']]){
+ const asset=await loader.loadAsync('/models/'+id+'.glb');asset.scene.position.z=z;asset.scene.rotation.y=rotation;asset.scene.scale.setScalar(id==='warden'?1.12:1);scene.add(asset.scene);
+ asset.scene.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=true;n.material=n.material.clone();n.material.color.set(tint);}});
+ const mixer=new THREE.AnimationMixer(asset.scene);mixer.clipAction(THREE.AnimationClip.findByName(asset.animations,'Sword_Idle')).play();mixer.setTime(.3);
+}
+const camera=new THREE.PerspectiveCamera(56,1280/800,.05,120);
+window.review={sample(angle=0){if(angle===0){camera.position.set(.7,2.6,7.1);camera.lookAt(0,1.5,-2);}else{camera.position.set(13,8,16);camera.lookAt(0,1,-3);}renderer.render(scene,camera);return renderer.info.render;}};
+window.review.sample();window.ready=true;
+</script></html>

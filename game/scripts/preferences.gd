@@ -105,7 +105,7 @@ func release_input() -> void:
 	input_reset.emit()
 
 func trial_help_text() -> String:
-	return prompt("{move_forward}/{move_left}/{move_back}/{move_right} Move | Mouse orbit | {sprint} Sprint\n{light} Light | {heavy} Heavy / riposte | {guard} Guard / parry\n{dodge} Evade | {lock_on} Lock | {heal} Draught | {journal} Guide | {pause} Pause\nController: sticks move/orbit | X/Y attacks | LB guard | B evade\nRB lock | D-pad up draught | Stick click sprint | Back guide | Start pause")
+	return prompt("{move_forward}/{move_left}/{move_back}/{move_right} Move | Mouse orbit | {sprint} Sprint\n{light} Light | {heavy} Heavy / riposte | {guard} Guard / parry\nForward + {sprint} + {heavy}: advancing cut\n{dodge} Evade | {lock_on} Lock | {heal} Draught | {journal} Guide | {pause} Pause\nController: sticks move/orbit | X/Y attacks | LB guard | B evade\nRB lock | D-pad up draught | Stick click sprint | Back guide | Start pause")
 
 func quarantine() -> void:
 	release_input()

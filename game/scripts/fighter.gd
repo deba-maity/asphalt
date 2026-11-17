@@ -244,6 +244,8 @@ func next_combo_index() -> int:
 
 func try_attack(id: String) -> bool:
 	if use_performance and player and id=="heavy" and world is TrialWorld and world.duel.can_riposte(): id="trial_riposte"
+	if use_performance and player and id=="heavy" and Input.is_action_pressed("sprint"):
+		if desired_direction().dot(-global_basis.z)>.6: id="trial_dash"
 	if player and id == "heavy" and model.ash_unlocked and model.counter_window>0: id="opening_counter"
 	var proposed_combo=combo_index
 	if use_performance and player and id=="light":
@@ -610,6 +612,9 @@ func take_damage(amount: float, attacker: Fighter, attack_rules: Dictionary={}, 
 		cue_sound("guard")
 	elif result in ["hit","dead"]:
 		cue_sound("hit")
+		if attacker.player and attacker.use_performance and attacker.trial_camera!=null:
+			var impact_side=attacker.global_basis.inverse()*(global_position-attacker.global_position)
+			attacker.trial_camera.impact(clampf(impact_side.x,-1,1),rules.get("pose","")=="heavy")
 		if player:
 			Session.data.health = model.health
 		elif attacker.player:

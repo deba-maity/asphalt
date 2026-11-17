@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Credits &amp; licenses — ASHEN VOW</title><link rel="stylesheet" href="styles.css"></head><body><a class="skip" href="#main">Skip to content</a><header class="wrap masthead"><a class="wordmark" href="./">ASHEN VOW</a><a href="./">Back to the game</a></header><main id="main" class="guide wrap"><p class="eyebrow">Original work / shared tools</p><h1>Credits &amp; licenses</h1><p>Original code, writing and score composition are MIT licensed. The trial also uses credited CC0 art, authored animation, foley and orchestral instrument recordings. Engine and asset notices follow in full.</p><section><h2>Credits</h2><pre>ASHEN VOW
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Credits &amp; licenses — ASHEN VOW</title><link rel="stylesheet" href="styles.css"></head><body><a class="skip" href="#main">Skip to content</a><header class="wrap masthead"><a class="wordmark" href="./">ASHEN VOW</a><a href="./">Back to the game</a></header><main id="main" class="guide wrap"><p class="eyebrow">Original work / shared tools</p><h1>Credits &amp; licenses</h1><p>Original code, writing and score composition are MIT licensed. The trial also uses credited CC-BY-3.0 armor and CC0 motion, courtyard art, foley and orchestral instrument recordings. Engine and asset notices follow in full.</p><section><h2>Credits</h2><pre>ASHEN VOW
 An original fictional world and single-player game.
 
 Original code, story, dialogue, hard-jointed models, animation poses, props,
@@ -14,12 +14,17 @@ They do not claim current-build visual acceptance or Ryzen laptop performance.
 
 Optional source asset conversion: Pillow (HPND), a development tool only.
 Windows resource stamping: electron/rcedit v2.0.0 (MIT), a development tool only.
-Ashen Trial character models/textures: Quaternius.
+Ashen Trial armor model/textures: Knight by piacenti, CC BY 3.0.
+https://opengameart.org/content/knight-2
+https://creativecommons.org/licenses/by/3.0/
+Modified: shield removal, rigging, bind pose, texture packing and runtime palettes.
+Original motion-rig reference: Quaternius (CC0).
 Ashen Trial authored animation: Quaternius and Gonzalo Furnier.
 Universal Base Characters, Modular Character Outfits - Fantasy,
 Universal Animation Library 1 and 2: CC0 1.0 public-domain dedication.
 Sources: https://quaternius.com and game/assets/performance/provenance.json.
-Selected assets are modified, combined and retargeted for this game.
+The current trial replaces the earlier ranger outfits with the credited Knight.
+Animation is retargeted to its new rig.
 See PERFORMANCE_ASSET_LICENSE.txt. No franchise assets or paid assets used.
 
 Ashen Trial courtyard art: Poly Haven, CC0 1.0.
@@ -36,6 +41,7 @@ See TRIAL_AUDIO_LICENSE.txt and game/assets/trial_audio/ for provenance.
 
 Optional offline authoring/review: NumPy (BSD-3-Clause), SoundFile (BSD-3-Clause),
 libsndfile (LGPL-2.1-or-later), Three.js (MIT), Playwright (Apache-2.0).
+Blender 4.5 LTS (GPL-3.0-or-later) is an optional offline asset compiler.
 These development tools are not distributed in the game executable.
 
 ASHEN VOW is a working title, not a claim of trademark clearance.
@@ -3371,7 +3377,8 @@ misrepresented as being the original software.
 
 </pre></section><section><h2>Trial character and animation assets</h2><pre>ASHEN TRIAL THIRD-PARTY ART AND MOTION
 
-Characters and textures: Quaternius
+Motion and original rest-rig reference: Quaternius
+Historical ranger character sources: Quaternius (no longer shipped)
 Authored animation: Quaternius and Gonzalo Furnier
 
 -------------------------------------------------------
@@ -3394,7 +3401,33 @@ https://quaternius.com/packs/universalbasecharacters.html
 https://quaternius.com/packs/modularcharacteroutfitsfantasy.html
 
 Pinned redistribution and source hashes: game/assets/performance/provenance.json
-Our code remains MIT; the imported art and motion retain their CC0 dedication.
+Our code remains MIT; the motion and original rig reference retain their CC0 dedication.
+
+CURRENT ARMORED CHARACTERS
+
+Knight by piacenti
+https://opengameart.org/content/knight-2
+Copyright piacenti, 2015. Licensed under Creative Commons Attribution 3.0
+Unported (CC BY 3.0): https://creativecommons.org/licenses/by/3.0/
+Legal code: https://creativecommons.org/licenses/by/3.0/legalcode
+
+ASHEN VOW adaptations: shield removed; normalized scale; new anatomical skin
+weights and a 65-bone rig based on Quaternius CC0 rest data; A-to-T bind-pose
+conversion; retargeted motion; runtime armor palettes; shared, losslessly
+compressed texture maps. The artist does not endorse this game.
+
+Applies to rayan.glb, warden.glb and textures/knight-*.png, including their
+modified versions. Color, tangent-space normal, metallic and roughness maps
+come from the artist&#x27;s packed source. Roughness and metallic are combined into
+glTF channels. No unrelated packed photographs are included.
+
+Source archive:
+https://opengameart.org/sites/default/files/armored%20knight.zip
+SHA-256: edea99305ea1dfffbe56434498693e325d909cf638845f1a473c6d0993aca100
+
+Motion and original rig reference: Quaternius / Gonzalo Furnier, CC0 1.0.
+See LICENSE-CC0.txt and provenance.json. Original code remains MIT.
+
 </pre></section><section><h2>Trial courtyard art</h2><pre>ASHEN TRIAL COURTYARD ART
 
 CC0 1.0 public-domain assets from Poly Haven.

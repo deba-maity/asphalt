@@ -68,14 +68,15 @@ func strike(actor: Fighter) -> void:
 	if not ready or actor.model.state!="attack" or sample_time<=previous_time: return
 	query.collision_mask=16 if actor.player else 8
 	var rate=float(actor.model.attack.get("rate",1.0))
-	var windows: Array=actor.model.attack.get("hit_windows",[[float(actor.model.attack.windup)*rate,(float(actor.model.attack.windup)+float(actor.model.attack.active))*rate]])
+	var lead=float(actor.model.attack.get("lead_in",0))
+	var windows: Array=actor.model.attack.get("hit_windows",[[float(actor.model.attack.windup)*rate-lead,(float(actor.model.attack.windup)+float(actor.model.attack.active))*rate-lead]])
 	for window in windows:
 		var start=maxf(previous_time,float(window[0]))
 		var end=minf(sample_time,float(window[1]))
 		if end<=start: continue
 		var fraction_start=(start-previous_time)/(sample_time-previous_time)
 		var fraction_end=(end-previous_time)/(sample_time-previous_time)
-		sweep_interval(actor,fraction_start,fraction_end,(start+end)*.5/rate)
+		sweep_interval(actor,fraction_start,fraction_end,((start+end)*.5+lead)/rate)
 		if actor.model.state!="attack": break # A parry can interrupt the attacker.
 
 func sweep_interval(actor: Fighter, fraction_start: float, fraction_end: float, contact_time: float) -> void:

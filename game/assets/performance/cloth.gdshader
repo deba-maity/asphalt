@@ -11,6 +11,7 @@ uniform float metallic_factor = 0.0;
 uniform float roughness_factor = 1.0;
 uniform bool has_normal = false;
 uniform bool has_orm = false;
+uniform float leather_shade = 1.0;
 
 void fragment() {
 	vec4 texel=texture(albedo_map,UV)*albedo_factor;
@@ -20,7 +21,7 @@ void fragment() {
 	// Only replace the original green cloth. Skin, leather and metal retain
 	// their authored albedo, normal maps and material response.
 	vec3 cloth=cloth_color.rgb*clamp(luminance/.22,.15,2.0);
-	ALBEDO=mix(texel.rgb,cloth,mask);
+	ALBEDO=mix(texel.rgb,cloth,mask)*leather_shade;
 	vec3 orm=texture(orm_map,UV).rgb;
 	METALLIC=metallic_factor*(has_orm ? orm.b : 1.0);
 	ROUGHNESS=max(.32,roughness_factor*(has_orm ? orm.g : 1.0));

@@ -9,6 +9,8 @@ var manual_orbit: float=0
 var manual_offset: float=0
 var target_id: int=0
 var clock: float=0
+var impact_offset=Vector2.ZERO
+var impact_velocity=Vector2.ZERO
 
 func _ready() -> void:
 	actor=get_parent()
@@ -23,6 +25,7 @@ func _process(delta: float) -> void:
 	manual_orbit=maxf(0,manual_orbit-delta)
 	if manual_orbit<=0: manual_offset=lerpf(manual_offset,0,1-exp(-delta*3.5))
 	clock+=delta
+	step_impact(delta)
 	var transform=actor.get_global_transform_interpolated()
 	var center=transform.origin+Vector3.UP*1.4
 	var distance=0.0
@@ -52,8 +55,25 @@ func _process(delta: float) -> void:
 	# distance, while the spring arm positions the separate collision mount.
 	actor.camera.position.z=minf(0,eased_distance-safe)
 	var amount=clampf(actor.shake_time/.12,0,1)
-	actor.camera.h_offset=sin(clock*71)*.025*amount*amount if Preferences.camera_shake else 0
-	actor.camera.v_offset=sin(clock*53)*.012*amount*amount if Preferences.camera_shake else 0
+	actor.camera.h_offset=clampf(sin(clock*71)*.025*amount*amount+impact_offset.x,-.035,.035) if Preferences.camera_shake else 0
+	actor.camera.v_offset=clampf(sin(clock*53)*.012*amount*amount+impact_offset.y,-.025,.025) if Preferences.camera_shake else 0
+
+func impact(direction: float, heavy: bool=false) -> void:
+	if not Preferences.camera_shake or not is_finite(direction): return
+	var strength=1.6 if heavy else .85
+	impact_velocity=(impact_velocity+Vector2(clampf(direction,-1,1)*.65,.55)*strength).limit_length(2)
+
+func step_impact(delta: float) -> void:
+	if not Preferences.camera_shake:
+		impact_offset=Vector2.ZERO; impact_velocity=Vector2.ZERO
+		return
+	# Analytic critically damped response: the settling motion has the same
+	# duration at 30 and 120 render frames without changing the aiming angles.
+	var rate=26.0
+	var impulse=(impact_velocity+impact_offset*rate)*delta
+	var decay=exp(-rate*delta)
+	impact_offset=(impact_offset+impulse)*decay
+	impact_velocity=(impact_velocity-impulse*rate)*decay
 
 func sync_target() -> void:
 	var current=actor.target.get_instance_id() if is_instance_valid(actor.target) else 0

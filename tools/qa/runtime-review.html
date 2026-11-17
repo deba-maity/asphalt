@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><meta charset="utf-8"><title>Runtime motion inspection</title>
 <style>body{margin:0;background:#22282b;color:#e2ddd1;font:14px sans-serif}#label{position:absolute;left:20px;top:16px;white-space:pre-line;line-height:1.5;pointer-events:none}canvas{display:block}</style>
-<div id="label">Loading isolated runtime recording…</div>
+<div id="label">Loading isolated runtime recordingâ€¦</div>
 <script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from 'three';
@@ -16,25 +16,27 @@ const light=new THREE.DirectionalLight(0xffe2c0,2.8);light.position.set(-4,7,5);
 light.shadow.mapSize.set(2048,2048);Object.assign(light.shadow.camera,{left:-12,right:12,top:12,bottom:-12,far:35});scene.add(light);
 scene.add(new THREE.HemisphereLight(0xb9d3e4,0x3d362d,.8));
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(60,60),new THREE.MeshStandardMaterial({color:0x4b4d47,roughness:.95}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
-const [asset,data]=await Promise.all([new GLTFLoader().loadAsync('/models/rayan.glb'),fetch('/models/runtime.json').then(r=>r.json())]);
-scene.add(asset.scene);const tint=new THREE.Color('#70413a');
+const character=new URLSearchParams(location.search).get('character')==='warden'?'warden':'rayan';
+const [asset,data]=await Promise.all([new GLTFLoader().loadAsync('/models/'+character+'.glb'),fetch('/models/'+(character==='warden'?'runtime-warden.json':'runtime.json')).then(r=>r.json())]);
+scene.add(asset.scene);const tint=new THREE.Color(character==='rayan'?'#70413a':'#353e3c');
 asset.scene.traverse(n=>{if(!n.isMesh)return;n.castShadow=true;n.receiveShadow=true;
- const materials=Array.isArray(n.material)?n.material:[n.material];for(const m of materials){m.onBeforeCompile=shader=>{
-  shader.uniforms.clothTint={value:tint};shader.fragmentShader='uniform vec3 clothTint;\n'+shader.fragmentShader;
+ if(!n.name.startsWith('ForgedArmor'))n.material=Array.isArray(n.material)?n.material.map(m=>m.clone()):n.material.clone();
+ const materials=Array.isArray(n.material)?n.material:[n.material];for(const m of materials){if(n.name.startsWith('Knight')){m.color.set(character==='rayan'?'#a99a88':'#6d7a80');m.normalScale.set(.8,.8);continue;}if(n.name.startsWith('ForgedArmor'))continue;m.onBeforeCompile=shader=>{
+  shader.uniforms.clothTint={value:tint};shader.uniforms.leatherShade={value:n.name.includes('Feet')?.55:n.name.includes('Belt')?.7:1};shader.fragmentShader='uniform vec3 clothTint;\nuniform float leatherShade;\n'+shader.fragmentShader;
   shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
    float green=(diffuseColor.g-max(diffuseColor.r,diffuseColor.b))/max(.005,diffuseColor.g);
    float clothMask=smoothstep(.12,.35,green);
    float luminance=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));
-   diffuseColor.rgb=mix(diffuseColor.rgb,clothTint*clamp(luminance/.22,.15,2.),clothMask);`);
+   diffuseColor.rgb=mix(diffuseColor.rgb,clothTint*clamp(luminance/.22,.15,2.),clothMask)*leatherShade;`);
  };}});
 const bones=data.names.map(name=>{const bone=asset.scene.getObjectByName(name);if(!bone)throw Error('Missing bone '+name);return bone;});
 const [weaponAsset,flaskAsset]=await Promise.all(['weapon','flask'].map(name=>new GLTFLoader().loadAsync('/models/'+name+'.glb')));
-const grip=weaponAsset.scene;grip.position.set(0,.075,.025);grip.rotation.x=-Math.PI/2;bones[data.names.indexOf('hand_r')].add(grip);
+const grip=weaponAsset.scene;grip.position.set(0,.055,.025);grip.rotation.x=-Math.PI/2;bones[data.names.indexOf('hand_r')].add(grip);
 const flask=flaskAsset.scene;flask.position.set(0,.075,.025);flask.rotation.x=Math.PI/2;bones[data.names.indexOf('hand_r')].add(flask);
 const dropped=grip.clone(true);dropped.visible=false;scene.add(dropped);
 const textureLoader=new THREE.TextureLoader();
 const [clothMap,clothNormal]=await Promise.all(['cloth.png','cloth_normal.png'].map(name=>textureLoader.loadAsync('/surfaces/'+name)));
-for(const map of [clothMap,clothNormal]){map.wrapS=map.wrapT=THREE.RepeatWrapping;map.repeat.set(3,3);}
+for(const map of [clothMap,clothNormal]){map.wrapS=map.wrapT=THREE.RepeatWrapping;map.repeat.set(3,4);}
 clothMap.colorSpace=THREE.SRGBColorSpace;
 const clothGeometry=new THREE.BufferGeometry();clothGeometry.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(data.columns*data.rows*3),3));
 // Godot uses clockwise triangles; Three uses counterclockwise.
@@ -42,7 +44,27 @@ const indices=[...data.triangles];for(let i=0;i<indices.length;i+=3)[indices[i+1
 clothGeometry.setIndex(indices);
 const uvs=[];for(let row=0;row<data.rows;row++)for(let col=0;col<data.columns;col++)uvs.push(col/(data.columns-1),row/(data.rows-1));
 clothGeometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
-const cloth=new THREE.Mesh(clothGeometry,new THREE.MeshStandardMaterial({color:0x59312b,map:clothMap,normalMap:clothNormal,normalScale:new THREE.Vector2(.65,.65),roughness:.96,side:THREE.DoubleSide}));cloth.castShadow=true;cloth.receiveShadow=true;scene.add(cloth);
+const clothMaterial=new THREE.MeshStandardMaterial({color:0xffffff,map:clothMap,normalMap:clothNormal,normalScale:new THREE.Vector2(.4,.4),roughness:.95,side:THREE.DoubleSide});
+clothMaterial.onBeforeCompile=shader=>{
+ shader.uniforms.mantleTint={value:new THREE.Color(character==='rayan'?'#56342c':'#303d3b')};
+ shader.uniforms.trimTint={value:new THREE.Color(character==='rayan'?'#9b8053':'#a09a80')};
+ shader.vertexShader='varying vec2 costumeUv;\n'+shader.vertexShader;
+ shader.vertexShader=shader.vertexShader.replace('#include <uv_vertex>','#include <uv_vertex>\ncostumeUv=uv;');
+ shader.fragmentShader='varying vec2 costumeUv;\nuniform vec3 mantleTint;\nuniform vec3 trimTint;\n'+shader.fragmentShader;
+ shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
+  vec2 uv=costumeUv;
+  float edge=min(min(uv.x,1.-uv.x),1.-uv.y);
+  float border=smoothstep(.018,.023,edge)*(1.-smoothstep(.034,.039,edge));
+  float seam=(1.-smoothstep(.002,.004,abs(edge-.047)))*step(.48,fract((uv.x+uv.y)*95.));
+  vec2 p=(uv-vec2(.50,.33))*vec2(1.,1.3);
+  float ring=(1.-smoothstep(.004,.008,abs(length(p)-.11)))*step(.025,abs(p.x+.018));
+  vec2 a=vec2(-.035,-.14),segment=vec2(.07,.28);
+  float stroke=1.-smoothstep(.005,.008,length(p-a-segment*clamp(dot(p-a,segment)/dot(segment,segment),0.,1.)));
+  float wear=.88+.12*sin(uv.y*51.+sin(uv.x*39.));
+  vec3 weave=diffuseColor.rgb;
+  diffuseColor.rgb=mix(mantleTint*mix(vec3(.75),weave,.55)*wear,trimTint*weave,max(max(border,seam*.65),max(ring,stroke)*.6));`);
+};
+const cloth=new THREE.Mesh(clothGeometry,clothMaterial);cloth.castShadow=true;cloth.receiveShadow=true;scene.add(cloth);
 function sample(index,angle=.5){
  const frame=data.frames[Math.min(data.frames.length-1,Math.max(0,index))];
  asset.scene.position.fromArray(frame.model,0);asset.scene.quaternion.fromArray(frame.model,3);
@@ -52,7 +74,7 @@ function sample(index,angle=.5){
  const positions=clothGeometry.getAttribute('position');frame.cloth.forEach((p,i)=>positions.setXYZ(i,...p));positions.needsUpdate=true;clothGeometry.computeVertexNormals();clothGeometry.computeBoundingSphere();
  const center=asset.scene.position.clone();camera.position.copy(center).add(new THREE.Vector3(Math.sin(angle)*4.2,1.85,Math.cos(angle)*4.2));camera.lookAt(center.clone().add(new THREE.Vector3(0,.9,0)));
  light.position.copy(center).add(new THREE.Vector3(-4,7,5));light.target.position.copy(center);light.target.updateMatrixWorld();
- document.querySelector('#label').textContent=`RUNTIME JOINT / CLOTH RECORDING · ${frame.label}\n${frame.clip} · ${frame.time.toFixed(3)}s · independent WebGL renderer, not a game screenshot`;
+ document.querySelector('#label').textContent=`RUNTIME JOINT / CLOTH RECORDING Â· ${character} Â· ${frame.label}\n${frame.clip} Â· ${frame.time.toFixed(3)}s Â· independent WebGL renderer, not a game screenshot`;
  renderer.render(scene,camera);return {state:frame.state,clip:frame.clip,label:frame.label};
 }
 window.review={data,sample,async video(){

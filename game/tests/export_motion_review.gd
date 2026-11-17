@@ -11,6 +11,8 @@ func run() -> void:
 		var model=load("res://assets/performance/"+id+".glb").instantiate()
 		root.add_child(model)
 		var rig: Skeleton3D=model.find_children("*","Skeleton3D",true,false)[0]
+		for part in model.find_children("*","MeshInstance3D",true,false):
+			if not part.visible: part.free()
 		var library: AnimationLibrary=load("res://assets/performance/"+id+"_motion.res").duplicate(true)
 		var player=AnimationPlayer.new(); model.add_child(player)
 		player.root_node=player.get_path_to(model)

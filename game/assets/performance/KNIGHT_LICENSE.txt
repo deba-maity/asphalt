@@ -1,0 +1,22 @@
+Knight by piacenti
+https://opengameart.org/content/knight-2
+Copyright piacenti, 2015. Licensed under Creative Commons Attribution 3.0
+Unported (CC BY 3.0): https://creativecommons.org/licenses/by/3.0/
+Legal code: https://creativecommons.org/licenses/by/3.0/legalcode
+
+ASHEN VOW adaptations: shield removed; normalized scale; new anatomical skin
+weights and a 65-bone rig based on Quaternius CC0 rest data; A-to-T bind-pose
+conversion; retargeted motion; runtime armor palettes; shared, losslessly
+compressed texture maps. The artist does not endorse this game.
+
+Applies to rayan.glb, warden.glb and textures/knight-*.png, including their
+modified versions. Color, tangent-space normal, metallic and roughness maps
+come from the artist's packed source. Roughness and metallic are combined into
+glTF channels. No unrelated packed photographs are included.
+
+Source archive:
+https://opengameart.org/sites/default/files/armored%20knight.zip
+SHA-256: edea99305ea1dfffbe56434498693e325d909cf638845f1a473c6d0993aca100
+
+Motion and original rig reference: Quaternius / Gonzalo Furnier, CC0 1.0.
+See LICENSE-CC0.txt and provenance.json. Original code remains MIT.

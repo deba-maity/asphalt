@@ -199,18 +199,12 @@ func show_menu() -> void:
 	title.add_theme_font_override("font",serif)
 	text(c,"THE ASHEN TRIAL",21,GOLD)
 	text(c,"One courtyard. One warden. Keep your vow.",18)
-	var trial_button=button(c,"Enter the Ashen Trial",func(): main.start_trial())
-	if not Session.loaded.is_empty():
-		button(c,"Continue · "+Campaign.chapter(Session.loaded.chapter).title,func(): main.start_game(false)).grab_focus()
-		button(c,"Chapter select · separate replay saves",show_chapter_select)
-	button(c,"Begin a new journey",func():
-		if Session.loaded.is_empty() and not FileAccess.file_exists(Session.store.directory+"progress.json"):
-			main.start_game(true)
-		else:
-			confirm_new()).grab_focus()
+	var trial_button=button(c,"Play · The Ashen Trial",func(): main.start_trial())
+	button(c,"Earlier campaign · prototype archive",show_archive)
 	button(c,"Controls & settings",func(): show_settings("menu"))
+	button(c,"Credits & licenses",show_asset_credits)
 	button(c,"Quit",func(): main.finish())
-	text(c,"Offline single-player / Story campaign also included",14,Color("b7b5a9"))
+	text(c,str(ProjectSettings.get_setting("application/config/version","development"))+" · Offline single-player",14,Color("b7b5a9"))
 	trial_button.grab_focus()
 	if not Session.save_warning.is_empty():
 		var warning = text(overlay,Session.save_warning,17,GOLD)
@@ -218,13 +212,41 @@ func show_menu() -> void:
 		warning.size = Vector2(580,110)
 		warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
+func show_asset_credits() -> void:
+	mode="credits_info"
+	clear_overlay(); shade()
+	var c=column(panel(overlay,Vector2(260,65),Vector2(760,590)),11)
+	text(c,"Credits & licenses",30,GOLD)
+	text(c,"Knight armor: piacenti · CC BY 3.0",20)
+	text(c,"Modified rig, bind pose, texture packing and armor palettes.\nopengameart.org/content/knight-2\ncreativecommons.org/licenses/by/3.0/",16)
+	text(c,"Motion and original rig: Quaternius / Gonzalo Furnier · CC0\nCourtyard scans: Poly Haven artists · CC0\nFoley: Kenney · CC0\nInstrument recordings: VSCO 2 CE contributors · CC0",17)
+	text(c,"Original game, story, score and cloth: ASHEN VOW contributors\nCreated with Codex assistance · Original code: MIT\nGodot Engine contributors · MIT",17)
+	text(c,"Full artist credits and license notices accompany the game.",16,GOLD)
+	button(c,"Back",show_menu).grab_focus()
+
+func show_archive() -> void:
+	mode="archive"
+	clear_overlay(); shade()
+	var c=column(panel(overlay,Vector2(320,105),Vector2(640,510)),12)
+	text(c,"The earlier campaign",30,GOLD)
+	var description=text(c,"Six story chapters from the original prototype.\nThis archive retains the earlier character art and environments.\nYour campaign saves and chapter replays remain available here.",18)
+	description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	if not Session.loaded.is_empty():
+		button(c,"Continue · "+Campaign.chapter(Session.loaded.chapter).title,func(): main.start_game(false))
+		button(c,"Chapter select · separate replay saves",show_chapter_select)
+	button(c,"Start the prototype campaign",func():
+		if Session.loaded.is_empty() and not FileAccess.file_exists(Session.store.directory+"progress.json"):
+			main.start_game(true)
+		else: confirm_new())
+	button(c,"Back to the Ashen Trial",show_menu).grab_focus()
+
 func confirm_new() -> void:
 	clear_overlay()
 	shade()
 	var c = column(panel(overlay,Vector2(360,220),Vector2(560,240)))
 	text(c,"Begin again?",28,GOLD)
 	text(c,"Current progress will become the previous-save backup.",17)
-	button(c,"Keep my journey",show_menu).grab_focus()
+	button(c,"Keep my journey",show_archive).grab_focus()
 	button(c,"Start a new journey",func(): main.start_game(true))
 
 func play() -> void:
@@ -475,6 +497,7 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause") and not event.is_echo():
 		if mode == "play": show_pause()
 		elif mode in ["pause","journal"]: play()
+		elif mode in ["archive","credits_info"]: show_menu()
 		elif mode == "settings":
 			Preferences.save()
 			if get_tree().paused: show_pause()
@@ -553,7 +576,7 @@ func show_chapter_select() -> void:
 		if entry.number<=unlocked:
 			var id: String=entry.id
 			button(c,"%02d · %s" % [entry.number,entry.title],func(): main.replay_chapter(id))
-	button(c,"Back",show_menu).grab_focus()
+	button(c,"Back",show_archive).grab_focus()
 
 func show_credits() -> void:
 	mode="credits"
@@ -564,7 +587,7 @@ func show_credits() -> void:
 	var c=column(panel(overlay,Vector2(260,52),Vector2(760,620)),12)
 	text(c,"ASHEN VOW",38,GOLD)
 	text(c,"The road remains open",24)
-	text(c,"For Mira and Isha, remembered in the small things.\n\nOriginal game, story and audio: ASHEN VOW contributors\nCreated with Codex assistance · Original work: MIT\n\nGodot Engine contributors · Godot 4.7.2\nTrial character art: Quaternius (CC0)\nTrial animation: Quaternius / Gonzalo Furnier (CC0)\nEngine and asset notices accompany this game.\nThank you for walking this road.",18)
+	text(c,"For Mira and Isha, remembered in the small things.\n\nOriginal game, story and audio: ASHEN VOW contributors\nCreated with Codex assistance · Original work: MIT\n\nGodot Engine contributors · Godot 4.7.2\nTrial armor: Knight by piacenti (CC BY 3.0)\nTrial animation: Quaternius / Gonzalo Furnier (CC0)\nEngine and asset notices accompany this game.\nThank you for walking this road.",18)
 	button(c,"Continue at the memorial",func(): finish_credits(); play()).grab_focus()
 	button(c,"Return to title",func(): finish_credits(); show_menu())
 	button(c,"Skip credits",func(): finish_credits(); show_menu())

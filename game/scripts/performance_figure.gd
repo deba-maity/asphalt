@@ -67,14 +67,19 @@ func _ready() -> void:
 	grip.add_child(weapon)
 	# Local Y follows the fingers; X is the palm normal. The blade extends
 	# along +Z, from the little-finger side toward the index knuckle.
-	weapon.position=Vector3(0,.075,.025)
+	weapon.position=Vector3(0,.055,.025)
 	weapon.rotation.x=-PI/2
 	Figure.cylinder(weapon,.024,.024,.21,Vector3(0,-.025,0),Color("40302a"),12)
-	Figure.box(weapon,Vector3(.23,.035,.055),Vector3(0,-.14,0),Color("998773"))
+	var guard_mesh=MeshInstance3D.new(); guard_mesh.mesh=WeaponGeometry.guard()
+	guard_mesh.material_override=SurfaceLibrary.material("steel",Color("82765b"),4,false)
+	weapon.add_child(guard_mesh)
+	var grip_wrap=MeshInstance3D.new(); grip_wrap.mesh=WeaponGeometry.wrapping()
+	grip_wrap.material_override=SurfaceLibrary.material("cloth",Color("4d3027"),3,false)
+	weapon.add_child(grip_wrap)
 	blade=MeshInstance3D.new()
 	blade.mesh=WeaponGeometry.blade()
 	blade.position=Vector3(0,-.53,0)
-	blade.material_override=SurfaceLibrary.material("steel",Color("b5b9b6"),5)
+	blade.material_override=SurfaceLibrary.material("steel",Color("a5b1b0"),3,false)
 	weapon.add_child(blade)
 	Figure.cylinder(weapon,.033,.026,.045,Vector3(0,.09,0),Color("998773"),12)
 	flask=Node3D.new(); grip.add_child(flask)
@@ -95,11 +100,18 @@ func apply_materials() -> void:
 		for surface in instance.mesh.get_surface_count():
 			var original=instance.get_active_material(surface)
 			if not original is StandardMaterial3D or original.albedo_texture==null: continue
+			if String(instance.name).begins_with("Knight"):
+				var steel=original.duplicate() as StandardMaterial3D
+				steel.albedo_color=Color("a99a88") if role=="rayan" else Color("6d7a80")
+				steel.normal_scale=.8
+				instance.set_surface_override_material(surface,steel)
+				continue
 			var material=ShaderMaterial.new()
 			material.shader=preload("res://assets/performance/cloth.gdshader")
 			material.set_shader_parameter("albedo_map",original.albedo_texture)
 			material.set_shader_parameter("albedo_factor",original.albedo_color)
-			material.set_shader_parameter("cloth_color",Color("70413a") if role=="rayan" else Color("89918d"))
+			material.set_shader_parameter("cloth_color",Color("70413a") if role=="rayan" else Color("353e3c"))
+			material.set_shader_parameter("leather_shade",.55 if "Feet" in String(instance.name) else (.70 if "Belt" in String(instance.name) else 1.0))
 			material.set_shader_parameter("has_normal",original.normal_enabled and original.normal_texture!=null)
 			material.set_shader_parameter("normal_map",original.normal_texture)
 			material.set_shader_parameter("normal_strength",original.normal_scale)
@@ -232,7 +244,7 @@ func animate(delta: float, model: CombatModel, speed: float, travel: Vector3=Vec
 		var incoming_rot=rotations.duplicate(); var incoming_pos=positions.duplicate()
 		var incoming_angular: Array[Vector3]=[]; var incoming_linear: Array[Vector3]=[]
 		if model.state not in ["idle","guard"]:
-			var rate=float(model.attack.get("rate",1.0)) if model.state=="attack" else 1.0
+			var rate=PerformanceMotion.sample_rate(model) if model.state=="attack" else 1.0
 			if model.state=="heal": rate=3.0/float(model.config.get("heal_duration",2.3))
 			if model.state=="dodge": rate=library.get_animation(current_clip).length/float(model.config.dodge.duration)
 			sample_pose(current_clip,current_time+.001*rate,incoming_rot,incoming_pos)

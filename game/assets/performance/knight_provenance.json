@@ -1,0 +1,21 @@
+{
+  "title": "Knight",
+  "author": "piacenti",
+  "license": "CC-BY-3.0",
+  "license_url": "https://creativecommons.org/licenses/by/3.0/",
+  "source": "https://opengameart.org/content/knight-2",
+  "archive_url": "https://opengameart.org/sites/default/files/armored%20knight.zip",
+  "archive_sha256": "edea99305ea1dfffbe56434498693e325d909cf638845f1a473c6d0993aca100",
+  "archive_bytes": 17908633,
+  "source_member": "armor.blend",
+  "compiler": "tools/compile_knight.py (Blender 4.5.16, background, autoexec disabled) + tools/optimize_knight_assets.py",
+  "modifications": [
+    "Removed shield and excluded unrelated source-scene content",
+    "Normalized scale and fitted 65-bone skeleton",
+    "Anatomical skin weights with plate and joint zones",
+    "Converted A pose to T bind pose for animation compatibility",
+    "Retargeted 45 authored CC0 clips",
+    "Preserved four 2048px maps; combined metallic/roughness channels and losslessly compressed/shared PNGs",
+    "Runtime warm-steel and cold-steel palettes; original simulated mantles"
+  ]
+}

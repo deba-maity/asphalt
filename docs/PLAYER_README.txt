@@ -10,7 +10,7 @@ Verify SHA-256 using SHA256SUMS.txt from the same release. Do not disable securi
 software. Download only from the project repository chosen by its owner.
 
 PLAY
-Choose Enter the Ashen Trial for the revised duel with the Cinder Warden.
+Choose Play - The Ashen Trial for the revised duel with the Cinder Warden.
 Light attacks form a three-move chain; the finisher cuts twice. Queue the next
 strike during recovery. Guard/parry, roll and preserve stamina. Healing arrives
 when the flask reaches your mouth; getting hit interrupts it. Rematches are
@@ -22,11 +22,13 @@ requires sword contact. His raised cleave cannot be blocked; evade or parry.
 A deliberate guard press can parry; holding guard blocks. Repeated rapid taps
 do not continually renew the parry window. Release guard to recover stamina
 and guard strain. A dodge can leave recovery after the final cut has passed.
+Forward + sprint + heavy performs a committed advancing cut.
 Round results show your time, blade hits, parries, safe evades and damage taken.
 Ashstep and story interactions belong to the separate campaign.
 
 The separate story campaign retains its existing art and progression:
-New Game starts Rayan's ordinary day; replacing progress asks for confirmation.
+Open Earlier campaign - prototype archive to continue or start Rayan's story.
+Starting over asks for confirmation before replacing progress.
 Follow the objective and speak to Mira, then Saren. Light/heavy attacks, guard,
 parry, dodge and stamina matter. R drinks a healing draught. Rest at shrines to
 refill health/healing and save a checkpoint. Continue returns to that checkpoint.
@@ -70,8 +72,9 @@ previous backup. Never edit or damage your only copy for testing.
 
 KNOWN LIMITS
 All six chapters and an ending are playable, but the campaign is short.
-The trial uses stylized skinned characters and authored animation, with new
-cloth, camera, textured scenery, foley and an adaptive orchestral score. It does
+The trial uses the credited Knight armor model with a new skinning/retargeting
+pipeline, authored animation, simulated cloth, a ruined courtyard and adaptive
+score. Both fighters share the same base armor with distinct palettes. It does
 not attain AAA franchise quality. Full rendered/audio review, physical inputs
 and Ryzen 5 5500U laptop performance remain untested. Headless checks are not
 FPS proof. The older campaign is short; a multi-hour story remains out of scope.

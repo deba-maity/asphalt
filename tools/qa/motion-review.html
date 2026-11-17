@@ -17,18 +17,33 @@ const key=new THREE.DirectionalLight(0xffead4,3);key.position.set(-3,5,4);key.ca
 key.shadow.mapSize.set(1024,1024);key.shadow.camera.left=-3;key.shadow.camera.right=3;key.shadow.camera.top=3;key.shadow.camera.bottom=-3;scene.add(key);
 scene.add(new THREE.HemisphereLight(0xc6d5ed,0x39352d,1));
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(12,12),new THREE.MeshStandardMaterial({color:0x474943,roughness:.95}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
-const asset=await new GLTFLoader().loadAsync('/models/rayan.glb');scene.add(asset.scene);
-asset.scene.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=true;}});
+const character=new URLSearchParams(location.search).get('character')==='warden'?'warden':'rayan';
+const asset=await new GLTFLoader().loadAsync('/models/'+character+'.glb');scene.add(asset.scene);
+const tint=new THREE.Color(character==='rayan'?'#70413a':'#353e3c');
+asset.scene.traverse(n=>{if(!n.isMesh)return;n.castShadow=true;n.receiveShadow=true;
+ if(!n.name.startsWith('ForgedArmor'))n.material=Array.isArray(n.material)?n.material.map(m=>m.clone()):n.material.clone();
+ for(const material of Array.isArray(n.material)?n.material:[n.material]){
+  if(n.name.startsWith('Knight')){material.color.set(character==='rayan'?'#a99a88':'#6d7a80');material.normalScale.set(.8,.8);continue;}
+  if(!material.map||n.name.startsWith('ForgedArmor'))continue;
+  material.onBeforeCompile=shader=>{
+   shader.uniforms.clothTint={value:tint};shader.uniforms.leatherShade={value:n.name.includes('Feet')?.55:n.name.includes('Belt')?.7:1};shader.fragmentShader='uniform vec3 clothTint;\nuniform float leatherShade;\n'+shader.fragmentShader;
+   shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
+    float green=(diffuseColor.g-max(diffuseColor.r,diffuseColor.b))/max(.005,diffuseColor.g);
+    float mask=smoothstep(.12,.35,green);
+    float luminance=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));
+    diffuseColor.rgb=mix(diffuseColor.rgb,clothTint*clamp(luminance/.22,.15,2.),mask)*leatherShade;`);
+  };
+ }});
 const mixer=new THREE.AnimationMixer(asset.scene);
 const hand=asset.scene.getObjectByName('hand_r');
-if(hand){const grip=new THREE.Group();grip.position.set(0,.075,.025);grip.rotation.x=-Math.PI/2;hand.add(grip);
+if(hand){const grip=new THREE.Group();grip.position.set(0,.055,.025);grip.rotation.x=-Math.PI/2;hand.add(grip);
  const blade=new THREE.Mesh(new THREE.BoxGeometry(.065,.83,.025),new THREE.MeshStandardMaterial({color:0xbfc2bb,metalness:.8,roughness:.3}));blade.position.y=-.58;grip.add(blade);
  const handle=new THREE.Mesh(new THREE.CylinderGeometry(.024,.024,.21,12),new THREE.MeshStandardMaterial({color:0x3c2920}));grip.add(handle);}
 window.review={clips:asset.animations.map(c=>({name:c.name,duration:c.duration})),sample(name,time,angle=.4){
  mixer.stopAllAction();const clip=THREE.AnimationClip.findByName(asset.animations,name);if(!clip)throw Error('Missing '+name);
  const action=mixer.clipAction(clip);action.setLoop(THREE.LoopOnce,1);action.clampWhenFinished=true;action.play();mixer.setTime(time);
  camera.position.set(Math.sin(angle)*4.7,2.0,Math.cos(angle)*4.7);camera.lookAt(0,.95,0);
- document.querySelector('#label').textContent=`ISOLATED ASSET REVIEW / ${name} / ${time.toFixed(3)}s\nThird-party WebGL lighting; not a game screenshot.`;
+ document.querySelector('#label').textContent=`ISOLATED ASSET REVIEW / ${character} / ${name} / ${time.toFixed(3)}s\nThird-party WebGL lighting; not a game screenshot.`;
  renderer.render(scene,camera);
  return {calls:renderer.info.render.calls,triangles:renderer.info.render.triangles};
 }};

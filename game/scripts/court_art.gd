@@ -8,6 +8,7 @@ static func material(id: String, scale: float) -> StandardMaterial3D:
 	var key=id+str(scale)
 	if materials.has(key): return materials[key]
 	var m=StandardMaterial3D.new()
+	m.albedo_color=Color("a5adb2") if id=="castle_brick_07" else (Color("838c8e") if id=="cobblestone_floor_08" else Color("b6b9ac"))
 	m.albedo_texture=load("res://assets/court/"+id+"/Diffuse.jpg")
 	m.normal_enabled=true
 	m.normal_texture=load("res://assets/court/"+id+"/nor_gl.jpg")

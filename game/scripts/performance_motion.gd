@@ -47,10 +47,15 @@ static func configure(model: CombatModel, enemy: bool=false) -> void:
 			"cost":item[7],"damage":float(item[8])*(.7 if enemy else 1.0),"reach":2.15,
 			"arc":.12,"tracking":.12,"pose":"heavy" if item[0]=="heavy" else "light"},true)
 		model.config.attacks[item[0]]=data
+	if not enemy:
+		# Rayan opens with a short overhead cut; the Warden retains the broader
+		# regular sweep. Both clips are animator-authored and use measured contact.
+		model.config.attacks.light.merge({"clip":"Sword_Light_A","recovery_clip":"Sword_Light_A_Rec",
+			"clip_length":.366667,"windup":.215,"active":.08,"recovery":.571667},true)
 	# The authored finisher has two separate cuts, not one long damage volume.
 	# Windows are clip seconds; rate converts the simulation clock in active().
 	model.config.attacks.trial_finish["hit_windows"]=[[.14,.27],[.62,.73]]
-	var dodge_cancels={"light":.455,"trial_second":.46,"trial_finish":.91,"heavy":.68}
+	var dodge_cancels={"light":.455 if enemy else .335,"trial_second":.46,"trial_finish":.91,"heavy":.68}
 	for id in dodge_cancels: model.config.attacks[id]["dodge_cancel_clip"]=dodge_cancels[id]
 	var riposte: Dictionary=model.config.attacks.heavy.duplicate(true)
 	riposte["damage"]=66.0
@@ -59,6 +64,14 @@ static func configure(model: CombatModel, enemy: bool=false) -> void:
 	riposte["rate"]=1.15
 	for part in ["windup","active","recovery"]: riposte[part]/=riposte_rate_change
 	model.config.attacks["trial_riposte"]=riposte
+	var dash: Dictionary=model.config.attacks.light.duplicate(true)
+	var dash_rate=.85 if enemy else 1.0
+	var dash_lead=.30 if enemy else .10
+	dash.merge({"clip":"Sword_Dash","recovery_clip":"","clip_length":1.566667,"rate":dash_rate,
+		"lead_in":dash_lead,"root_scale":.65,"windup":(.285+dash_lead)/dash_rate,"active":.07/dash_rate,
+		"recovery":(1.566667-.355)/dash_rate,"damage":28.0 if enemy else 34.0,"cost":34,
+		"dodge_cancel_clip":.82,"tracking":.10,"telegraph":"ADVANCING CUT - sidestep or guard"},true)
+	model.config.attacks["trial_dash"]=dash
 	model.config.dodge.duration=.92
 	model.config.dodge.invulnerable_start=.14
 	model.config.dodge.invulnerable_end=.44
@@ -70,20 +83,42 @@ static func configure(model: CombatModel, enemy: bool=false) -> void:
 	model.config.stamina.regeneration=30
 	model.config.stamina.delay=.35
 	if enemy:
+		# Stretch the authored preparation so the shoulder line is readable.
+		# One clock drives the pose, root motion and physical blade sweeps.
+		for pair in [["trial_finish",.22],["heavy",.12]]:
+			var attack: Dictionary=model.config.attacks[pair[0]]
+			attack["lead_in"]=pair[1]
+			attack.windup+=float(pair[1])/float(attack.rate)
 		model.config.attacks.heavy["blockable"]=false
 		model.config.attacks.heavy["telegraph"]="CLEAVE - evade or parry"
 		var definition: Dictionary=model.config.enemies.still_warden.duplicate(true)
-		definition.merge({"health":340,"scale":1.04,"speed":1.55,"notice":30,
+		definition.merge({"health":340,"scale":1.12,"speed":1.55,"notice":30,
 			"behavior":"warden","attacks":["light","trial_second","heavy","trial_finish"]},true)
 		model.config.enemies.still_warden=definition
 
 static func attack_time(model: CombatModel) -> float:
-	return model.elapsed*float(model.attack.get("rate",1.0))
+	return clip_time(model.attack,model.elapsed)
+
+static func clip_time(attack: Dictionary, elapsed: float) -> float:
+	var time=maxf(0,elapsed)*float(attack.get("rate",1.0))
+	var lead=float(attack.get("lead_in",0))
+	var preparation=float(attack.get("windup",0))*float(attack.get("rate",1.0))-lead
+	if lead>0 and preparation>0 and time<preparation+lead:
+		return time*preparation/(preparation+lead)
+	return maxf(0,time-lead)
+
+static func sample_rate(model: CombatModel) -> float:
+	var rate=float(model.attack.get("rate",1.0))
+	var lead=float(model.attack.get("lead_in",0))
+	if lead>0 and model.elapsed<float(model.attack.windup):
+		return rate*(float(model.attack.windup)*rate-lead)/(float(model.attack.windup)*rate)
+	return rate
 
 static func cancel_time(model: CombatModel, action: String) -> float:
 	var rate=float(model.attack.get("rate",1.0))
-	if action=="dodge": return float(model.attack.get("dodge_cancel_clip",model.attack.get("clip_length",1.0)))/rate
-	return float(model.attack.get("clip_length",1.0))/rate+.07
+	var lead=float(model.attack.get("lead_in",0))
+	if action=="dodge": return (lead+float(model.attack.get("dodge_cancel_clip",model.attack.get("clip_length",1.0))))/rate
+	return (lead+float(model.attack.get("clip_length",1.0)))/rate+.07
 
 static func attack_root(model: CombatModel, time: float) -> Vector3:
 	var clip: String=model.attack.get("clip","")
@@ -94,7 +129,7 @@ static func attack_root(model: CombatModel, time: float) -> Vector3:
 static func displacement(model: CombatModel, delta: float) -> Vector3:
 	if model.state=="attack":
 		var time=attack_time(model)
-		return attack_root(model,time)-attack_root(model,maxf(0,time-delta*float(model.attack.get("rate",1.0))))
+		return (attack_root(model,time)-attack_root(model,clip_time(model.attack,model.elapsed-delta)))*float(model.attack.get("root_scale",1.0))
 	if model.state=="dodge":
 		var clip: String=model.config.get("dodge_clip","Roll")
 		var rate=(1.466667 if clip=="Roll" else 1.3)/float(model.config.dodge.duration)

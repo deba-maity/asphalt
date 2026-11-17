@@ -54,5 +54,6 @@
       "bytes": 294347394
     }
   ],
-  "modifications": "Selected ranger outfits combined with compatible base heads, preserved texture pixels, retargeted and resampled motion, curated source GLBs, extracted root curves. Runtime palette shader changes green cloth."
+  "modifications": "Curated motion source GLBs, extracted root curves, selected CC0 rest-rig data, retargeted and resampled motion to the current Knight proportions.",
+  "scope": "CC0 motion sources and original rig reference; ranger archives are historical inputs, no longer shipped as character art. See knight_provenance.json for the current CC-BY-3.0 characters."
 }
