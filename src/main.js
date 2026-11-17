@@ -6,7 +6,8 @@ let ui;
 function showStartupError(error) {
   console.error('NIGHTSHIFT failed to start', error);
   const detail = error instanceof Error ? error.message : 'An unknown browser error occurred.';
-  app.innerHTML = `<section class="startup-error" role="alert"><p>STARTUP INTERRUPTED</p><h1>NIGHTSHIFT //</h1><strong>The game could not create its 3D display.</strong><span>${detail}</span><button type="button" id="retry-startup">RETRY</button><small>Open this game at http://localhost:5173 — not by double-clicking index.html.</small></section>`;
+  app.innerHTML = `<section class="startup-error" role="alert"><p>STARTUP INTERRUPTED</p><h1>NIGHTSHIFT //</h1><strong>The game could not create its 3D display.</strong><span id="startup-detail"></span><button type="button" id="retry-startup">RETRY</button><small>Open this game at http://localhost:5173 — not by double-clicking index.html.</small></section>`;
+  document.querySelector('#startup-detail').textContent = detail;
   document.querySelector('#retry-startup')?.addEventListener('click', () => location.reload());
 }
 
@@ -17,6 +18,8 @@ async function boot() {
     const [{ Game }, { Network }, { UI }] = await Promise.all([
       import('./game.js'), import('./network.js'), import('./ui.js')
     ]);
+    const { loadTouring } = await import('./touring.js');
+    await loadTouring();
     const stage = document.createElement('div');
     stage.id = 'stage';
     app.replaceChildren(stage);

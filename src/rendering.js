@@ -9,6 +9,8 @@ export const QUALITY = {
     scale: 0.78,
     min: 0.55,
     distance: 210,
+    pixels: 600000,
+    height: 600,
   },
   balanced: {
     label: "Balanced",
@@ -16,6 +18,8 @@ export const QUALITY = {
     scale: 0.9,
     min: 0.62,
     distance: 290,
+    pixels: 1152000,
+    height: 900,
   },
   quality: {
     label: "High fidelity",
@@ -23,6 +27,8 @@ export const QUALITY = {
     scale: 1.15,
     min: 0.75,
     distance: 380,
+    pixels: 2073600,
+    height: 1080,
   },
 };
 

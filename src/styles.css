@@ -4279,6 +4279,16 @@ button:focus-visible {
     transition: none !important;
   }
 }
+/* Decorative menu motion also has a cost after the 3D preview goes idle. */
+html[data-quality="battery"] #menu-layer *,
+html[data-quality="battery"] #menu-layer *::before,
+html[data-quality="battery"] #menu-layer *::after,
+html.reduced-motion *, html.reduced-motion *::before, html.reduced-motion *::after {
+  animation: none !important;
+}
+html.reduced-motion *, html.reduced-motion *::before, html.reduced-motion *::after {
+  transition: none !important;
+}
 .home:before {
   display: none;
 }

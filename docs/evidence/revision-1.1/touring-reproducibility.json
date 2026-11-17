@@ -1,0 +1,15 @@
+{
+  "tool": "Blender 4.5.16",
+  "before": {
+    "touring.glb": "800eb9957ed786ffa402fbeae61f32ad027798bc593645a03aa812d038915090",
+    "touring-low.glb": "01219f9e03ac4d4c8b423dae6eb098f992ebcc076826a2c9dee04c5865889a94",
+    "rig.json": "c9a137c011e4a99942941d254c184c9593c32631e6aff37d2b7c5df5919b6e61"
+  },
+  "after": {
+    "touring.glb": "800eb9957ed786ffa402fbeae61f32ad027798bc593645a03aa812d038915090",
+    "touring-low.glb": "01219f9e03ac4d4c8b423dae6eb098f992ebcc076826a2c9dee04c5865889a94",
+    "rig.json": "c9a137c011e4a99942941d254c184c9593c32631e6aff37d2b7c5df5919b6e61"
+  },
+  "byte_identical": true,
+  "exit_code": 0
+}

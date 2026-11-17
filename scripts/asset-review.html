@@ -1,0 +1,28 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Isolated vehicle inspection</title>
+<style>body{margin:0;background:#10151b;color:#d4ddd9;font:13px system-ui}p{position:absolute;bottom:12px;left:24px}canvas{display:block}</style></head>
+<body><p>Independent vehicle asset inspection · no driving simulation</p><script type="module">
+import * as THREE from 'three';
+import { createVehicle, animateVehicle, disposeVehicle } from '/src/vehicle.js';
+import { createEnvironment } from '/src/rendering.js';
+import { vehicles } from '/src/data.js';
+import { loadTouring } from '/src/touring.js';
+await loadTouring();
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(1);renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
+document.body.prepend(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color('#10151b');
+const environment=createEnvironment(renderer);scene.environment=environment.texture;scene.environmentIntensity=.85;
+scene.add(new THREE.HemisphereLight(0xc5d6e4,0x342c25,2));
+const key=new THREE.DirectionalLight(0xffecd1,3);key.position.set(-4,7,-4);scene.add(key);
+const fill=new THREE.DirectionalLight(0x8fbacb,1);fill.position.set(5,4,4);scene.add(fill);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(30,30),new THREE.MeshStandardMaterial({color:0x292e32,roughness:.6}));floor.rotation.x=-Math.PI/2;floor.position.y=-.01;scene.add(floor);
+const camera=new THREE.PerspectiveCamera(35,innerWidth/innerHeight,.1,80);camera.position.set(6,3.4,-7);camera.lookAt(0,.55,0);
+let model;
+window.review={vehicles:vehicles.map(v=>v.name),sample(index=0,time=0,angle=0){
+ if(model)disposeVehicle(model);model=createVehicle(vehicles[index],vehicles[index].color);scene.add(model);
+ animateVehicle(model,25,false,time,.55,false,true,1/60);
+ camera.position.set(Math.sin(angle+.73)*9,3.4,-Math.cos(angle+.73)*9);camera.lookAt(0,.65,0);
+ renderer.render(scene,camera);const bounds=new THREE.Box3().setFromObject(model);
+ return {name:vehicles[index].name,bounds:[...bounds.min.toArray(),...bounds.max.toArray()],calls:renderer.info.render.calls,triangles:renderer.info.render.triangles};
+}};window.review.sample();window.ready=true;
+</script></body></html>

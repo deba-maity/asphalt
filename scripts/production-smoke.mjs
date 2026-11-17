@@ -1,0 +1,40 @@
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {setTimeout as delay} from 'node:timers/promises';
+import {chromium} from 'playwright';
+const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port','5185','--strictPort'],{stdio:'ignore',windowsHide:true});
+let browser;
+try{
+  let ready=false;
+  for(let i=0;i<150;i++){try{if((await fetch('http://127.0.0.1:5185')).ok){ready=true;break;}}catch{}await delay(100);}
+  assert(ready,'Production preview starts');
+  browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+  const page=await browser.newPage({viewport:{width:1280,height:800}}),errors=[],failed=[];
+  page.setDefaultTimeout(90000);
+  page.on('pageerror',e=>errors.push(e.message));
+  page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+  page.on('response',r=>{if(r.status()>=400)failed.push(r.url());});
+  await page.goto('http://127.0.0.1:5185');
+  await page.getByRole('button',{name:'HIT THE STREETS'}).waitFor();
+  assert.equal(await page.evaluate(()=>typeof window.__nightshift),'undefined','Development control hooks are absent from production');
+  await page.getByRole('button',{name:'HIT THE STREETS'}).click();
+  await page.locator('[data-action="choose-mode"]').first().click();
+  await page.locator('[data-action="choose-map"]').first().click();
+  await page.locator('[data-action="start"]').click();
+  await page.waitForFunction(()=>document.querySelector('#countdown')?.textContent==='');
+  await page.getByRole('button',{name:'Pause race'}).click();
+  await page.getByRole('button',{name:'QUIT TO MENU'}).click();
+  await page.getByRole('button',{name:'HIT THE STREETS'}).waitFor();
+  await page.getByRole('button',{name:/settings/i}).click();
+  const credit=await page.locator('a[href="credits.html"]').getAttribute('href');assert.equal(credit,'credits.html');
+  assert((await fetch('http://127.0.0.1:5185/assets/touring/LICENSE.txt')).ok);
+  assert.deepEqual(failed,[]);assert.deepEqual(errors,[]);await page.close();
+  const blocked=await browser.newPage({viewport:{width:960,height:600}});
+  await blocked.addInitScript(()=>Object.defineProperty(window,'localStorage',{get(){throw new DOMException('Storage is disabled','SecurityError');}}));
+  await blocked.goto('http://127.0.0.1:5185');
+  await blocked.getByRole('button',{name:'HIT THE STREETS'}).waitFor({timeout:90000});
+  await blocked.getByRole('button',{name:/settings/i}).click();
+  await blocked.locator('#quality-mode').selectOption('balanced');
+  assert.equal(await blocked.locator('#quality-mode').inputValue(),'balanced');
+  console.log('PRODUCTION PASS: bundled assets, menu/race/pause/return, credits, private debug hooks, blocked storage');
+}finally{await browser?.close();server.kill();}

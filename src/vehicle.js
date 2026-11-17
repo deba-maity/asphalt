@@ -1,14 +1,18 @@
 import * as THREE from "three";
 import { consolidateVehicle } from "./rendering.js";
+import { createTouring } from "./touring.js";
+import { damp, spring } from "./timing.js";
+import { createRider, updateRider } from "./rider.js";
 
 const geo = {
   box: new THREE.BoxGeometry(1, 1, 1),
   tire: new THREE.CylinderGeometry(1, 1, 1, 22),
   rim: new THREE.CylinderGeometry(0.68, 0.68, 1.02, 18),
   disc: new THREE.CylinderGeometry(0.74, 0.74, 0.05, 18),
-  torus: new THREE.TorusGeometry(1, 0.13, 8, 22),
+  torus: new THREE.TorusGeometry(.87, .13, 10, 28),
   flame: new THREE.ConeGeometry(0.18, 0.72, 10),
   sphere: new THREE.SphereGeometry(1, 16, 10),
+  shadow: new THREE.PlaneGeometry(1, 1),
 };
 
 const shared = {
@@ -202,7 +206,7 @@ function createWheel(parent, x, z, radius, data, front = false, width = 0.34) {
       [0, 0, Math.PI / 2],
     );
   }
-  data.wheels.push({ pivot, spin, front });
+  data.wheels.push({ pivot, spin, front, radius });
 }
 
 function addCarLights(body, c, data) {
@@ -321,6 +325,7 @@ function buildCar(root, spec, paint, data, police) {
   const body = new THREE.Group();
   body.position.y = radius + c.h * 0.32;
   root.add(body);
+  data.body=body; data.bodyRest=body.position.y;
   const half = c.w * 0.5;
   part(
     body,
@@ -511,95 +516,6 @@ function buildCar(root, spec, paint, data, police) {
   if (police) addPoliceBar(root, data, c.w);
 }
 
-function addBikeRider(frame, profile, paint) {
-  const long = profile === "cruiser";
-  const dirt = profile === "dirt";
-  const lean = long ? -0.22 : dirt ? -0.36 : -0.48;
-  const hipZ = long ? 0.54 : 0.38;
-
-  part(
-    frame,
-    geo.sphere,
-    shared.riderSuit,
-    [0, 0.78, hipZ],
-    [0.34, 0.24, 0.32],
-  );
-  part(
-    frame,
-    geo.box,
-    shared.riderSuit,
-    [0, 1.12, hipZ - 0.26],
-    [0.54, 0.72, 0.26],
-    [lean, 0, 0],
-  );
-  part(
-    frame,
-    geo.sphere,
-    shared.riderArmor,
-    [0, 1.52, hipZ - 0.72],
-    [0.33, 0.35, 0.36],
-    [lean * 0.28, 0, 0],
-  );
-  part(
-    frame,
-    geo.box,
-    shared.glass,
-    [0, 1.49, hipZ - 1.03],
-    [0.46, 0.1, 0.08],
-    [lean * 0.2, 0, 0],
-  );
-  part(
-    frame,
-    geo.box,
-    paint,
-    [0, 1.28, hipZ - 0.48],
-    [0.44, 0.08, 0.09],
-    [lean, 0, 0],
-  );
-
-  for (const side of [-1, 1]) {
-    part(
-      frame,
-      geo.box,
-      shared.riderSuit,
-      [side * 0.27, 1.02, hipZ - 0.64],
-      [0.11, 0.12, 0.86],
-      [-0.92, side * 0.08, side * 0.18],
-    );
-    part(
-      frame,
-      geo.sphere,
-      shared.riderArmor,
-      [side * 0.42, 0.82, hipZ - 1.02],
-      [0.11, 0.1, 0.11],
-    );
-    part(
-      frame,
-      geo.box,
-      shared.riderSuit,
-      [side * 0.26, 0.55, hipZ + 0.08],
-      [0.13, 0.62, 0.14],
-      [0.42, 0, side * 0.12],
-    );
-    part(
-      frame,
-      geo.box,
-      shared.riderArmor,
-      [side * 0.28, 0.38, hipZ - 0.36],
-      [0.12, 0.13, 0.58],
-      [-0.74, 0, side * 0.08],
-    );
-    part(
-      frame,
-      geo.box,
-      shared.rubber,
-      [side * 0.27, 0.26, hipZ - 0.7],
-      [0.17, 0.11, 0.31],
-      [-0.62, 0, side * 0.06],
-    );
-  }
-}
-
 function buildBike(root, spec, paint, data, police) {
   const profile = spec.profile || "sport";
   const radius = profile === "dirt" ? 0.55 : 0.47;
@@ -662,7 +578,6 @@ function buildBike(root, spec, paint, data, police) {
     [0.16, 0.16, wheelBase * 0.8],
     [0.08, 0, 0],
   );
-  addBikeRider(frame, profile, paint);
 
   tube(
     frame,
@@ -734,25 +649,19 @@ function buildBike(root, spec, paint, data, police) {
     [-0.18, 0, 0],
   );
 
-  const fork = new THREE.Group();
-  fork.position.set(0, 0.22, frontZ);
-  fork.rotation.x = long ? -0.12 : -0.3;
-  root.add(fork);
-  tube(
-    fork,
-    [-0.2, 0.15, 0],
-    [0.055, 0.055, 1.15],
-    shared.chrome,
-    [0.18, 0, 0],
-  );
-  tube(fork, [0.2, 0.15, 0], [0.055, 0.055, 1.15], shared.chrome, [0.18, 0, 0]);
-  part(fork, geo.box, shared.chrome, [0, 0.74, -0.12], [0.95, 0.06, 0.08]);
-  part(fork, geo.box, shared.rubber, [-0.52, 0.75, -0.12], [0.22, 0.08, 0.09]);
-  part(fork, geo.box, shared.rubber, [0.52, 0.75, -0.12], [0.22, 0.08, 0.09]);
-  data.handlebars = fork;
-
-  data.frontFork = createBikeWheel(root, 0, frontZ, radius, data, true);
-  createBikeWheel(root, 0, rearZ, radius, data, false);
+  const fork=new THREE.Group();fork.position.set(0,radius,frontZ);root.add(fork);
+  const gripHeight=long?1.32:1.24;
+  for(const side of [-1,1]) {
+    const bottom=new THREE.Vector3(side*.17,0,0),top=new THREE.Vector3(side*.17,gripHeight-radius-.16,.40);
+    const beam=part(fork,geo.tire,shared.chrome,[0,0,0],[.043,bottom.distanceTo(top),.043]);
+    beam.position.copy(bottom).lerp(top,.5);beam.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),top.clone().sub(bottom).normalize());
+    part(fork,geo.sphere,shared.rubber,[side*.46,gripHeight-radius,.58],[.13,.045,.05]);
+  }
+  part(fork,geo.box,shared.chrome,[0,gripHeight-radius,.58],[1.02,.045,.055]);
+  data.handlebars=fork;data.gripHeight=gripHeight;
+  data.frontFork=createBikeWheel(root,0,frontZ,radius,data,true);
+  createBikeWheel(root,0,rearZ,radius,data,false);
+  createRider(frame,data,shared);
 
   const rearMat = lightMaterial(0xff233c);
   const headMat = lightMaterial(0xe4fbff);
@@ -794,7 +703,7 @@ function createBikeWheel(parent, x, z, r, data, front) {
     geo.rim,
     shared.carbon,
     [0, 0, 0],
-    [r * 0.82, 0.16, r * 0.82],
+    [r * 1.07, 0.16, r * 1.07],
     [0, 0, Math.PI / 2],
   );
   for (const side of [-1, 1]) {
@@ -804,7 +713,7 @@ function createBikeWheel(parent, x, z, r, data, front) {
         geo.box,
         shared.chrome,
         [side * 0.09, 0, 0],
-        [0.025, r * 1.18, 0.035],
+        [0.025, r * 1.45, 0.035],
         [(i * Math.PI) / 5, 0, 0],
       );
     part(
@@ -816,7 +725,7 @@ function createBikeWheel(parent, x, z, r, data, front) {
       [0, 0, Math.PI / 2],
     );
   }
-  data.wheels.push({ pivot, spin, front });
+  data.wheels.push({ pivot, spin, front, radius: r });
   return pivot;
 }
 
@@ -827,6 +736,7 @@ function buildInterceptor(root, spec, paint, data, police) {
   const body = new THREE.Group();
   body.position.y = 0.82;
   root.add(body);
+  data.body=body; data.bodyRest=body.position.y;
 
   part(body, geo.box, paint, [0, -0.04, 0], [w, 0.68, l]);
   part(body, geo.box, paint, [0, 0.42, 0.25], [w * 0.78, 0.68, l * 0.45]);
@@ -923,6 +833,7 @@ function buildMonster(root, spec, paint, data, police) {
   const body = new THREE.Group();
   body.position.y = 1.34;
   root.add(body);
+  data.body=body; data.bodyRest=body.position.y;
 
   part(body, geo.box, shared.carbon, [0, -0.42, 0], [w * 0.94, 0.32, l * 0.78]);
   part(body, geo.box, paint, [0, 0.02, -0.12], [w, 0.74, l * 0.7]);
@@ -998,7 +909,11 @@ export function createVehicle(
   const paint = paintMaterial(color);
   data.paint = paint;
 
-  if (spec.kind === "bike") buildBike(root, spec, paint, data, police);
+  if (spec.asset === 'touring' && createTouring(root, data, paint, police)) {
+    addNitro(root,data,-.62,2.25); addNitro(root,data,.62,2.25);
+    if(police) addPoliceBar(root,data,2.05);
+  }
+  else if (spec.kind === "bike") buildBike(root, spec, paint, data, police);
   else if (spec.kind === "heavy")
     buildInterceptor(root, spec, paint, data, police);
   else if (spec.kind === "monster")
@@ -1007,15 +922,15 @@ export function createVehicle(
 
   const shadow = part(
     root,
-    geo.box,
+    geo.shadow,
     shared.contactShadow,
-    [0, 0.035, 0],
+    [0, 0.018, 0],
     spec.kind === "bike"
-      ? [1.3, 0.01, 3.3]
+      ? [1.3, 3.3, 1]
       : spec.kind === "monster"
-        ? [4.4, 0.01, 6.3]
-        : [3.1, 0.01, 5.6],
-    undefined,
+        ? [4.4, 6.3, 1]
+        : [3.1, 5.6, 1],
+    [-Math.PI / 2,0,0],
     false,
   );
   consolidateVehicle(root);
@@ -1036,6 +951,18 @@ export function getVehicleGroundOffset(vehicle) {
   return -bounds.min.y;
 }
 
+export function disposeVehicle(vehicle) {
+  const geometries=new Set(), materials=new Set();
+  vehicle.traverse(object=>{
+    if(object.geometry?.userData?.disposeWithActor) geometries.add(object.geometry);
+    for(const material of Array.isArray(object.material)?object.material:[object.material])
+      if(material?.userData?.disposeWithActor) materials.add(material);
+  });
+  for(const geometry of geometries) geometry.dispose();
+  for(const material of materials) material.dispose();
+  vehicle.removeFromParent();
+}
+
 export function alignVehicleToSurface(vehicle, surfaceY = 0) {
   vehicle.position.y = surfaceY + getVehicleGroundOffset(vehicle);
   return vehicle.position.y;
@@ -1052,37 +979,46 @@ export function animateVehicle(
   dt = 1 / 60,
 ) {
   const d = vehicle.userData;
-  const spin = (speed * dt) / 0.51;
 
   for (const wheel of d.wheels) {
-    wheel.spin.rotation.x -= spin;
+    wheel.spin.rotation.x = (wheel.spin.rotation.x - speed * dt / (wheel.radius || .47)) % (Math.PI * 2);
     if (wheel.front) {
       wheel.pivot.rotation.y = THREE.MathUtils.lerp(
         wheel.pivot.rotation.y,
-        steering * 0.48,
+        steering * (.48 - Math.min(.24, Math.abs(speed) * .004)),
         1 - Math.pow(0.8, dt * 60),
       );
     }
   }
 
-  if (d.handlebars) d.handlebars.rotation.y = steering * 0.45;
-  if (d.frontFork) d.frontFork.rotation.y = steering * 0.36;
+  if (d.handlebars && d.frontFork) d.handlebars.rotation.y=d.frontFork.rotation.y;
+  updateRider(d,speed,steering,boosting,dt);
   if (d.turret)
     d.turret.rotation.y = THREE.MathUtils.lerp(
       d.turret.rotation.y,
       steering * 0.22,
-      0.08,
+      -Math.expm1(-5*dt),
     );
 
-  vehicle.rotation.z = THREE.MathUtils.lerp(
-    vehicle.rotation.z,
-    d.spec.kind === "bike" ? -steering * 0.31 : -steering * 0.1,
-    1 - Math.pow(0.89, dt * 60),
-  );
+  if (d.spec.kind === 'bike') {
+    vehicle.rotation.z = damp(vehicle.rotation.z, -steering * .38 * Math.min(1, Math.abs(speed) / 14), 7, dt);
+  } else if (d.body) {
+    const acceleration = d.acceleration ?? (speed - (d.previousSpeed ?? speed)) / Math.max(.001,dt);
+    const pitchTarget = THREE.MathUtils.clamp(-acceleration * .0018, -.045, .045);
+    const rollTarget = THREE.MathUtils.clamp(-steering * Math.abs(speed) * .0025, -.085, .085);
+    [d.body.rotation.x, d.pitchVelocity] = spring(d.body.rotation.x, d.pitchVelocity || 0, pitchTarget, 12, dt);
+    [d.body.rotation.z, d.rollVelocity] = spring(d.body.rotation.z, d.rollVelocity || 0, rollTarget, 10, dt);
+    d.body.position.y = d.bodyRest + Math.sin(time * 14) * Math.min(.005, Math.abs(speed) * .00012);
+    for(const body of d.bodies || []) if(body!==d.body) {
+      body.position.copy(d.body.position);body.quaternion.copy(d.body.quaternion);
+    }
+  }
+  d.previousSpeed = speed;
 
   for (const light of d.headLights) light.color.setHex(0xe8fbff);
   for (const light of d.brakeLights) {
-    light.color.setHex(braking ? 0xffedf0 : 0xff263f);
+    light.color.setHex(braking ? 0xff4540 : 0xc01825);
+    if(light.emissive) light.emissiveIntensity = braking ? 3 : .8;
   }
 
   for (const flame of d.flames) {

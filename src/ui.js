@@ -1,3 +1,4 @@
+import { storage } from "./storage.js";
 import { maps, modes, vehicles } from "./data.js";
 
 const stat = (label, value, color = "cyan", pct = value) =>
@@ -180,6 +181,8 @@ export class UI {
   }
 
   showHome() {
+    this.network.close();
+    this.networked=false;
     this.game.clearPreview();
     this.root.querySelector(".pause-overlay")?.remove();
     this.hud.hidden = true;
@@ -289,7 +292,7 @@ export class UI {
     this.shell(
       garage ? "GARAGE // FLEET" : "SELECT VEHICLE",
       vehicle.name,
-      `<div class="garage-modern"><div class="garage-hero"><div class="garage-hero-grid"></div><div class="preview-wrap premium-preview"><div id="vehicle-preview"></div><div class="preview-corner preview-corner-a">LIVE SHOWROOM</div><div class="preview-corner preview-corner-b">DESIGNED TO DRIVE</div><div class="vehicle-floor-lines"></div><div class="vehicle-type">${esc(vehicle.type).toUpperCase()}</div><div class="vehicle-hero-stamp"><small>RATING</small><b>${rating}</b><span>CLASS ${vehicle.kind === "heavy" ? "H" : vehicle.kind === "bike" ? "B" : "A"}</span></div></div></div><aside class="vehicle-info-modern"><div class="vehicle-id-row"><span>VEHICLE ${vehicles.indexOf(vehicle) + 1}/${vehicles.length}</span><b>${vehicle.kind === "heavy" ? "HEAVY" : vehicle.kind === "bike" ? "BIKE" : "CAR"}</b></div><h2>${esc(vehicle.name)}</h2><p class="vehicle-blurb">${esc(vehicle.type)} built for midnight routes. Tune the finish, then take the fastest line.</p><div class="stats stats-premium">${stat("MAX KM/H", maxSpeed, "cyan", vehicle.top)}${stat("ACCEL", vehicle.accel)}${stat("HANDLING", vehicle.handling)}${stat("BRAKING", vehicle.braking)}${stat("DURABILITY", vehicle.armor, "pink")}${stat("NITRO", vehicle.boost, "violet")}</div><div class="garage-control-row"><div><span>PAINT</span><div class="colors-premium">${palette}</div></div><button class="primary deploy-lg" data-action="${garage ? "map" : "start"}">${garage ? "RACE SETUP" : "DEPLOY"} <i>→</i></button></div></aside><div class="fleet-dock"><div class="fleet-head"><div><span>FLEET</span><p>Swipe, drag or use the wheel to browse.</p></div><div class="fleet-filters">${filters}</div></div><div class="vehicle-list-premium">${options}</div></div></div>`,
+      `<div class="garage-modern"><div class="garage-hero"><div class="garage-hero-grid"></div><div class="preview-wrap premium-preview"><div id="vehicle-preview"></div><div class="preview-corner preview-corner-a">DRAG TO ROTATE</div><div class="preview-corner preview-corner-b">DESIGNED TO DRIVE</div><div class="vehicle-floor-lines"></div><div class="vehicle-type">${esc(vehicle.type).toUpperCase()}</div><div class="vehicle-hero-stamp"><small>RATING</small><b>${rating}</b><span>CLASS ${vehicle.kind === "heavy" ? "H" : vehicle.kind === "bike" ? "B" : "A"}</span></div></div></div><aside class="vehicle-info-modern"><div class="vehicle-id-row"><span>VEHICLE ${vehicles.indexOf(vehicle) + 1}/${vehicles.length}</span><b>${vehicle.kind === "heavy" ? "HEAVY" : vehicle.kind === "bike" ? "BIKE" : "CAR"}</b></div><h2>${esc(vehicle.name)}</h2><p class="vehicle-blurb">${esc(vehicle.type)} built for midnight routes. Tune the finish, then take the fastest line.</p><div class="stats stats-premium">${stat("MAX KM/H", maxSpeed, "cyan", vehicle.top)}${stat("ACCEL", vehicle.accel)}${stat("HANDLING", vehicle.handling)}${stat("BRAKING", vehicle.braking)}${stat("DURABILITY", vehicle.armor, "pink")}${stat("NITRO", vehicle.boost, "violet")}</div><div class="garage-control-row"><div><span>PAINT</span><div class="colors-premium">${palette}</div></div><button class="primary deploy-lg" data-action="${garage ? "map" : "start"}">${garage ? "RACE SETUP" : "DEPLOY"} <i>→</i></button></div></aside><div class="fleet-dock"><div class="fleet-head"><div><span>FLEET</span><p>Swipe, drag or use the wheel to browse.</p></div><div class="fleet-filters">${filters}</div></div><div class="vehicle-list-premium">${options}</div></div></div>`,
     );
     requestAnimationFrame(() =>
       this.game.mountPreview(
@@ -337,13 +340,16 @@ export class UI {
     this.shell(
       `LOBBY // ${this.network.room}`,
       "Crew assembled",
-      `<div class="lobby-view"><div id="player-slots">${this.playerSlots(players)}</div><div class="lobby-controls"><p>Connected drivers sync vehicle positions and race state over this local network.</p><button class="secondary" data-action="garage">CHANGE VEHICLE</button><button class="primary" data-action="lobby-start">START LAN RACE <i>→</i></button></div></div>`,
+      `<div class="lobby-view"><div id="player-slots">${this.playerSlots(players)}</div><div class="lobby-controls"><p>Connected drivers sync vehicle positions and race state over this local network. The first connected driver is the crew host.</p><button class="secondary" data-action="garage">CHANGE VEHICLE</button><button class="primary" data-action="lobby-start" ${this.network.host===this.network.id?'':'disabled'}>${this.network.host===this.network.id?'START LAN RACE':'WAITING FOR HOST'} <i>→</i></button></div></div>`,
     );
     this.network.on = (msg) => {
       if (msg.type === "players") {
         this.network.players = msg.players;
         const slots = this.root.querySelector("#player-slots");
         if (slots) slots.innerHTML = this.playerSlots(msg.players);
+        const start=this.root.querySelector('[data-action="lobby-start"]');
+        if(start) { start.disabled=this.network.host!==this.network.id; start.textContent=start.disabled?'WAITING FOR HOST':'START LAN RACE →'; }
+        if(this.game.running) this.game.setRemotePlayers(msg.players);
       }
       if (msg.type === "position") this.game.remotePosition(msg.id, msg.data);
       if (msg.type === "event" && msg.event?.type === "finish") {
@@ -353,19 +359,25 @@ export class UI {
       if (
         msg.type === "start" &&
         msg.state.phase === "countdown" &&
-        !this.game.running
+        (!this.game.running || this.game.phase==="finished")
       ) {
         this.map = maps.find((m) => m.id === msg.state.map) || this.map;
+        this.mode = modes.find((m) => m.id === msg.state.mode) || this.mode;
         this.start(true, true);
       }
       if (msg.type === "error") this.toast(msg.message);
+      if (msg.type === "closed") {
+        this.networked=false;
+        if(this.game.config) this.game.config.network=null;
+        this.toast("Crew connection closed. You can continue offline or return home.");
+      }
     };
   }
 
   playerSlots(players) {
     const filled = players.map(
       (p, i) =>
-        `<div class="player-slot"><span>0${i + 1}</span><div class="player-dot" style="--color:${p.color}"></div><b>${esc(p.name)}</b><small>${esc(p.vehicle)}</small></div>`,
+        `<div class="player-slot"><span>0${i + 1}</span><div class="player-dot" style="--color:${/^#[0-9a-f]{6}$/i.test(p.color)?p.color:'#ffffff'}"></div><b>${esc(p.name)}</b><small>${esc(p.vehicle)}</small></div>`,
     );
     while (filled.length < 4)
       filled.push(
@@ -382,16 +394,20 @@ export class UI {
       });
   }
   start(lan = false, remoteStart = false) {
-    this.game.clearPreview();
+    lan=lan || (this.networked && !!this.network.id);
     if (lan) {
       this.networked = true;
-      if (!remoteStart)
+      if (!remoteStart) {
+        if(this.network.host!==this.network.id) { this.toast("The crew host starts the race."); return; }
         this.network.send({
           type: "start",
           mode: this.mode.id,
           map: this.map.id,
         });
+        return; // All clients start from the same server acknowledgement.
+      }
     }
+    this.game.clearPreview();
     this.layer.innerHTML = "";
     this.hud.hidden = false;
     this.root.classList.toggle("manual-gas", !this.game.autoAccelerate);
@@ -432,7 +448,7 @@ export class UI {
     this.shell(
       "MAKE IT YOURS",
       "Your way. Your pace.",
-      `<div class="settings settings-modern"><label>PERFORMANCE<select id="quality-mode">${profiles}</select><small>Battery saver limits frames and resolution for longer sessions. Balanced is the everyday setting. High fidelity adds resolution.</small></label><label>AI DIFFICULTY<span class="difficulty-row">${levels}</span></label><label class="setting-toggle"><span>AUTO ACCELERATE<small>On touchscreens, focus on steering. Brake and drift override the throttle.</small></span><input type="checkbox" id="auto-accelerate" ${this.game.autoAccelerate ? "checked" : ""}></label><label class="setting-toggle"><span>ENGINE AUDIO<small>Engine, nitro and effects.</small></span><input type="checkbox" id="audio-enabled" ${this.game.audio.enabled ? "checked" : ""}></label><div class="control-reference"><span>DESKTOP</span><p>WASD / arrows · steer & drive<br>Space · drift &nbsp; Shift · nitro<br>F · gun &nbsp; R · rocket &nbsp; Esc · pause</p><span>PHONE</span><p>Hold the steering arrows. Use drift, brake and nitro with your other thumb. Landscape gives you more room.</p></div></div>`,
+      `<div class="settings settings-modern"><label>PERFORMANCE<select id="quality-mode">${profiles}</select><small>Battery saver limits frames and resolution for longer sessions. Balanced is the everyday setting. High fidelity adds resolution.</small></label><label>AI DIFFICULTY<span class="difficulty-row">${levels}</span></label><label class="setting-toggle"><span>AUTO ACCELERATE<small>On touchscreens, focus on steering. Brake and drift override the throttle.</small></span><input type="checkbox" id="auto-accelerate" ${this.game.autoAccelerate ? "checked" : ""}></label><label class="setting-toggle"><span>REDUCED CAMERA MOTION<small>Steady field of view and no impact shake.</small></span><input type="checkbox" id="reduced-motion" ${this.game.reducedMotion ? "checked" : ""}></label><label class="setting-toggle"><span>ENGINE AUDIO<small>Engine, nitro and effects.</small></span><input type="checkbox" id="audio-enabled" ${this.game.audio.enabled ? "checked" : ""}></label><p><a href="credits.html" target="_blank" rel="noopener">Model credits &amp; licenses</a></p><div class="control-reference"><span>DESKTOP</span><p>WASD / arrows · steer & drive<br>Space · drift &nbsp; Shift · nitro<br>F · gun &nbsp; R · rocket &nbsp; Esc · pause</p><span>PHONE</span><p>Hold the steering arrows. Use drift, brake and nitro with your other thumb. Landscape gives you more room.</p></div></div>`,
     );
   }
 
@@ -450,8 +466,13 @@ export class UI {
       }
       if (e.target.id === "auto-accelerate") {
         this.game.autoAccelerate = e.target.checked;
-        localStorage.setItem("nightshift-auto", e.target.checked);
+        storage.setItem("nightshift-auto", e.target.checked);
         this.root.classList.toggle("manual-gas", !e.target.checked);
+      }
+      if (e.target.id === "reduced-motion") {
+        this.game.reducedMotion = e.target.checked;
+        document.documentElement.classList.toggle('reduced-motion',e.target.checked);
+        storage.setItem("nightshift-reduced-motion", e.target.checked);
       }
       if (e.target.id === "audio-enabled")
         this.game.audio.setEnabled(e.target.checked);
@@ -632,6 +653,7 @@ export class UI {
     const n = this.root.querySelector("#toast");
     n.textContent = message;
     n.classList.add("show");
-    setTimeout(() => n.classList.remove("show"), 3200);
+    clearTimeout(this.toastTimer);
+    this.toastTimer=setTimeout(() => n.classList.remove("show"), 3200);
   }
 }

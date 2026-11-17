@@ -1,0 +1,140 @@
+{
+  "fleet": [
+    {
+      "name": "Apex GT",
+      "handError": 0,
+      "wheels": 8
+    },
+    {
+      "name": "Vector R",
+      "handError": 0,
+      "wheels": 4
+    },
+    {
+      "name": "Monarch LX",
+      "handError": 0,
+      "wheels": 4
+    },
+    {
+      "name": "Vanta RS",
+      "handError": 0,
+      "wheels": 4
+    },
+    {
+      "name": "Kestrel Turbo",
+      "handError": 0,
+      "wheels": 4
+    },
+    {
+      "name": "Eclipse V8",
+      "handError": 0,
+      "wheels": 8
+    },
+    {
+      "name": "Cinder XR",
+      "handError": 0,
+      "wheels": 4
+    },
+    {
+      "name": "Solace 720",
+      "handError": 0,
+      "wheels": 4
+    },
+    {
+      "name": "Riot Coupe",
+      "handError": 0,
+      "wheels": 4
+    },
+    {
+      "name": "Nova Sprint",
+      "handError": 0,
+      "wheels": 4
+    },
+    {
+      "name": "Volt Arrow",
+      "handError": 4.577566798522237e-16,
+      "wheels": 2
+    },
+    {
+      "name": "Rogue 900",
+      "handError": 4.577566798522237e-16,
+      "wheels": 2
+    },
+    {
+      "name": "Kite RR",
+      "handError": 4.577566798522237e-16,
+      "wheels": 2
+    },
+    {
+      "name": "Phantom 8",
+      "handError": 4.577566798522237e-16,
+      "wheels": 2
+    },
+    {
+      "name": "Viper Neo",
+      "handError": 4.577566798522237e-16,
+      "wheels": 2
+    },
+    {
+      "name": "Eon Tracker",
+      "handError": 4.577566798522237e-16,
+      "wheels": 2
+    },
+    {
+      "name": "Strix 1000",
+      "handError": 4.577566798522237e-16,
+      "wheels": 2
+    },
+    {
+      "name": "Luma R",
+      "handError": 4.577566798522237e-16,
+      "wheels": 2
+    },
+    {
+      "name": "Sable 650",
+      "handError": 4.577566798522237e-16,
+      "wheels": 2
+    },
+    {
+      "name": "Orion X",
+      "handError": 4.577566798522237e-16,
+      "wheels": 2
+    },
+    {
+      "name": "Bastion Interceptor",
+      "handError": 0,
+      "wheels": 4
+    },
+    {
+      "name": "Titan Hauler",
+      "handError": 0,
+      "wheels": 4
+    },
+    {
+      "name": "Wardog 4x4",
+      "handError": 0,
+      "wheels": 4
+    },
+    {
+      "name": "Gravel King",
+      "handError": 0,
+      "wheels": 4
+    },
+    {
+      "name": "Mammoth R",
+      "handError": 0,
+      "wheels": 4
+    },
+    {
+      "name": "Crusher X",
+      "handError": 0,
+      "wheels": 4
+    }
+  ],
+  "triangles": {
+    "near": 135534,
+    "far": 33343
+  },
+  "shaders": 5,
+  "scope": "Software-rendered asset contracts; no desktop window, native GPU or driving acceptance"
+}

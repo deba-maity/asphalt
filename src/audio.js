@@ -1,8 +1,10 @@
+import { storage } from "./storage.js";
 export class AudioEngine {
   constructor() {
-    this.enabled = localStorage.getItem("nightshift-audio") !== "false";
+    this.enabled = storage.getItem("nightshift-audio") !== "false";
     this.muted = false;
     this.context = null;
+    this.active = false;
     this.master = null;
     this.engine = null;
     this.engineGain = null;
@@ -10,6 +12,7 @@ export class AudioEngine {
     this.nitroGain = null;
   }
   start() {
+    this.active = true;
     if (!this.context) {
       const Ctx = window.AudioContext || window.webkitAudioContext;
       if (!Ctx) return;
@@ -31,10 +34,9 @@ export class AudioEngine {
       this.nitro.start();
     }
     this.setMuted(false);
-    this.context.resume?.();
   }
   update(speed, boost) {
-    if (!this.context) return;
+    if (!this.context || !this.active || !this.enabled || this.muted) return;
     const now = this.context.currentTime;
     this.engine.frequency.setTargetAtTime(
       58 + Math.abs(speed) * 4.5,
@@ -50,7 +52,7 @@ export class AudioEngine {
     this.nitroGain.gain.setTargetAtTime(boost ? 0.055 : 0.0001, now, 0.04);
   }
   blip(freq = 150, duration = 0.08) {
-    if (!this.context) return;
+    if (!this.context || !this.active || !this.enabled || this.muted) return;
     const o = this.context.createOscillator(),
       g = this.context.createGain(),
       now = this.context.currentTime;
@@ -61,10 +63,11 @@ export class AudioEngine {
     o.connect(g).connect(this.master);
     o.start(now);
     o.stop(now + duration);
+    o.onended = () => { o.disconnect(); g.disconnect(); };
   }
   setEnabled(enabled) {
     this.enabled = enabled;
-    localStorage.setItem("nightshift-audio", enabled);
+    storage.setItem("nightshift-audio", enabled);
     this.setMuted(this.muted);
   }
   setMuted(muted) {
@@ -75,8 +78,18 @@ export class AudioEngine {
         this.context.currentTime,
         0.03,
       );
+    this.syncContext();
+  }
+  syncContext() {
+    const context = this.context;
+    if (!context || context.state === "closed") return;
+    const shouldRun = this.active && this.enabled && !this.muted;
+    // Suspend the graph itself; a zero gain still spends audio-thread work.
+    const operation = shouldRun ? context.resume() : context.suspend();
+    operation?.catch(() => {});
   }
   stop() {
+    this.active = false;
     if (this.nitroGain)
       this.nitroGain.gain.setTargetAtTime(
         0.0001,
@@ -89,5 +102,6 @@ export class AudioEngine {
         this.context.currentTime,
         0.08,
       );
+    this.syncContext();
   }
 }

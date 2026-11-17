@@ -6,3 +6,11 @@ runtime-*.png
 npm-debug.log*
 
 artifacts/
+
+# Browser profiles, generated bundles and local inspection output
+chrome-*/
+edge-*/
+dist/
+*.log
+*-check.png
+*-preview.png

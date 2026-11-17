@@ -1,13 +1,17 @@
 {
   "name": "nightshift-pursuit",
-  "version": "1.0.0",
+  "version": "1.1.0-rc.1",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "node server.js",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node scripts/smoke.mjs"
+    "test": "npm run test:unit && npm run test:smoke",
+    "dev:lan": "node server.js --lan",
+    "test:unit": "node --test scripts/*.test.mjs",
+    "test:smoke": "node scripts/smoke.mjs",
+    "review:assets": "node scripts/review-assets.mjs"
   },
   "dependencies": {
     "three": "^0.170.0",

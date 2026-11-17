@@ -1,0 +1,74 @@
+# NIGHTSHIFT
+
+Racing, time trials and pursuit across four districts, on the `nightshift` branch of `deba-maity/asphalt`. This branch is independent of `ashen-vow`; `main` is unchanged. Current source: **1.1.0-rc.1**.
+
+## Install and open on your own PC
+
+Use Node.js 22 or newer. From the repository in PowerShell:
+
+```powershell
+git fetch origin
+git switch nightshift
+git pull --ff-only origin nightshift
+npm ci
+npm run dev
+```
+
+Open **http://localhost:5173** in your browser. Keep the terminal open; Ctrl+C stops the server. Do not open `index.html` directly. The game assets are included in the repository; no Blender installation or asset account is needed to play.
+
+To keep ASHEN VOW in its existing folder, create a separate worktree instead of switching that folder:
+
+```powershell
+git fetch origin
+git worktree add -b nightshift ..\nightshift origin/nightshift
+Set-Location ..\nightshift
+npm ci
+npm run dev
+```
+
+Use that worktree command once. If you already created a local `nightshift` branch, use `git worktree add ..\nightshift nightshift` instead.
+
+[Revision details, isolated asset comparisons and evidence](docs/revision-1.1.md)
+
+## What changed
+
+- Apex GT and Eclipse V8 use a detailed, credited touring model with separate rolling wheels, steering pivots and stationary brake calipers. A simpler mesh takes over at distance. The other vehicles retain their procedural art.
+- Motorcycles have rebuilt forks, better proportioned riders, hands attached to the steering bars, and responsive lean/tuck. Car bodies use damped suspension pitch and roll while the wheels remain grounded.
+- Driving uses fixed 60 Hz simulation, interpolated moving bodies, analog steering, travel-vector drift and gradual grip recovery. A damped chase camera responds to speed; Reduced camera motion removes shake and field-of-view changes.
+- Tire marks and particles use fixed storage and a small number of draw calls. Traffic follows the sampled road with continuous lane position and heading. Collision responses remove inward momentum; LAN cars turn along the shortest angle.
+- Menus settle instead of continuously rendering the garage. Pausing or switching apps stops the race render loop and suspends engine audio. Battery saver also disables decorative menu animations.
+- The LAN relay validates and bounds messages, limits packet rates and queued data, transfers host ownership, and reports full/disconnected rooms. Local play binds to this machine only by default.
+
+This is still an independent prototype. The detailed car does not replace every vehicle or environment, and these changes do not establish AAA visual quality. Native GPU frame rate, temperature, physical controllers and subjective driving feel still require testing on your PC.
+
+## Controls and lower-power settings
+
+| Input | Action |
+|---|---|
+| W / S | Accelerate / brake and reverse |
+| A / D or arrows | Steer |
+| Space / Shift | Drift / nitro |
+| F / R | Gun / rocket on armed vehicles |
+| Escape | Pause |
+
+Touch controls support simultaneous steering and pedals. Supported gamepad axes/triggers provide analog driving input. Physical gamepad acceptance has not been performed.
+
+Fresh settings start in **Battery saver**: 30 FPS, at most 600,000 internal pixels and 600 pixels high. Balanced allows 60 FPS / 1,152,000 pixels / 900 high; High fidelity allows 60 FPS / 2,073,600 pixels / 1080 high. These are upper limits; screen size and automatic resolution reduction can lower them. Existing preferences are preserved. Lower rendering work can reduce power demand, but no laptop temperature reduction is claimed.
+
+For LAN crews, run `npm run dev:lan` and give other players the host computer's local IP address and the same room code. The first connected driver is the host. This is a casual LAN relay, not an authenticated public competitive service. A static `npm run preview` build does not include the lobby relay.
+
+## Verification and assets
+
+```powershell
+npm run test:unit
+npm run build
+npx playwright install chromium --only-shell
+npm run test:smoke
+node scripts/visual-contracts.mjs
+```
+
+Browser checks use headless Chromium and SwiftShader, with no desktop window or desktop input. Their frame counts are budget checks, not native performance measurements. `node scripts/endurance.mjs 3600 LABEL` freezes runtime files, steps simulation for a real-time hour and samples software rendering at checkpoints. Results go to ignored `artifacts/`.
+
+The touring asset is adapted from **BMW 1 Series M In Cycles by Mike Pan**, under **CC BY-SA 3.0**, including the adaptation. See [model attribution](public/assets/touring/LICENSE.txt) and the in-game Settings credits link. Rebuild with `python scripts/fetch-touring.py`, then run `scripts/compile-touring.py` in Blender 4.5.16 with `--background --factory-startup --disable-autoexec --python-exit-code 1`. The source download is pinned by SHA-256. The car, distance mesh and rig metadata are checked for reproducible conversion. Third-party libraries retain their own licenses.
+
+Generated bundles, screenshots and browser profiles are excluded from Git. Removing previously tracked profiles from this branch does not rewrite repository history or delete local copies.

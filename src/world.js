@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { batchWorld } from "./rendering.js";
+import { advanceRoute } from "./route-motion.js";
 import {
   createVehicle,
   animateVehicle,
@@ -5270,11 +5271,11 @@ export class World {
 
       traffic.scale.setScalar(0.72);
 
-      const routeIndex = (i * 2 + 2) % this.route.length;
+      const routeIndex = Math.floor((i + 1) * this.samples.length / (count + 1));
 
-      traffic.position.copy(this.route[routeIndex]);
+      traffic.position.copy(this.samples[routeIndex]);
 
-      const tangent = tangentAt(this.route, routeIndex);
+      const tangent = tangentAt(this.samples, routeIndex);
 
       const side = new THREE.Vector3(-tangent.z, 0, tangent.x);
 
@@ -5300,7 +5301,7 @@ export class World {
       this.traffic.push({
         mesh: traffic,
         index: routeIndex,
-        progress: 0.12 * i,
+        progress: 0,
         speed: 7.5 + (i % 4) * 1.8,
         lane: i % 2 ? 3.2 : -3.2,
       });
@@ -5416,36 +5417,16 @@ export class World {
           (distance + sphere.radius) ** 2;
     }
     for (const traffic of this.traffic) {
-      const a = this.route[traffic.index];
-
-      const b = this.route[(traffic.index + 1) % this.route.length];
-
-      const len = a.distanceTo(b) || 1;
-
-      traffic.progress += (dt * traffic.speed) / len;
-
-      if (traffic.progress >= 1) {
-        traffic.progress = 0;
-
-        traffic.index = (traffic.index + 1) % this.route.length;
-      }
-
-      const position = a.clone().lerp(b, traffic.progress);
-
-      const tangent = b.clone().sub(a).normalize();
-
-      const side = new THREE.Vector3(-tangent.z, 0, tangent.x);
-
-      position.addScaledVector(side, traffic.lane);
-
-      traffic.mesh.position.copy(position);
+      advanceRoute(this.samples, traffic, dt * traffic.speed);
+      traffic.mesh.position.x=traffic.x;
+      traffic.mesh.position.z=traffic.z;
 
       alignVehicleToSurface(
         traffic.mesh,
         this.getRoadHeightAt(traffic.mesh.position.x, traffic.mesh.position.z),
       );
 
-      traffic.mesh.rotation.y = Math.atan2(-tangent.x, -tangent.z);
+      traffic.mesh.rotation.y = traffic.heading;
 
       if (
         !focus ||

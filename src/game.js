@@ -1,3 +1,4 @@
+import { storage } from "./storage.js";
 import * as THREE from "three";
 import { World } from "./world.js";
 import {
@@ -5,11 +6,16 @@ import {
   animateVehicle,
   alignVehicleToSurface,
   getVehicleGroundOffset,
+  disposeVehicle,
 } from "./vehicle.js";
 import { vehicles } from "./data.js";
 import { Effects } from "./effects.js";
 import { AudioEngine } from "./audio.js";
 import { QUALITY, createEnvironment } from "./rendering.js";
+import { FixedClock, damp, spring, pixelRatioFor } from "./timing.js";
+import { driveStep } from "./driving.js";
+import { SkidTrails } from "./skid-trails.js";
+import { angleDelta, deflectVelocity } from "./route-motion.js";
 
 const clamp = THREE.MathUtils.clamp;
 const mod = (a, n) => ((a % n) + n) % n;
@@ -56,18 +62,26 @@ export class Game {
 
     this.lowPower = LOW_POWER_DEVICE;
     this.qualityMode =
-      localStorage.getItem("nightshift-quality") ||
-      (this.lowPower ? "battery" : "balanced");
+      storage.getItem("nightshift-quality") ||
+      "battery";
     if (!QUALITY[this.qualityMode]) this.qualityMode = "balanced";
     this.applyQuality(this.qualityMode);
     this.frameCost = 0;
     this.qualityTimer = 0;
     this.shadowMapsEnabled = false;
     this.touch = {};
-    this.autoAccelerate = localStorage.getItem("nightshift-auto") !== "false";
+    this.autoAccelerate = storage.getItem("nightshift-auto") !== "false";
+    this.reducedMotion = storage.getItem("nightshift-reduced-motion") === "true" ||
+      (storage.getItem("nightshift-reduced-motion") === null && matchMedia("(prefers-reduced-motion: reduce)").matches);
+    document.documentElement.classList.toggle('reduced-motion',this.reducedMotion);
     this.lastFrameTime = 0;
     this.lastSimulationTime = 0;
     this.hudTimer = 0;
+    this.clock = new FixedClock();
+    this.frameCallback = (stamp) => this.frame(stamp);
+    this.cameraVelocity = new THREE.Vector3();
+    this.cameraLook = new THREE.Vector3();
+    this.cameraReady = false;
     this.renderer = new THREE.WebGLRenderer({
       antialias: false,
       powerPreference: "low-power",
@@ -143,6 +157,7 @@ export class Game {
       this.keys[e.code] = true;
 
       if (
+        this.running && !this.paused &&
         ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(
           e.code,
         )
@@ -150,7 +165,7 @@ export class Game {
         e.preventDefault();
       }
 
-      if (e.code === "Escape" && this.running) {
+      if (e.code === "Escape" && !e.repeat && this.running) {
         this.togglePause();
       }
     });
@@ -171,7 +186,7 @@ export class Game {
       powerPreference: "low-power",
     });
 
-    renderer.setPixelRatio(Math.min(devicePixelRatio, this.lowPower ? 1 : 1.2));
+    renderer.setPixelRatio(1);
 
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
@@ -382,6 +397,9 @@ export class Game {
 
     let active = true;
     let lastPreviewTime = 0;
+    let wakeUntil = performance.now() + (this.reducedMotion ? 0 : 1800);
+    let drag = null;
+    let turn = -2.15;
 
     let time = 0;
 
@@ -395,30 +413,28 @@ export class Game {
 
       height = Math.max(180, Math.floor(rect.height || 330));
 
+      renderer.setPixelRatio(pixelRatioFor(width, height, devicePixelRatio, 1, 360000, 600));
       renderer.setSize(width, height, false);
 
       camera.aspect = width / height;
 
       camera.updateProjectionMatrix();
+      wake();
     };
-
-    resize();
 
     const observer = new ResizeObserver(resize);
 
-    observer.observe(host);
 
     const cleanupMaterial = (material) => {
       if (!material?.userData?.sharedVehicle) material?.dispose?.();
     };
 
     const tick = (stamp = performance.now()) => {
-      if (!active) {
-        return;
+      this.previewFrame = 0;
+      if (!active || document.hidden) return;
+      if (stamp - lastPreviewTime < 1000 / 15 - .5) {
+        this.previewFrame = requestAnimationFrame(tick); return;
       }
-
-      this.previewFrame = requestAnimationFrame(tick);
-      if (document.hidden || stamp - lastPreviewTime < 1000 / 30 - 0.5) return;
       const delta = Math.min(
         (stamp - (lastPreviewTime || stamp - 33)) / 1000,
         0.1,
@@ -426,11 +442,8 @@ export class Game {
       lastPreviewTime = stamp;
       time += delta;
 
-      stage.rotation.y = -2.15 + Math.sin(time * 0.18) * 0.16;
-
-      const hover = Math.sin(time * 2.1) * 0.025;
-
-      vehicle.position.y += (targetY + hover - vehicle.position.y) * 0.06;
+      stage.rotation.y = turn;
+      vehicle.position.y = targetY;
 
       animateVehicle(vehicle, 0, false, time, 0, false, false, delta);
 
@@ -439,9 +452,36 @@ export class Game {
       ring.material.opacity = 0.53 + Math.sin(time * 2.1) * 0.13;
 
       renderer.render(scene, camera);
+      if (stamp < wakeUntil) this.previewFrame = requestAnimationFrame(tick);
     };
-
-    tick();
+    function wake() {
+      if (active && !document.hidden && !thisGame.previewFrame)
+        thisGame.previewFrame = requestAnimationFrame(tick);
+    }
+    const thisGame = this;
+    const down = (event) => {
+      drag = { id: event.pointerId, x: event.clientX };
+      host.setPointerCapture?.(event.pointerId);
+    };
+    const move = (event) => {
+      if (!drag || drag.id !== event.pointerId) return;
+      turn += (event.clientX - drag.x) * .008;
+      drag.x = event.clientX; wake();
+    };
+    const release = () => { drag = null; };
+    const visibility = () => {
+      if (document.hidden) { cancelAnimationFrame(this.previewFrame); this.previewFrame = 0; }
+      else wake();
+    };
+    host.style.touchAction = "pan-y";
+    host.setAttribute("aria-label", "Vehicle preview. Drag to rotate.");
+    host.addEventListener("pointerdown", down);
+    host.addEventListener("pointermove", move);
+    host.addEventListener("lostpointercapture", release);
+    host.addEventListener("pointerup", release);
+    document.addEventListener("visibilitychange", visibility);
+    resize();
+    observer.observe(host);
 
     this.preview = {
       renderer,
@@ -451,6 +491,11 @@ export class Game {
 
       dispose: () => {
         active = false;
+        host.removeEventListener("pointerdown", down);
+        host.removeEventListener("pointermove", move);
+        host.removeEventListener("pointerup", release);
+        host.removeEventListener("lostpointercapture", release);
+        document.removeEventListener("visibilitychange", visibility);
         environment.dispose();
         observer.disconnect();
 
@@ -477,6 +522,7 @@ export class Game {
       this.preview.active = false;
 
       cancelAnimationFrame(this.previewFrame);
+      this.previewFrame = 0;
 
       this.preview.dispose?.();
 
@@ -500,6 +546,9 @@ export class Game {
     this.scene.environment = this.environment.texture;
     this.lastFrameTime = 0;
     this.lastSimulationTime = 0;
+    this.clock.reset();
+    this.cameraReady = false;
+    this.cameraVelocity.set(0, 0, 0);
 
     this.actors = [];
 
@@ -510,6 +559,7 @@ export class Game {
     this.camera.updateProjectionMatrix();
 
     this.effects = new Effects(this.scene);
+    this.skids = new SkidTrails(this.scene);
 
     this.actorGroup = new THREE.Group();
 
@@ -635,6 +685,7 @@ export class Game {
     this.touch = {};
 
     this.audio.stop();
+    this.skids?.dispose(); this.skids = null;
 
     this.projectiles.length = 0;
     this.projectileGeo?.dispose();
@@ -642,24 +693,7 @@ export class Game {
     this.rocketMat?.dispose();
 
     if (this.actorGroup) {
-      this.actorGroup.traverse((object) => {
-        if (object.geometry?.userData?.disposeWithActor) {
-          object.geometry.dispose?.();
-        }
-
-        if (Array.isArray(object.material)) {
-          object.material.forEach((material) => {
-            if (material.userData?.disposeWithActor) {
-              material.dispose?.();
-            }
-          });
-        } else if (object.material?.userData?.disposeWithActor) {
-          object.material?.dispose?.();
-        }
-      });
-
-      this.actorGroup.removeFromParent();
-
+      disposeVehicle(this.actorGroup);
       this.actorGroup = null;
     }
 
@@ -677,7 +711,7 @@ export class Game {
   }
 
   makeActor(spec, color, police = false, name = "DRIVER") {
-    const mesh = createVehicle(spec, color);
+    const mesh = createVehicle(spec, color, police);
 
     this.actorGroup?.add(mesh);
 
@@ -703,20 +737,21 @@ export class Game {
   applyRenderScale() {
     if (!this.renderer) return;
 
-    this.renderer.setPixelRatio(
-      Math.min(devicePixelRatio || 1, this.renderScale),
-    );
+    const profile = QUALITY[this.qualityMode];
+    this.renderer.setPixelRatio(pixelRatioFor(innerWidth, innerHeight,
+      devicePixelRatio || 1, this.renderScale, profile.pixels, profile.height));
   }
 
   applyQuality(mode) {
     this.qualityMode = QUALITY[mode] ? mode : "balanced";
+    document.documentElement.dataset.quality=this.qualityMode;
     const profile = QUALITY[this.qualityMode];
     this.targetFPS = profile.fps;
     this.renderScale = profile.scale;
     this.minRenderScale = profile.min;
     this.maxRenderScale = profile.scale;
     this.qualityTimer = 0;
-    localStorage.setItem("nightshift-quality", this.qualityMode);
+    storage.setItem("nightshift-quality", this.qualityMode);
     this.applyRenderScale();
     if (this.camera) {
       this.camera.far = profile.distance + 100;
@@ -818,7 +853,9 @@ export class Game {
   updatePlayer(dt) {
     const p = this.player;
 
-    const k = { ...this.keys, ...this.touch };
+    const k = { ...this.keys };
+    // Releasing a touch pedal must not cancel a held physical keyboard key.
+    for(const [key,pressed] of Object.entries(this.touch)) if(pressed) k[key]=pressed;
 
     const pad = [...(navigator.getGamepads?.() || [])].find(Boolean);
 
@@ -828,10 +865,6 @@ export class Game {
       (this.touch.active && this.autoAccelerate && !k.KeyS && !k.Space);
 
     let brake = k.KeyS || k.ArrowDown;
-
-    let left = k.KeyA || k.ArrowLeft;
-
-    let right = k.KeyD || k.ArrowRight;
 
     let hand = k.Space;
 
@@ -846,10 +879,6 @@ export class Game {
 
       brake ||= pad.buttons[6]?.value || pad.buttons[1]?.pressed;
 
-      left ||= pad.axes[0] < -0.18;
-
-      right ||= pad.axes[0] > 0.18;
-
       hand ||= pad.buttons[2]?.pressed;
 
       boost ||= pad.buttons[5]?.pressed && p.boost > 1;
@@ -859,81 +888,18 @@ export class Game {
       rocket ||= pad.buttons[3]?.pressed;
     }
 
-    const bike = p.spec.kind === "bike";
-
-    const heavy = p.spec.kind === "heavy";
-
-    const monster = p.spec.kind === "monster";
-
-    const maxKmh =
-      p.spec.maxSpeed || (bike ? 240 : monster ? 155 : heavy ? 185 : 285);
-
-    const max = maxKmh / 5.7;
-
-    const acc = 4 + p.spec.accel * (bike ? 0.115 : heavy ? 0.078 : 0.105);
-
-    const brakeForce = 5 + p.spec.braking * 0.08;
-
-    if (brake) {
-      p.speed -= brakeForce * dt;
-    } else if (gas) {
-      p.speed += acc * dt;
-    } else {
-      p.speed *= Math.pow(hand ? 0.91 : 0.975, dt * 60);
-    }
-
-    if (boost) {
-      p.speed += (bike ? 25 : heavy ? 16 : monster ? 13 : 23) * dt;
-
-      p.boost = Math.max(0, p.boost - 20 * dt);
-    } else {
-      p.boost = Math.min(100, p.boost + 5.5 * dt);
-    }
-
-    p.speed = clamp(p.speed, -max * 0.32, max * (boost ? 1.08 : 1));
-
-    const steerTarget = (right ? 1 : 0) - (left ? 1 : 0);
-
-    p.steerInput = THREE.MathUtils.lerp(
-      p.steerInput || 0,
-      steerTarget,
-      clamp(dt * (steerTarget ? 9.5 : 14), 0, 1),
-    );
-
-    const steer = Math.abs(p.steerInput) < 0.025 ? 0 : p.steerInput;
-
-    const drifting = hand && Math.abs(p.speed) > 12 && Math.abs(steer) > 0.08;
-
-    const grip =
-      (0.45 + p.spec.handling * 0.009) *
-      (bike ? 1.12 : monster ? 0.62 : heavy ? 0.68 : 1);
-
-    const speedRatio = clamp(Math.abs(p.speed) / Math.max(1, max), 0, 1);
-    const highSpeedStability = THREE.MathUtils.lerp(1, 0.52, speedRatio);
-
-    const turn =
-      -steer *
-      (0.5 + grip) *
-      dt *
-      (p.speed >= 0 ? 1 : -1) *
-      clamp(Math.abs(p.speed) / 12, 0.08, 1.05) *
-      highSpeedStability *
-      (drifting ? 1.62 : 1);
-
-    p.mesh.rotation.y += turn;
-
-    const forward = new THREE.Vector3(
-      -Math.sin(p.mesh.rotation.y),
-      0,
-      -Math.cos(p.mesh.rotation.y),
-    );
-    const side = new THREE.Vector3(-forward.z, 0, forward.x);
-    const driftSlip = drifting
-      ? steer * clamp(Math.abs(p.speed) / 38, 0, 1.4)
-      : 0;
-
-    p.mesh.position.addScaledVector(forward, p.speed * dt);
-    p.mesh.position.addScaledVector(side, driftSlip * p.speed * dt * 0.42);
+    const bike = p.spec.kind === "bike", monster = p.spec.kind === "monster";
+    const axis = pad && Math.abs(pad.axes[0] || 0) > .18
+      ? (pad.axes[0] - Math.sign(pad.axes[0]) * .18) / .82 : 0;
+    const keyboardSteer = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0);
+    p.heading = p.mesh.rotation.y;
+    driveStep(p, { gas, brake, steer: keyboardSteer || axis, hand, boost }, p.spec, dt);
+    const steer = p.steerInput, drifting = p.drifting;
+    boost = p.boosting;
+    p.mesh.rotation.y = p.heading;
+    p.mesh.position.x += p.velocityX * dt;
+    p.mesh.position.z += p.velocityZ * dt;
+    Object.assign(p.mesh.userData, { acceleration: p.acceleration, yawRate: p.yawRate, slip: p.slip });
 
     const radius = Math.hypot(p.mesh.position.x, p.mesh.position.z);
 
@@ -941,7 +907,7 @@ export class Game {
 
     if (radius > boundary) {
       p.mesh.position.multiplyScalar(boundary / radius);
-
+      deflectVelocity(p,-p.mesh.position.x,-p.mesh.position.z,.2);
       p.speed *= -0.35;
 
       this.shake = 1;
@@ -961,13 +927,14 @@ export class Game {
       p.speed *= Math.pow(penalty, dt * 18);
 
       if (roadDistance > 44) {
-        p.speed *= -0.34;
-
-        this.shake = 0.8;
+        // No frame-by-frame sign inversion: the car remains steerable back to
+        // the road instead of oscillating between forward and reverse.
+        p.speed *= Math.exp(-dt * 3);
       }
     }
 
     this.alignActorToRoad(p);
+    this.skids?.sample(p, this.world, drifting || (brake && p.speed > 22));
 
     animateVehicle(
       p.mesh,
@@ -1025,9 +992,11 @@ export class Game {
 
       this.shake = 0.7;
 
-      this.effects?.emit(p.mesh.position, 0xffb45b, 5, 4);
-
-      this.audio.blip(94, 0.12);
+      if (this.time >= (p.nextCollisionEffect || 0)) {
+        p.nextCollisionEffect=this.time+.12;
+        this.effects?.emit(p.mesh.position, 0xffb45b, 5, 4);
+        this.audio.blip(94, 0.12);
+      }
     }
   }
 
@@ -1235,13 +1204,9 @@ export class Game {
       return;
     }
 
-    a.mesh.position.lerp(a.target.position, clamp(dt * 12, 0, 1));
-
-    a.mesh.rotation.y = THREE.MathUtils.lerp(
-      a.mesh.rotation.y,
-      a.target.rotation,
-      clamp(dt * 12, 0, 1),
-    );
+    const blend=-Math.expm1(-dt*12);
+    a.mesh.position.lerp(a.target.position, blend);
+    a.mesh.rotation.y += angleDelta(a.mesh.rotation.y,a.target.rotation)*blend;
 
     this.alignActorToRoad(a);
 
@@ -1280,6 +1245,7 @@ export class Game {
         }
 
         away.normalize();
+        deflectVelocity(p,away.x,away.z);
 
         p.mesh.position.addScaledVector(away, 0.28);
 
@@ -1310,6 +1276,7 @@ export class Game {
         hit = true;
         const away = p.mesh.position.clone().sub(obstacle.position);
         if (away.lengthSq() < 0.1) away.set(1, 0, 0);
+        deflectVelocity(p,away.x,away.z);
         p.mesh.position.addScaledVector(away.normalize(), 0.65);
         p.speed *= p.spec.kind === "heavy" ? 0.78 : 0.42;
       }
@@ -1357,6 +1324,7 @@ export class Game {
   }
 
   remotePosition(id, data) {
+    if(!this.running || !this.world || !data || ![data.x,data.z,data.rotation,data.speed].every(Number.isFinite)) return;
     let a = this.remotes.get(id);
 
     if (!a) {
@@ -1405,6 +1373,12 @@ export class Game {
   }
 
   setRemotePlayers(players) {
+    if(!this.running || !this.world) return;
+    const ids=new Set(players.map(p=>p.id));
+    for(const [id,actor] of this.remotes) if(!ids.has(id)) {
+      this.remotes.delete(id);this.actors=this.actors.filter(a=>a!==actor);
+      disposeVehicle(actor.mesh);
+    }
     players.forEach((p) => this.addRemotePlayer(p));
   }
 
@@ -1422,11 +1396,11 @@ export class Game {
     if (this.config.mode.id === "time") {
       const key = `nightshift-best-${this.world.map.id}`;
 
-      const previous = Number(localStorage.getItem(key) || 0);
+      const previous = Number(storage.getItem(key) || 0);
 
       best = !previous || this.elapsed < previous ? this.elapsed : previous;
 
-      localStorage.setItem(key, String(best));
+      storage.setItem(key, String(best));
 
       if (best === this.elapsed) {
         title = "NEW PERSONAL BEST";
@@ -1494,38 +1468,77 @@ export class Game {
     }
 
     this.paused = !this.paused;
+    cancelAnimationFrame(this.animationFrame);
+    this.lastFrameTime = 0;
+    this.lastSimulationTime = 0;
+    this.clock.accumulator = 0;
     this.keys = {};
     this.touch = { active: matchMedia("(pointer: coarse)").matches };
     this.audio.setMuted(this.paused);
 
     this.callbacks.pause?.(this.paused);
+    if (!this.paused && this.running) this.animationFrame = requestAnimationFrame(this.frameCallback);
   }
 
   renderScene() {
     this.renderer.render(this.scene, this.camera);
   }
 
+  eachMovingMesh(callback) {
+    for (const actor of this.actors) callback(actor.mesh);
+    for (const actor of this.world?.traffic || []) callback(actor.mesh);
+  }
+
+  rememberPose(mesh) {
+    let pose = mesh.userData.presentation;
+    if (!pose) pose = mesh.userData.presentation = {
+      previous: mesh.position.clone(), rotation: mesh.quaternion.clone(),
+      saved: mesh.position.clone(), savedRotation: mesh.quaternion.clone(),
+    };
+    pose.previous.copy(mesh.position); pose.rotation.copy(mesh.quaternion);
+  }
+
   frame(timestamp = performance.now()) {
-    if (!this.running) return;
-    this.animationFrame = requestAnimationFrame((t) => this.frame(t));
-    if (this.paused || document.hidden) {
-      this.lastFrameTime = 0;
-      this.lastSimulationTime = 0;
-      return;
-    }
+    if (!this.running || this.paused || document.hidden) return;
+    this.animationFrame = requestAnimationFrame(this.frameCallback);
     const interval = 1000 / this.targetFPS;
     const elapsed = timestamp - this.lastFrameTime;
-    if (this.lastFrameTime && elapsed < interval - 0.5) return;
-    const dt = this.lastSimulationTime
-      ? Math.min((timestamp - this.lastSimulationTime) / 1000, 0.05)
-      : 1 / this.targetFPS;
-    this.actualFrameDelta = this.lastSimulationTime
-      ? (timestamp - this.lastSimulationTime) / 1000
-      : dt;
+    if (this.lastFrameTime && elapsed < interval - .5) return;
+    const dt = this.lastSimulationTime ? (timestamp - this.lastSimulationTime) / 1000 : 1 / this.targetFPS;
+    // Background/focus changes pause explicitly. A slow shader compilation
+    // drops excess catch-up through FixedClock instead of trapping the player
+    // in repeated automatic pauses on a slower machine.
+    this.actualFrameDelta = dt;
     this.lastSimulationTime = timestamp;
     this.lastFrameTime = timestamp - (elapsed % interval);
     const workStart = performance.now();
+    this.clock.advance(dt, (step) => this.simulate(step));
+    if (!this.running || !this.world) return;
+    this.eachMovingMesh((mesh) => {
+      const pose = mesh.userData.presentation;
+      if (!pose) return;
+      pose.saved.copy(mesh.position); pose.savedRotation.copy(mesh.quaternion);
+      // Never interpolate across a recovery teleport or a remote respawn.
+      if (pose.previous.distanceToSquared(pose.saved) > 144) return;
+      mesh.position.lerpVectors(pose.previous, pose.saved, this.clock.fraction);
+      mesh.quaternion.slerpQuaternions(pose.rotation, pose.savedRotation, this.clock.fraction);
+    });
+    this.updateCamera(dt);
+    this.renderScene();
+    this.eachMovingMesh((mesh) => {
+      const pose = mesh.userData.presentation;
+      if (pose) { mesh.position.copy(pose.saved); mesh.quaternion.copy(pose.savedRotation); }
+    });
+    this.hudTimer += dt;
+    if (this.hudTimer >= .1) {
+      this.callbacks.hud?.(this.hudState()); this.hudTimer = 0;
+    }
+    this.updateAdaptiveQuality(performance.now() - workStart, dt);
+  }
 
+  simulate(dt) {
+    if (!this.running || !this.world) return;
+    this.eachMovingMesh((mesh) => this.rememberPose(mesh));
     this.time += dt;
 
     if (this.phase === "countdown") {
@@ -1608,71 +1621,39 @@ export class Game {
     );
 
     this.effects?.update(dt);
+    this.skids?.update(dt);
 
     this.updateProjectiles(dt);
 
-    this.updateCamera(dt);
-
-    this.hudTimer += dt;
-    if (this.hudTimer >= 0.08) {
-      this.callbacks.hud?.(this.hudState());
-      this.hudTimer = 0;
-    }
-
-    this.renderScene();
-    this.updateAdaptiveQuality(
-      performance.now() - workStart,
-      this.actualFrameDelta || dt,
-    );
   }
 
   updateCamera(dt) {
-    const p = this.player.mesh.position;
-
-    const h = this.player.mesh.rotation.y;
-
-    const spd = Math.abs(this.player.speed);
-
-    const drift = this.player.mesh.userData.drifting;
-
-    const back = 8.0 + spd * 0.028;
-
-    const desired = new THREE.Vector3(
-      p.x + Math.sin(h) * back,
-
-      p.y + 2.85 + spd * 0.016,
-
-      p.z + Math.cos(h) * back,
-    );
-
-    this.camera.position.lerp(desired, 1 - Math.pow(0.00055, dt));
-
-    const look = p.clone().add(
-      new THREE.Vector3(
-        -Math.sin(h) * (8.4 + spd * 0.06),
-
-        1.05 + Math.min(spd * 0.008, 0.55),
-
-        -Math.cos(h) * (8.4 + spd * 0.06),
-      ),
-    );
-
-    if (this.shake > 0) {
-      look.x += (Math.random() - 0.5) * this.shake;
-
-      look.y += (Math.random() - 0.5) * this.shake;
-
-      this.shake = Math.max(0, this.shake - dt * 2.7);
+    const player = this.player, p = player.mesh.position;
+    const heading = player.mesh.rotation.y + (player.slip || 0) * .55;
+    const speed = Math.abs(player.speed);
+    const back = 7.6 + Math.min(speed * .045, 2.5);
+    const desired = new THREE.Vector3(p.x + Math.sin(heading) * back,
+      p.y + 2.65 + Math.min(speed * .018, .8), p.z + Math.cos(heading) * back);
+    const look = new THREE.Vector3(p.x - Math.sin(heading) * (6 + speed * .08),
+      p.y + 1.05, p.z - Math.cos(heading) * (6 + speed * .08));
+    if (!this.cameraReady || this.camera.position.distanceToSquared(desired) > 1600) {
+      this.camera.position.copy(desired); this.cameraLook.copy(look);
+      this.cameraVelocity.set(0, 0, 0); this.cameraReady = true;
     }
-
-    this.camera.lookAt(look);
-
-    this.camera.fov = THREE.MathUtils.lerp(
-      this.camera.fov,
-      61 + clamp(spd * 0.1, 0, 7) + (drift ? 1.4 : 0),
-      dt * 4,
-    );
-
+    for (const axis of ['x', 'y', 'z']) {
+      const result = spring(this.camera.position[axis], this.cameraVelocity[axis], desired[axis], 9, dt);
+      this.camera.position[axis] = result[0]; this.cameraVelocity[axis] = result[1];
+    }
+    this.cameraLook.lerp(look, -Math.expm1(-dt * 12));
+    const target = this.cameraLook.clone();
+    if (this.shake > 0 && !this.reducedMotion) {
+      target.x += Math.sin(this.time * 51) * Math.min(.12, this.shake * .1);
+      target.y += Math.sin(this.time * 67) * Math.min(.06, this.shake * .05);
+    }
+    this.shake = Math.max(0, this.shake - dt * 2.7);
+    this.camera.lookAt(target);
+    const fov = this.reducedMotion ? 63 : 59 + Math.min(speed * .14, 8) + (player.boosting ? 3 : 0);
+    this.camera.fov = damp(this.camera.fov, fov, 5, dt);
     this.camera.updateProjectionMatrix();
   }
 

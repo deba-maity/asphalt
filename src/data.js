@@ -522,6 +522,7 @@ export const vehicles = [
     name,
     type: carTypes[carProfiles[i]],
     profile: carProfiles[i],
+    asset: i===0 || i===5 ? 'touring' : null,
     kind: "car",
     maxSpeed: carMaxSpeeds[carProfiles[i]] + ((i % 3) - 1) * 8,
     top: 77 + (i % 4) * 4,

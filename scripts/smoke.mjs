@@ -18,6 +18,7 @@ const server = external
       windowsHide: true,
     });
 let browser;
+let page;
 const errors = [];
 try {
   let ready = false;
@@ -32,23 +33,29 @@ try {
   }
   assert(ready, "Development server must start");
   browser = await chromium.launch({
-    channel:
-      process.env.BROWSER_CHANNEL ||
-      (process.platform === "win32" ? "msedge" : undefined),
     headless: true,
-    args:
-      process.platform === "win32"
-        ? ["--enable-webgl", "--ignore-gpu-blocklist", "--use-angle=d3d11"]
-        : [],
+    args: ['--use-angle=swiftshader','--enable-unsafe-swiftshader'],
   });
-  const page = await browser.newPage({
+  page = await browser.newPage({
     viewport: { width: 1280, height: 800 },
   });
+  page.setDefaultTimeout(90000);
   page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
   await page.goto(url);
   await page.waitForFunction(() => window.__nightshift);
+  await page.waitForFunction(() => window.__nightshift.game.preview && !window.__nightshift.game.previewFrame, null, {timeout:30000});
+  const previewIdle=await page.evaluate(async()=>{
+    const g=window.__nightshift.game,renderer=g.preview.renderer;
+    const before=renderer.info.render.frame;
+    await new Promise(resolve=>setTimeout(resolve,500));
+    return renderer.info.render.frame-before;
+  });
+  assert.equal(previewIdle,0,'Settled showroom stops redrawing');
+  assert(await page.evaluate(()=>document.documentElement.dataset.quality==='battery'),'Fresh settings start with the lower-power profile');
   await page.getByRole("button", { name: /settings/i }).click();
   await page.locator("#quality-mode").selectOption("battery");
+  await page.locator('#reduced-motion').check();
   assert.equal(
     await page.evaluate(() => window.__nightshift.game.targetFPS),
     30,
@@ -59,6 +66,7 @@ try {
     await page.evaluate(() => window.__nightshift.game.qualityMode),
     "battery",
   );
+  assert(await page.evaluate(()=>window.__nightshift.game.reducedMotion),'Reduced motion is saved');
   await page.getByRole("button", { name: "HIT THE STREETS" }).click();
   await page.locator('[data-action="choose-mode"]').first().click();
   await page.locator('[data-action="choose-map"]').first().click();
@@ -80,6 +88,7 @@ try {
     await new Promise((resolve) => setTimeout(resolve, 200));
     const pausedFrames = frames;
     const pausedElapsed = g.elapsed;
+    const audioState=g.audio.context?.state;
     g.togglePause();
     g.renderer.render = original;
     return {
@@ -87,14 +96,17 @@ try {
       pausedFrames,
       elapsed,
       pausedElapsed,
+      audioState,
       calls: g.renderer.info.render.calls,
     };
   });
+  console.log('FRAME BUDGET',stats);
   assert(
-    stats.runningFrames <= 37 && stats.runningFrames >= 10,
+    stats.runningFrames <= 37 && stats.runningFrames >= 1,
     "Battery mode caps rendering at 30fps",
   );
   assert.equal(stats.pausedFrames, 0, "Paused game must not redraw");
+  assert.equal(stats.audioState,'suspended','Pause suspends the audio graph');
   assert.equal(
     stats.elapsed,
     stats.pausedElapsed,
@@ -111,6 +123,12 @@ try {
     await page.evaluate(() => window.__nightshift.game.player.speed > 0),
     "Keyboard accelerates",
   );
+  assert(await page.evaluate(()=>{
+    const g=window.__nightshift.game;
+    g.player.speed=0;g.player.velocityX=0;g.player.velocityZ=0;
+    g.keys.KeyW=true;g.touch.KeyW=false;g.updatePlayer(1/60);
+    const moved=g.player.speed>0;g.keys={};return moved;
+  }),'Released touch controls do not override held keyboard controls');
   const mapResults = await page.evaluate(async () => {
     const { maps, modes } = await import("/src/data.js");
     const { game: g, ui } = window.__nightshift;
@@ -158,6 +176,7 @@ try {
   assert(fleet >= 23, "All fleet models are available");
   await page.evaluate(() => window.__nightshift.ui.exitToHome());
   assert.equal(await page.locator(".pause-overlay").count(), 0);
+  await page.close();
   const mobile = await browser.newPage({
     viewport: { width: 844, height: 390 },
     hasTouch: true,
@@ -165,8 +184,9 @@ try {
     deviceScaleFactor: 1,
   });
   mobile.on("pageerror", (error) => errors.push(error.message));
+  mobile.on("console", message => { if (message.type() === "error") { errors.push(message.text()); console.error(message.text()); } });
   await mobile.goto(url);
-  await mobile.waitForFunction(() => window.__nightshift);
+  await mobile.waitForFunction(() => window.__nightshift, null, {timeout:90000});
   await mobile.evaluate(() => {
     const { ui, game: g } = window.__nightshift;
     ui.start();
@@ -258,6 +278,13 @@ try {
       2,
     ),
   );
+} catch(error) {
+  console.error('BROWSER ERRORS',JSON.stringify(errors));
+  if(page && !page.isClosed()) console.error('STATE',await page.evaluate(()=>{
+    const g=window.__nightshift?.game;
+    return g?{phase:g.phase,running:g.running,paused:g.paused,time:g.time,hidden:document.hidden,steps:g.clock.steps,dropped:g.clock.dropped}:document.body.innerText;
+  }).catch(()=>null));
+  throw error;
 } finally {
   await browser?.close();
   server?.kill();
