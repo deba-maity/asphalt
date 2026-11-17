@@ -1,0 +1,55 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: Physics transform interpolation enabled
+PASS: Skeleton attachments avoid double interpolation
+PASS: Render pose interpolates between physics ticks
+PASS: Render rotation uses spherical interpolation
+PASS: Displaying a pose does not alter simulation snapshots
+PASS: Hit stop freezes both pose snapshots without interpolation jitter
+PASS: Teleport resets pose interpolation history
+PASS: Quaternion log/exp preserves large rotations
+PASS: Quaternion sign changes take the same short path
+PASS: Action transition begins at the outgoing pose
+PASS: Transition preserves outgoing linear velocity
+PASS: Large non-collinear transitions preserve angular velocity
+PASS: Inertial offset converges to authored motion
+PASS: Bevels preserve collision dimensions
+PASS: Architectural bevel normals are finite and normalized
+PASS: Impact particle pool has a hard capacity
+PASS: Impact particles expire without retained allocations
+PASS: Reduced effects suppress particles
+PASS: Camera settles around the interpolated encounter
+PASS: Camera field of view stays within the comfort range
+PASS: Encounter framing has bounded camera distance
+PASS: Camera easing uses a separate spring-arm collision mount
+PASS: Trial camera retracts inside an actual wall constraint
+PASS: Removing an obstruction eases the camera outward without snapping
+PASS: Collidable courtyard columns remain outside the fighting ring
+PASS: Runtime captures post-IK poses for rendering
+PASS: Directional gait uses its own authored stride
+PASS: Lateral gait has a measured contact phase
+PASS: Healing waits until the bottle reaches the mouth
+PASS: Drink contact grants one heal
+PASS: Holding the drinking pose does not repeat healing
+PASS: An interrupted drink does not grant a delayed heal
+PASS: Drinking shows the flask and hides the blade
+PASS: Returning to combat restores the weapon
+PASS: Stationary turn begins with authored footwork, without snapping
+PASS: Authored turn reaches its requested heading
+PASS: Evasion does not inherit a pending stationary turn
+PASS: Additive balance and gaze remain anatomically bounded
+PASS: Spatial foley reuses a bounded voice pool
+PASS: All licensed trial foley variants load
+PASS: Rematches do not accumulate reverb effects
+PASS: Orchestral stems have identical 48-second sample lengths
+PASS: Both score layers loop at the same sample boundary
+PASS: Second phase raises the synchronized score layer without restarting it
+PASS: Victory fades the trial score
+PASS: Cloth stays finite with a fixed 70-particle budget
+PASS: Teleport resets cloth history without a stretched trail
+PASS: Trial toast and boss bar do not overlap
+PASS: Trial uses the compact encounter HUD
+PASS: Defeat creates a physical dropped weapon
+PASS: Released weapon is not also shown in the hand
+RESULT: 51/51 motion quality checks passed; 30 physics ticks
+EXIT requested: 0 mode=play

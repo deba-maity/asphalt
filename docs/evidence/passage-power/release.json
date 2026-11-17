@@ -1,10 +1,10 @@
 {
   "version": "0.8.0-rc.1",
-  "source_commit": "eb7940c325e3e3eb8b5ce84efa9853ec6ef809a1",
+  "source_commit": "be5f61a83c77c1102f699d647a976bb84f25fc5a",
   "source_dirty": false,
   "runtime_sha256": "be5fba9a1c76b0e2f5df8947733d8c876cce041edc8f77349505ccba32771ac3",
   "binary_sha256": "d726c1d952b662e434bd69d4e85b5d37991d1f0f4fb73e7c350302876da06014",
-  "build_date_utc": "2026-11-17T14:40:05+00:00",
+  "build_date_utc": "2026-11-17T15:15:11+00:00",
   "engine": "4.7.2",
   "platform": "windows",
   "architecture": "x86_64",
@@ -23,15 +23,15 @@
       "platform": "windows",
       "architecture": "x86_64",
       "filename": "AshenVow-v0.8.0-rc.1-windows-x86_64.zip",
-      "size_bytes": 122835285,
-      "sha256": "d9ee2a9144ea24d1c927f179f93c37d75a0bdd02c6b0aaf7a71c2b0404f50575",
+      "size_bytes": 122835283,
+      "sha256": "009e9fb8d109e4fe9956fc0b1df7b0b5c058db36d12193bfeb6be802f51e58d8",
       "download_url": null
     },
     {
       "kind": "source",
       "filename": "AshenVow-v0.8.0-rc.1-source.zip",
-      "size_bytes": 87771899,
-      "sha256": "1012d34c210507ce6ac36259a1ca4013d888926e653cb8921920b5a018abc363",
+      "size_bytes": 87780685,
+      "sha256": "b2d374187994c2bba58a93b0d22b5d2bfb152e97a477e63b6834e93561307db9",
       "download_url": null
     }
   ],

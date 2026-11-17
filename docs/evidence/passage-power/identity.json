@@ -1,0 +1,7 @@
+{
+  "source_commit": "be5f61a83c77c1102f699d647a976bb84f25fc5a",
+  "runtime_sha256": "be5fba9a1c76b0e2f5df8947733d8c876cce041edc8f77349505ccba32771ac3",
+  "frozen_runtime_unchanged": true,
+  "same_executable_after_documentation_commit": true,
+  "binary_sha256": "d726c1d952b662e434bd69d4e85b5d37991d1f0f4fb73e7c350302876da06014"
+}

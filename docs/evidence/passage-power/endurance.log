@@ -1,0 +1,67 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ENDURANCE START duration=3600.0 seconds; headless real-time stress fixture
+ENDURANCE {"actions":129,"advancing_swings":1,"failures":0,"idle_checks":1,"matches":0,"memory":201043570,"nodes":314,"phase_two_samples":0,"pose_samples":414,"seconds":60.002,"training_samples":207}
+ENDURANCE {"actions":250,"advancing_swings":2,"failures":0,"idle_checks":2,"matches":1,"memory":200996610,"nodes":314,"phase_two_samples":0,"pose_samples":790,"seconds":120.719,"training_samples":395}
+ENDURANCE {"actions":388,"advancing_swings":3,"failures":0,"idle_checks":3,"matches":1,"memory":201084710,"nodes":314,"phase_two_samples":0,"pose_samples":1218,"seconds":180.013,"training_samples":609}
+ENDURANCE {"actions":470,"advancing_swings":3,"failures":0,"idle_checks":5,"matches":2,"memory":201010146,"nodes":314,"phase_two_samples":0,"pose_samples":1464,"seconds":247.381,"training_samples":732}
+ENDURANCE {"actions":514,"advancing_swings":3,"failures":0,"idle_checks":6,"matches":2,"memory":201089326,"nodes":314,"phase_two_samples":0,"pose_samples":1608,"seconds":300.953,"training_samples":804}
+ENDURANCE {"actions":604,"advancing_swings":4,"failures":0,"idle_checks":7,"matches":2,"memory":201097666,"nodes":314,"phase_two_samples":0,"pose_samples":1886,"seconds":360.008,"training_samples":943}
+ENDURANCE {"actions":703,"advancing_swings":9,"failures":0,"idle_checks":9,"matches":3,"memory":201252986,"nodes":314,"phase_two_samples":94,"pose_samples":2198,"seconds":420.005,"training_samples":944}
+ENDURANCE {"actions":762,"advancing_swings":10,"failures":0,"idle_checks":10,"matches":3,"memory":201248086,"nodes":314,"phase_two_samples":186,"pose_samples":2382,"seconds":480.007,"training_samples":944}
+ENDURANCE {"actions":908,"advancing_swings":10,"failures":0,"idle_checks":11,"matches":5,"memory":201250154,"nodes":314,"phase_two_samples":187,"pose_samples":2802,"seconds":540.056,"training_samples":1153}
+ENDURANCE {"actions":1041,"advancing_swings":10,"failures":0,"idle_checks":13,"matches":5,"memory":201252770,"nodes":314,"phase_two_samples":187,"pose_samples":3216,"seconds":600.009,"training_samples":1360}
+ENDURANCE {"actions":1179,"advancing_swings":10,"failures":0,"idle_checks":14,"matches":6,"memory":201253706,"nodes":314,"phase_two_samples":187,"pose_samples":3644,"seconds":660.003,"training_samples":1574}
+ENDURANCE {"actions":1314,"advancing_swings":10,"failures":0,"idle_checks":15,"matches":6,"memory":201269170,"nodes":314,"phase_two_samples":187,"pose_samples":4074,"seconds":720.01,"training_samples":1789}
+ENDURANCE {"actions":1441,"advancing_swings":16,"failures":0,"idle_checks":17,"matches":7,"memory":201271510,"nodes":314,"phase_two_samples":304,"pose_samples":4486,"seconds":780.008,"training_samples":1807}
+ENDURANCE {"actions":1575,"advancing_swings":16,"failures":0,"idle_checks":18,"matches":7,"memory":201270066,"nodes":314,"phase_two_samples":502,"pose_samples":4882,"seconds":840.141,"training_samples":1807}
+ENDURANCE {"actions":1646,"advancing_swings":16,"failures":0,"idle_checks":19,"matches":8,"memory":201255306,"nodes":314,"phase_two_samples":512,"pose_samples":5088,"seconds":900.012,"training_samples":1900}
+ENDURANCE {"actions":1779,"advancing_swings":16,"failures":0,"idle_checks":21,"matches":8,"memory":201260310,"nodes":314,"phase_two_samples":512,"pose_samples":5506,"seconds":960.001,"training_samples":2109}
+ENDURANCE {"actions":1918,"advancing_swings":16,"failures":0,"idle_checks":22,"matches":9,"memory":201268810,"nodes":314,"phase_two_samples":512,"pose_samples":5938,"seconds":1020.001,"training_samples":2325}
+ENDURANCE {"actions":2061,"advancing_swings":17,"failures":0,"idle_checks":23,"matches":9,"memory":201271954,"nodes":314,"phase_two_samples":512,"pose_samples":6370,"seconds":1080.006,"training_samples":2541}
+ENDURANCE {"actions":2205,"advancing_swings":18,"failures":0,"idle_checks":25,"matches":10,"memory":201276738,"nodes":314,"phase_two_samples":512,"pose_samples":6782,"seconds":1140.01,"training_samples":2747}
+ENDURANCE {"actions":2346,"advancing_swings":18,"failures":0,"idle_checks":26,"matches":10,"memory":201276650,"nodes":314,"phase_two_samples":512,"pose_samples":7218,"seconds":1200.013,"training_samples":2965}
+ENDURANCE {"actions":2485,"advancing_swings":21,"failures":0,"idle_checks":27,"matches":11,"memory":201284750,"nodes":314,"phase_two_samples":644,"pose_samples":7646,"seconds":1260.009,"training_samples":2997}
+ENDURANCE {"actions":2610,"advancing_swings":24,"failures":0,"idle_checks":29,"matches":11,"memory":201276730,"nodes":314,"phase_two_samples":835,"pose_samples":8028,"seconds":1320.368,"training_samples":2997}
+ENDURANCE {"actions":2703,"advancing_swings":25,"failures":0,"idle_checks":30,"matches":13,"memory":201267170,"nodes":314,"phase_two_samples":844,"pose_samples":8318,"seconds":1380.005,"training_samples":3133}
+ENDURANCE {"actions":2806,"advancing_swings":25,"failures":0,"idle_checks":31,"matches":13,"memory":201274166,"nodes":314,"phase_two_samples":844,"pose_samples":8644,"seconds":1440.28,"training_samples":3296}
+ENDURANCE {"actions":2906,"advancing_swings":25,"failures":0,"idle_checks":33,"matches":14,"memory":201275806,"nodes":314,"phase_two_samples":844,"pose_samples":8948,"seconds":1500.039,"training_samples":3448}
+ENDURANCE {"actions":2995,"advancing_swings":25,"failures":0,"idle_checks":34,"matches":14,"memory":201297758,"nodes":314,"phase_two_samples":844,"pose_samples":9228,"seconds":1560.015,"training_samples":3588}
+ENDURANCE {"actions":3131,"advancing_swings":25,"failures":0,"idle_checks":35,"matches":15,"memory":201285306,"nodes":314,"phase_two_samples":844,"pose_samples":9652,"seconds":1620.009,"training_samples":3789}
+ENDURANCE {"actions":3217,"advancing_swings":26,"failures":0,"idle_checks":37,"matches":15,"memory":201310094,"nodes":314,"phase_two_samples":932,"pose_samples":9908,"seconds":1680.426,"training_samples":3789}
+ENDURANCE {"actions":3352,"advancing_swings":26,"failures":0,"idle_checks":38,"matches":16,"memory":201292530,"nodes":314,"phase_two_samples":1124,"pose_samples":10322,"seconds":1740.013,"training_samples":3804}
+ENDURANCE {"actions":3490,"advancing_swings":26,"failures":0,"idle_checks":39,"matches":17,"memory":201303502,"nodes":314,"phase_two_samples":1124,"pose_samples":10756,"seconds":1800.007,"training_samples":4021}
+ENDURANCE {"actions":3625,"advancing_swings":26,"failures":0,"idle_checks":41,"matches":17,"memory":201302482,"nodes":314,"phase_two_samples":1124,"pose_samples":11176,"seconds":1860.005,"training_samples":4231}
+ENDURANCE {"actions":3774,"advancing_swings":26,"failures":0,"idle_checks":42,"matches":18,"memory":201306270,"nodes":314,"phase_two_samples":1124,"pose_samples":11610,"seconds":1920.001,"training_samples":4448}
+ENDURANCE {"actions":3917,"advancing_swings":27,"failures":0,"idle_checks":43,"matches":18,"memory":201304038,"nodes":314,"phase_two_samples":1124,"pose_samples":12044,"seconds":1980.011,"training_samples":4665}
+ENDURANCE {"actions":4051,"advancing_swings":27,"failures":0,"idle_checks":45,"matches":19,"memory":201303666,"nodes":314,"phase_two_samples":1174,"pose_samples":12462,"seconds":2040.008,"training_samples":4742}
+ENDURANCE {"actions":4191,"advancing_swings":29,"failures":0,"idle_checks":46,"matches":19,"memory":201311910,"nodes":314,"phase_two_samples":1391,"pose_samples":12896,"seconds":2100.016,"training_samples":4742}
+ENDURANCE {"actions":4333,"advancing_swings":30,"failures":0,"idle_checks":47,"matches":20,"memory":201298934,"nodes":314,"phase_two_samples":1468,"pose_samples":13318,"seconds":2160.013,"training_samples":4876}
+ENDURANCE {"actions":4459,"advancing_swings":30,"failures":0,"idle_checks":49,"matches":20,"memory":201302286,"nodes":314,"phase_two_samples":1468,"pose_samples":13714,"seconds":2220.04,"training_samples":5074}
+ENDURANCE {"actions":4553,"advancing_swings":30,"failures":0,"idle_checks":50,"matches":21,"memory":201306118,"nodes":314,"phase_two_samples":1468,"pose_samples":13996,"seconds":2280.387,"training_samples":5215}
+ENDURANCE {"actions":4628,"advancing_swings":31,"failures":0,"idle_checks":51,"matches":21,"memory":201311002,"nodes":314,"phase_two_samples":1468,"pose_samples":14242,"seconds":2340.013,"training_samples":5338}
+ENDURANCE {"actions":4682,"advancing_swings":31,"failures":0,"idle_checks":53,"matches":22,"memory":201318130,"nodes":314,"phase_two_samples":1468,"pose_samples":14410,"seconds":2400.023,"training_samples":5422}
+ENDURANCE {"actions":4812,"advancing_swings":32,"failures":0,"idle_checks":54,"matches":22,"memory":201317454,"nodes":314,"phase_two_samples":1468,"pose_samples":14818,"seconds":2460.115,"training_samples":5626}
+ENDURANCE {"actions":4934,"advancing_swings":34,"failures":0,"idle_checks":55,"matches":23,"memory":201312286,"nodes":314,"phase_two_samples":1519,"pose_samples":15206,"seconds":2520.055,"training_samples":5689}
+ENDURANCE {"actions":5068,"advancing_swings":37,"failures":0,"idle_checks":57,"matches":23,"memory":201319942,"nodes":314,"phase_two_samples":1727,"pose_samples":15622,"seconds":2580.013,"training_samples":5689}
+ENDURANCE {"actions":5210,"advancing_swings":40,"failures":0,"idle_checks":58,"matches":25,"memory":201319594,"nodes":314,"phase_two_samples":1814,"pose_samples":16052,"seconds":2640.009,"training_samples":5817}
+ENDURANCE {"actions":5311,"advancing_swings":40,"failures":0,"idle_checks":59,"matches":25,"memory":201318242,"nodes":314,"phase_two_samples":1814,"pose_samples":16346,"seconds":2700.351,"training_samples":5964}
+ENDURANCE {"actions":5414,"advancing_swings":40,"failures":0,"idle_checks":61,"matches":26,"memory":201318714,"nodes":314,"phase_two_samples":1814,"pose_samples":16658,"seconds":2760.107,"training_samples":6120}
+ENDURANCE {"actions":5497,"advancing_swings":40,"failures":0,"idle_checks":62,"matches":26,"memory":201326022,"nodes":314,"phase_two_samples":1814,"pose_samples":16908,"seconds":2820.027,"training_samples":6245}
+ENDURANCE {"actions":5636,"advancing_swings":44,"failures":0,"idle_checks":63,"matches":27,"memory":201323614,"nodes":314,"phase_two_samples":1882,"pose_samples":17328,"seconds":2880.007,"training_samples":6332}
+ENDURANCE {"actions":5774,"advancing_swings":46,"failures":0,"idle_checks":65,"matches":27,"memory":201319546,"nodes":314,"phase_two_samples":2092,"pose_samples":17748,"seconds":2940.001,"training_samples":6332}
+ENDURANCE {"actions":5913,"advancing_swings":48,"failures":0,"idle_checks":66,"matches":28,"memory":201323874,"nodes":314,"phase_two_samples":2193,"pose_samples":18180,"seconds":3000.003,"training_samples":6447}
+ENDURANCE {"actions":6058,"advancing_swings":48,"failures":0,"idle_checks":67,"matches":28,"memory":201322558,"nodes":314,"phase_two_samples":2193,"pose_samples":18616,"seconds":3060.002,"training_samples":6665}
+ENDURANCE {"actions":6193,"advancing_swings":48,"failures":0,"idle_checks":69,"matches":29,"memory":201352602,"nodes":314,"phase_two_samples":2193,"pose_samples":19034,"seconds":3120.0,"training_samples":6874}
+ENDURANCE {"actions":6335,"advancing_swings":49,"failures":0,"idle_checks":70,"matches":29,"memory":201353838,"nodes":314,"phase_two_samples":2193,"pose_samples":19468,"seconds":3180.009,"training_samples":7091}
+ENDURANCE {"actions":6480,"advancing_swings":50,"failures":0,"idle_checks":71,"matches":30,"memory":201371746,"nodes":314,"phase_two_samples":2193,"pose_samples":19900,"seconds":3240.0,"training_samples":7307}
+ENDURANCE {"actions":6617,"advancing_swings":50,"failures":0,"idle_checks":73,"matches":30,"memory":201368802,"nodes":314,"phase_two_samples":2193,"pose_samples":20320,"seconds":3300.014,"training_samples":7517}
+ENDURANCE {"actions":6756,"advancing_swings":52,"failures":0,"idle_checks":74,"matches":31,"memory":201360394,"nodes":314,"phase_two_samples":2240,"pose_samples":20752,"seconds":3360.017,"training_samples":7618}
+ENDURANCE {"actions":6887,"advancing_swings":56,"failures":0,"idle_checks":75,"matches":31,"memory":201379158,"nodes":314,"phase_two_samples":2447,"pose_samples":21166,"seconds":3420.011,"training_samples":7618}
+ENDURANCE {"actions":7024,"advancing_swings":56,"failures":0,"idle_checks":77,"matches":32,"memory":201363546,"nodes":314,"phase_two_samples":2540,"pose_samples":21582,"seconds":3480.002,"training_samples":7733}
+ENDURANCE {"actions":7163,"advancing_swings":56,"failures":0,"idle_checks":78,"matches":33,"memory":201359142,"nodes":314,"phase_two_samples":2540,"pose_samples":22014,"seconds":3540.014,"training_samples":7949}
+ENDURANCE {"actions":7307,"advancing_swings":56,"failures":0,"idle_checks":79,"matches":33,"memory":201365058,"nodes":314,"phase_two_samples":2540,"pose_samples":22448,"seconds":3600.007,"training_samples":8166}
+RESULT: endurance complete seconds=3600.007 matches=33 actions=7307 failures=0
+EXIT requested: 0 mode=play
+Frame 0 - res://scripts/main.gd:190 in function 'finish'
+Frame 1 - res://tests/trial_endurance.gd:113 in function '_process'

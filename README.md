@@ -2,7 +2,7 @@
 
 Current source: **0.8.0-rc.1 — The Ashen Trial**. Offline single-player sword combat, built with Godot 4.7.2 / GDScript / Compatibility.
 
-Select **Play - The Ashen Trial** for a short passage with a reason to fight: Rayan returns to expose Avel's betrayal and preserve Mira and Isha's names, at the cost of remembering Isha's voice. Read the opening, face three gentle echoes that teach movement, defense and openings, then confront the Cinder Warden. Health and draughts refill between encounters; a loss retries the current one. **Warden duel - skip lessons** remains available.
+Select **Play - The Ashen Trial** for a short passage with a reason to fight: Rayan returns to expose Avel's betrayal and preserve Mira and Isha's names, but the gate takes the memory of Isha's voice. Read the opening, face three gentle echoes that teach movement, defense and openings, then confront the Cinder Warden. Health and draughts refill between encounters; a loss retries the current one. **Warden duel - skip lessons** remains available.
 
 The trial uses artist-made plate armor, retargeted authored motion, physical sword sweeps, simulated cloth, a ruined courtyard and adaptive orchestral score. The earlier six-chapter campaign remains in its archive with its existing visuals and saves.
 
