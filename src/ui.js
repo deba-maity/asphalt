@@ -655,6 +655,7 @@ export class UI {
   }
   result(data) {
     this.releaseDriving?.();
+    this.root.querySelector(".pause-overlay")?.remove();
     this.layer.innerHTML = `<section class="result screen"><p>OPERATION COMPLETE</p><h1>${esc(data.title)}</h1><div class="result-time">${time(data.time)}</div><span>${data.best ? `BEST ${time(data.best)} // ` : ""}${esc(data.mode).toUpperCase()}</span><div><button class="primary" data-action="rematch">RUN IT BACK <i>→</i></button><button data-action="home">MAIN MENU</button></div></section>`;
   }
   pause(paused) {

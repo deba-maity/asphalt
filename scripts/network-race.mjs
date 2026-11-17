@@ -56,8 +56,13 @@ try {
   for(const page of pages)await page.evaluate(()=>{
     const g=window.__nightshift.game;g.elapsed=180;g.time=180;g.lastNetwork=179.9;
   });
+  await guest.evaluate(()=>{
+    const g=window.__nightshift.game;if(!g.paused)g.togglePause();
+  });
+  assert(await guest.locator('.pause-overlay').isVisible(),'Guest is paused before the remote finish');
   await host.evaluate(()=>window.__nightshift.game.finish('FIRST PLACE'));
   await guest.waitForFunction(()=>window.__nightshift.game.phase==='finished');
+  assert.equal(await guest.locator('.pause-overlay').count(),0,'Remote result replaces the pause panel');
   await guest.locator('[data-action="rematch"]').click();
   assert(await guest.locator('.result').isVisible(),'Waiting guest retains the result and home button');
   await host.locator('[data-action="rematch"]').click();
@@ -69,5 +74,5 @@ try {
   await host.evaluate(()=>window.__nightshift.ui.exitToHome());
   await guest.waitForFunction(()=>window.__nightshift.network.host===window.__nightshift.network.id && window.__nightshift.game.remotes.size===0);
   assert.deepEqual(errors,[]);
-  console.log('NETWORK RACE PASS: two game clients, start, moving peers, finish, guest wait, rematch positions, host transfer and remote disposal');
+  console.log('NETWORK RACE PASS: two game clients, start, moving peers, finish while paused, guest wait, rematch positions, host transfer and remote disposal');
 } finally {await browser?.close();server.kill();}
