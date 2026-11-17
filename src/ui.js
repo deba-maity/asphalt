@@ -168,7 +168,10 @@ export class UI {
     if (action === "join") this.joinLobby();
     if (action === "lobby-start") this.start(true);
     if (action === "settings") this.showSettings();
-    if (action === "back") this.showHome();
+    if (action === "back") {
+      if (this.networked && this.network.id) this.showJoinedLobby();
+      else this.showHome();
+    }
     if (action === "rematch") {
       this.start();
     }
@@ -291,7 +294,7 @@ export class UI {
     this.shell(
       garage ? "GARAGE // FLEET" : "SELECT VEHICLE",
       vehicle.name,
-      `<div class="garage-modern"><div class="garage-hero"><div class="garage-hero-grid"></div><div class="preview-wrap premium-preview"><div id="vehicle-preview"></div><div class="preview-corner preview-corner-a">DRAG TO ROTATE</div><div class="preview-corner preview-corner-b">DESIGNED TO DRIVE</div><div class="vehicle-floor-lines"></div><div class="vehicle-type">${esc(vehicle.type).toUpperCase()}</div><div class="vehicle-hero-stamp"><small>RATING</small><b>${rating}</b><span>CLASS ${vehicle.kind === "heavy" ? "H" : vehicle.kind === "bike" ? "B" : "A"}</span></div></div></div><aside class="vehicle-info-modern"><div class="vehicle-id-row"><span>VEHICLE ${vehicles.indexOf(vehicle) + 1}/${vehicles.length}</span><b>${vehicle.kind === "heavy" ? "HEAVY" : vehicle.kind === "bike" ? "BIKE" : "CAR"}</b></div><h2>${esc(vehicle.name)}</h2><p class="vehicle-blurb">${esc(vehicle.type)} built for midnight routes. Tune the finish, then take the fastest line.</p><div class="stats stats-premium">${stat("MAX KM/H", maxSpeed, "cyan", vehicle.top)}${stat("ACCEL", vehicle.accel)}${stat("HANDLING", vehicle.handling)}${stat("BRAKING", vehicle.braking)}${stat("DURABILITY", vehicle.armor, "pink")}${stat("NITRO", vehicle.boost, "violet")}</div><div class="garage-control-row"><div><span>PAINT</span><div class="colors-premium">${palette}</div></div><button class="primary deploy-lg" data-action="${garage ? "map" : "start"}">${garage ? "RACE SETUP" : "DEPLOY"} <i>→</i></button></div></aside><div class="fleet-dock"><div class="fleet-head"><div><span>FLEET</span><p>Swipe, drag or use the wheel to browse.</p></div><div class="fleet-filters">${filters}</div></div><div class="vehicle-list-premium">${options}</div></div></div>`,
+      `<div class="garage-modern"><div class="garage-hero"><div class="garage-hero-grid"></div><div class="preview-wrap premium-preview"><div id="vehicle-preview"></div><div class="preview-corner preview-corner-a">DRAG TO ROTATE</div><div class="preview-corner preview-corner-b">DESIGNED TO DRIVE</div><div class="vehicle-floor-lines"></div><div class="vehicle-type">${esc(vehicle.type).toUpperCase()}</div><div class="vehicle-hero-stamp"><small>RATING</small><b>${rating}</b><span>CLASS ${vehicle.kind === "heavy" ? "H" : vehicle.kind === "bike" ? "B" : "A"}</span></div></div></div><aside class="vehicle-info-modern"><div class="vehicle-id-row"><span>VEHICLE ${vehicles.indexOf(vehicle) + 1}/${vehicles.length}</span><b>${vehicle.kind === "heavy" ? "HEAVY" : vehicle.kind === "bike" ? "BIKE" : "CAR"}</b></div><h2>${esc(vehicle.name)}</h2><p class="vehicle-blurb">${esc(vehicle.type)} built for midnight routes. Tune the finish, then take the fastest line.</p><div class="stats stats-premium">${stat("MAX KM/H", maxSpeed, "cyan", vehicle.top)}${stat("ACCEL", vehicle.accel)}${stat("HANDLING", vehicle.handling)}${stat("BRAKING", vehicle.braking)}${stat("DURABILITY", vehicle.armor, "pink")}${stat("NITRO", vehicle.boost, "violet")}</div><div class="garage-control-row"><div><span>PAINT</span><div class="colors-premium">${palette}</div></div><button class="primary deploy-lg" data-action="${garage ? (this.networked ? "back" : "map") : "start"}">${garage ? (this.networked ? "RETURN TO CREW" : "RACE SETUP") : "DEPLOY"} <i>→</i></button></div></aside><div class="fleet-dock"><div class="fleet-head"><div><span>FLEET</span><p>Swipe, drag or use the wheel to browse.</p></div><div class="fleet-filters">${filters}</div></div><div class="vehicle-list-premium">${options}</div></div></div>`,
     );
     requestAnimationFrame(() =>
       this.game.mountPreview(
@@ -308,7 +311,6 @@ export class UI {
       this.root.querySelector("#driver-name").value.trim() || "Driver";
     this.playerName = name;
     this.networked = true;
-    this.mode = modes[0];
     this.root.querySelector(".lobby-form")?.classList.add("loading");
     try {
       await this.network.connect({
@@ -330,7 +332,16 @@ export class UI {
       "LOCAL NETWORK // UP TO 4 DRIVERS",
       "Start a crew",
       `<div class="lobby-form"><label>DRIVER CALLSIGN<input id="driver-name" maxlength="14" value="${esc(this.playerName)}"></label><label>LOBBY CODE<input id="room-code" maxlength="8" value="NIGHT"></label><button class="primary" data-action="join">CONNECT <i>→</i></button><p>Share this code with drivers on the same network. The host machine runs the lobby server.</p></div>`,
+      false,
     );
+  }
+
+  crewSetup() {
+    if (this.network.host !== this.network.id)
+      return "<p>The host chooses the route and mode. You can change your vehicle while waiting.</p>";
+    const options=(items,selected,label)=>items.map(item=>
+      `<option value="${item.id}" ${item.id===selected?'selected':''}>${esc(item[label])}</option>`).join('');
+    return `<label>ROUTE<select id="lobby-map">${options(maps,this.map.id,'name')}</select></label><label>MODE<select id="lobby-mode">${options(modes,this.mode.id,'title')}</select></label>`;
   }
 
   showJoinedLobby() {
@@ -339,7 +350,8 @@ export class UI {
     this.shell(
       `LOBBY // ${this.network.room}`,
       "Crew assembled",
-      `<div class="lobby-view"><div id="player-slots">${this.playerSlots(players)}</div><div class="lobby-controls"><p>Connected drivers sync vehicle positions and race state over this local network. The first connected driver is the crew host.</p><button class="secondary" data-action="garage">CHANGE VEHICLE</button><button class="primary" data-action="lobby-start" ${this.network.host===this.network.id?'':'disabled'}>${this.network.host===this.network.id?'START LAN RACE':'WAITING FOR HOST'} <i>→</i></button></div></div>`,
+      `<div class="lobby-view"><div id="player-slots">${this.playerSlots(players)}</div><div class="lobby-controls"><p>Connected drivers sync vehicle positions and race state over this local network. The first connected driver is the crew host.</p><div id="crew-setup" class="settings" data-host="${esc(this.network.host||'')}">${this.crewSetup()}</div><button class="secondary" data-action="garage">CHANGE VEHICLE</button><button class="primary" data-action="lobby-start" ${this.network.host===this.network.id?'':'disabled'}>${this.network.host===this.network.id?'START LAN RACE':'WAITING FOR HOST'} <i>→</i></button></div></div>`,
+      false,
     );
     this.network.on = (msg) => {
       if (msg.type === "players") {
@@ -348,6 +360,10 @@ export class UI {
         if (slots) slots.innerHTML = this.playerSlots(msg.players);
         const start=this.root.querySelector('[data-action="lobby-start"]');
         if(start) { start.disabled=this.network.host!==this.network.id; start.textContent=start.disabled?'WAITING FOR HOST':'START LAN RACE →'; }
+        const setup=this.root.querySelector('#crew-setup');
+        if(setup && setup.dataset.host!==this.network.host) {
+          setup.innerHTML=this.crewSetup();setup.dataset.host=this.network.host;
+        }
         if(this.game.running) this.game.setRemotePlayers(msg.players);
       }
       if (msg.type === "position") this.game.remotePosition(msg.id, msg.data);
@@ -461,6 +477,10 @@ export class UI {
 
   bindDriving() {
     this.root.addEventListener("change", (e) => {
+      if (this.network.host===this.network.id) {
+        if(e.target.id==='lobby-map') this.map=maps.find(m=>m.id===e.target.value)||this.map;
+        if(e.target.id==='lobby-mode') this.mode=modes.find(m=>m.id===e.target.value)||this.mode;
+      }
       if (e.target.id === "quality-mode") {
         this.game.applyQuality(e.target.value);
         this.toast("Performance setting saved");

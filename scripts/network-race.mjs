@@ -32,8 +32,24 @@ try {
   const [host,guest]=pages;
   await host.waitForFunction(()=>window.__nightshift.network.players.length===2);
   assert(await guest.locator('[data-action="lobby-start"]').isDisabled(),'Only the host starts');
+  await host.locator('#lobby-map').selectOption('coast');
+  await host.locator('#lobby-mode').selectOption('sprint');
+  assert.equal(await guest.locator('#lobby-map').count(),0,'Only the host configures the race');
+  await guest.locator('[data-action="garage"]').click();
+  await guest.locator('[data-action="choose-vehicle"]').nth(1).click();
+  await guest.getByRole('button',{name:/RETURN TO CREW/}).click();
+  await guest.locator('#player-slots').waitFor();
+  assert.equal(await guest.evaluate(()=>window.__nightshift.network.players.length),2,'Garage return preserves the crew');
+  assert.equal(await host.locator('#lobby-map').inputValue(),'coast');
+  assert.equal(await host.locator('#lobby-mode').inputValue(),'sprint');
+  await host.setViewportSize({width:390,height:844});
+  assert(await host.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Crew setup fits a portrait phone viewport');
+  await host.setViewportSize({width:960,height:600});
   await host.locator('[data-action="lobby-start"]').click();
   for(const page of pages)await page.waitForFunction(()=>window.__nightshift.game.running);
+  for(const page of pages)assert(await page.evaluate(()=>{
+    const c=window.__nightshift.game.config;return c.map.id==='coast'&&c.mode.id==='sprint';
+  }),'Crew uses the host-selected map and mode');
   const ids=await Promise.all(pages.map(p=>p.evaluate(()=>window.__nightshift.network.id)));
   async function stepPeers(){
     for(let tick=0;tick<8;tick++){
@@ -73,6 +89,13 @@ try {
   }
   await host.evaluate(()=>window.__nightshift.ui.exitToHome());
   await guest.waitForFunction(()=>window.__nightshift.network.host===window.__nightshift.network.id && window.__nightshift.game.remotes.size===0);
+  await guest.evaluate(()=>{
+    const {game:g,ui}=window.__nightshift;g.stop();ui.showJoinedLobby();
+  });
+  assert.equal(await guest.locator('#lobby-map').count(),1,'The new host receives setup controls');
+  await guest.locator('.back').click();
+  assert(await guest.getByRole('button',{name:'HIT THE STREETS'}).isVisible(),'Lobby back returns home');
+  assert(await guest.evaluate(()=>!window.__nightshift.network.ws && !window.__nightshift.ui.networked),'Leaving the lobby disconnects');
   assert.deepEqual(errors,[]);
-  console.log('NETWORK RACE PASS: two game clients, start, moving peers, finish while paused, guest wait, rematch positions, host transfer and remote disposal');
+  console.log('NETWORK RACE PASS: host route/mode, garage return, two game clients, moving peers, finish while paused, guest wait, rematch positions, host transfer and remote disposal');
 } finally {await browser?.close();server.kill();}
