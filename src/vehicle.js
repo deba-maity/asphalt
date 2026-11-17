@@ -652,7 +652,7 @@ function buildBike(root, spec, paint, data, police) {
   const fork=new THREE.Group();fork.position.set(0,radius,frontZ);root.add(fork);
   const gripHeight=long?1.32:1.24;
   for(const side of [-1,1]) {
-    const bottom=new THREE.Vector3(side*.17,0,0),top=new THREE.Vector3(side*.17,gripHeight-radius-.16,.40);
+    const bottom=new THREE.Vector3(side*.17,0,0),top=new THREE.Vector3(side*.17,gripHeight-radius-.03,.56);
     const beam=part(fork,geo.tire,shared.chrome,[0,0,0],[.043,bottom.distanceTo(top),.043]);
     beam.position.copy(bottom).lerp(top,.5);beam.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),top.clone().sub(bottom).normalize());
     part(fork,geo.sphere,shared.rubber,[side*.46,gripHeight-radius,.58],[.13,.045,.05]);
@@ -665,8 +665,13 @@ function buildBike(root, spec, paint, data, police) {
 
   const rearMat = lightMaterial(0xff233c);
   const headMat = lightMaterial(0xe4fbff);
-  part(frame, geo.box, headMat, [0, 0.66, frontZ - 0.14], [0.36, 0.1, 0.06]);
-  part(frame, geo.box, rearMat, [0, 0.42, rearZ + 0.38], [0.42, 0.09, 0.06]);
+  // Lamp lenses sit in housings attached to the fork and tail, not in space
+  // ahead of the front wheel or above the rear fender.
+  const lampY=gripHeight-radius-.20;
+  part(fork, geo.box, shared.lampHousing, [0, lampY, .32], [.40, .17, .22]);
+  part(fork, geo.box, headMat, [0, lampY, .195], [.32, .095, .035]);
+  part(frame, geo.box, shared.lampHousing, [0, .24, rearZ + .16], [.45, .13, .18]);
+  part(frame, geo.box, rearMat, [0, .24, rearZ + .26], [.36, .075, .035]);
   data.headLights.push(headMat);
   data.brakeLights.push(rearMat);
 
