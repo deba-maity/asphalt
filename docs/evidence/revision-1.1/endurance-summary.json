@@ -1,0 +1,70 @@
+{
+  "result": "passed",
+  "elapsed_seconds": 3600.459,
+  "start_utc": "2026-11-17T15:09:56.444Z",
+  "end_utc": "2026-11-17T16:09:56.903Z",
+  "final": {
+    "matches": 37,
+    "steps": 212730,
+    "simulation_seconds": 3545.5,
+    "checkpoint_renders": 61,
+    "pause_checks": 79,
+    "models": [
+      "Apex GT",
+      "Vector R",
+      "Monarch LX",
+      "Vanta RS",
+      "Kestrel Turbo",
+      "Eclipse V8",
+      "Cinder XR",
+      "Solace 720",
+      "Riot Coupe",
+      "Nova Sprint",
+      "Volt Arrow",
+      "Rogue 900",
+      "Kite RR",
+      "Phantom 8",
+      "Viper Neo",
+      "Eon Tracker",
+      "Strix 1000",
+      "Luma R",
+      "Sable 650",
+      "Orion X",
+      "Bastion Interceptor",
+      "Titan Hauler",
+      "Wardog 4x4",
+      "Gravel King",
+      "Mammoth R",
+      "Crusher X"
+    ],
+    "maps": [
+      "neon",
+      "coast",
+      "dock",
+      "mesa"
+    ],
+    "modes": [
+      "race",
+      "time",
+      "escape",
+      "sprint",
+      "cruise"
+    ],
+    "geometries": 184,
+    "textures": 15,
+    "programs": 18,
+    "calls": 254,
+    "triangles": 35226,
+    "actors": 1,
+    "projectiles": 0
+  },
+  "checkpoint_peaks": {
+    "geometries": 215,
+    "textures": 15,
+    "programs": 20,
+    "actors": 6,
+    "projectiles": 0
+  },
+  "runtime_sha256": "3106ca95512d9d9b717b07bb17929ab11612275b8bf402f11e4e032b02e54ba2",
+  "scope": "Frozen source; explicitly stepped headless simulation; software graphics at checkpoints; not native GPU/FPS/temperature or subjective play testing"
+}

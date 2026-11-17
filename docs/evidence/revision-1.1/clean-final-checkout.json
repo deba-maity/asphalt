@@ -1,0 +1,25 @@
+{
+  "source_commit": "0691fddb17e8c7f45a199ef79df0e2a75f8b5b5b",
+  "recorded_utc": "2026-11-17T16:00:50.637506+00:00",
+  "checks": [
+    {
+      "check": "unit",
+      "exit_code": 0
+    },
+    {
+      "check": "network-race",
+      "exit_code": 0
+    },
+    {
+      "check": "build",
+      "exit_code": 0
+    },
+    {
+      "check": "production",
+      "exit_code": 0
+    }
+  ],
+  "scope": "Clean detached Windows checkout; targeted regressions for final UI/server changes; headless software rendering only",
+  "normalized_runtime_match": true,
+  "normalization": "CRLF to LF for JS/JSON/CSS/HTML/TXT only; all other assets byte-identical"
+}

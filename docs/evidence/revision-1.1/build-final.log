@@ -10,10 +10,10 @@ computing gzip size...
 dist/index.html                    0.95 kB │ gzip:   0.53 kB
 dist/assets/index-PS_K0A46.css    60.09 kB │ gzip:  14.35 kB
 dist/assets/network-AnadPOXP.js    1.49 kB │ gzip:   0.72 kB
-dist/assets/index-CNpEI_ql.js      3.42 kB │ gzip:   1.72 kB
+dist/assets/index-CiiG_1c2.js      3.42 kB │ gzip:   1.72 kB
 dist/assets/touring-DTkbo6db.js    3.44 kB │ gzip:   1.67 kB
 dist/assets/data-xzjaVHWI.js       8.01 kB │ gzip:   3.35 kB
-dist/assets/ui-sgGOYzJh.js        26.35 kB │ gzip:   9.53 kB
+dist/assets/ui-tVLS1y_s.js        27.38 kB │ gzip:   9.80 kB
 dist/assets/game-pdAhF6M3.js     115.89 kB │ gzip:  37.60 kB
 dist/assets/three-NmSIlbtb.js    579.25 kB │ gzip: 148.39 kB
 
@@ -21,4 +21,4 @@ dist/assets/three-NmSIlbtb.js    579.25 kB │ gzip: 148.39 kB
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 1.67s
+✓ built in 1.61s

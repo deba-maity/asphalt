@@ -1,0 +1,32 @@
+✔ 30, 60, 90, 120 and 144 Hz presentation replay identical physics (13.9803ms)
+✔ long stalls have a finite catch-up budget and report discarded time (0.4954ms)
+✔ all fleet variants remain finite and within their speed/boost envelopes (49.0429ms)
+✔ drift creates slip, then recovers smoothly when the handbrake releases (1.9276ms)
+✔ braking reduces travel momentum and reverse speed is limited (3.9507ms)
+✔ camera and suspension springs have frame-independent step response (0.5852ms)
+✔ absolute pixel budgets hold at laptop, retina, 4K and 8K sizes (0.2706ms)
+✔ traffic carries distance across a segment without snapping backwards (0.3623ms)
+✔ lane position and yaw remain continuous at sampled road joints (0.2737ms)
+✔ remote yaw uses the short arc at the -pi/pi seam (0.2648ms)
+✔ collision removes inward momentum and preserves motion along a barrier (0.3444ms)
+✔ continuous particle bursts reuse storage and fully expire after emission stops (59.7152ms)
+✔ tire marks are bounded, fade away, and never bridge a recovery teleport (66.7392ms)
+✔ positions accept finite bounded values and sanitize style/identity fields (1.2815ms)
+✔ malformed, scalar and binary packets do not crash the lobby (37.7552ms)
+✔ host controls start; position identity and result sender cannot be forged (120.2638ms)
+✔ full lobbies return an error; departing host transfers ownership and rooms are released (139.3549ms)
+✔ oversized packets and floods are closed within fixed resource limits (12.9866ms)
+✔ browser connections from unrelated origins are rejected (5.0243ms)
+✔ LAN development server denies local profiles and artifacts without blocking the game (763.3332ms)
+✔ blocked or full browser storage preserves usable settings in memory (1.1261ms)
+✔ lobby names and vehicle labels escape markup; color cannot inject style attributes (0.4551ms)
+✔ failed replacement and deletion take priority over stale stored values (0.325ms)
+✔ a guest rematch keeps the result visible while waiting for the host (0.3175ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 879.193

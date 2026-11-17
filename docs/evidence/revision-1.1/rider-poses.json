@@ -1,0 +1,50 @@
+{
+  "source_commit": "e18e66a67ab04cbd098dd8ada9cbff880061ff88",
+  "scope": "Isolated static software-rendered poses, not gameplay or native GPU performance",
+  "viewport": [
+    1600,
+    1080
+  ],
+  "vehicle_indices": [
+    10,
+    12,
+    13
+  ],
+  "vehicle_names": [
+    "Volt Arrow",
+    "Kite RR",
+    "Phantom 8"
+  ],
+  "poses": [
+    {
+      "steering": -0.8,
+      "speed": 38
+    },
+    {
+      "steering": 0.8,
+      "speed": 38
+    },
+    {
+      "steering": 0,
+      "speed": 24,
+      "braking": true
+    },
+    {
+      "steering": 0,
+      "speed": 45,
+      "boost": true
+    }
+  ],
+  "steps_per_pose": 180,
+  "step_seconds": 0.016666666666666666,
+  "camera_position": [
+    4,
+    2.4,
+    -5.8
+  ],
+  "camera_target": [
+    0,
+    0.95,
+    0
+  ]
+}

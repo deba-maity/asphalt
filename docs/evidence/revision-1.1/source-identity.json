@@ -1,6 +1,6 @@
 {
-  "source_commit": "e18e66a67ab04cbd098dd8ada9cbff880061ff88",
-  "runtime_sha256": "db38787f322b8aa139c1cff30feb6e3876591fc1b8bed81d182f97c33dd859d3",
+  "source_commit": "0691fddb17e8c7f45a199ef79df0e2a75f8b5b5b",
+  "runtime_sha256": "89b287c8dd751bf9c4f306196c67ca4dbc34f612e1358a241ded648545d504c4",
   "runtime_file_hashes": {
     "index.html": "88842052b2b6d5131d00fd05f51590cbab9662a2cf927eb3172025c8fc0beb26",
     "package-lock.json": "f3cafbdd5662c72710f9c9add932a7fc798cef12355d00266bf62bb4a06f9543",
@@ -12,7 +12,7 @@
     "public/assets/touring/touring.glb": "800eb9957ed786ffa402fbeae61f32ad027798bc593645a03aa812d038915090",
     "public/credits.html": "482daeb572b7000ab409a13957bea12b8cb86b9b54f59bd227dc870d51c20ef6",
     "public/favicon.svg": "055812a8156e6394c4a63364f856c4f1509d7a430b3d3746e4af339c4e2cb1cb",
-    "server.js": "56452a6037f8cf2da1272d3e96b918620c8c82f8a7676244683d9c4663f3ebaf",
+    "server.js": "6cce101fc243dcb44622f6cea1dc8654976694e42dc4aced091d2643dc9f581b",
     "server/lobby.js": "45d2683856861d06055668f4126ec46a0651767ea7afb5e59dc554c7da8e4fe8",
     "src/assets": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "src/audio.js": "149cfc8ae102ffa8d173cd3e49be8e04ab26ac12902cd390cf2076c490d8d9b2",
@@ -30,16 +30,17 @@
     "src/styles.css": "e0032023a4d718e5bdada2d9076ca806d446daa3b32ccb96a347510c4f3ec44f",
     "src/timing.js": "71b1945c49b4a884a932ca9d522becf83f0a0313bd67043b476d51a71313517b",
     "src/touring.js": "373f2c406ad85a0f2ebb5f4c8ad4db9c9d24d8030ece3cca3dcad23e0edd44f8",
-    "src/ui.js": "3c2faba50ae7d470ab356144779ab356b58a92e5f45c6b2b8c7cebc45e81c594",
+    "src/ui.js": "dbe5e42c5de8df4710edc63105ea460ac4082491d6fa60ed706c4869103fd2a8",
     "src/vehicle.js": "f17fdc3fdc7fa0ebe70a5c46d34aa20c5ac1d1f4ba4f6645a120cffc06e2dd21",
     "src/world.js": "4228d31ef6442a625e44f96da3cbd5cb110bab7fd1480132d0ddc74c6402b159",
     "vite.config.js": "fa71fb58eac1948ab2bb8d9b18b1c663ed0316953158e743b1db741417640e0d"
   },
-  "recorded_utc": "2026-11-17T15:26:18.133047+00:00",
+  "recorded_utc": "2026-11-17T15:58:08.453180+00:00",
   "scope": "Raw working-copy hashes of frozen runtime/assets; text line endings may differ in other checkouts",
   "endurance_base_commit": "1a1b231eab5a4bbecea8528f483f1affa8e81a78",
   "endurance_runtime_sha256": "3106ca95512d9d9b717b07bb17929ab11612275b8bf402f11e4e032b02e54ba2",
   "changes_after_endurance_freeze": {
-    "src/ui.js": "Result screen removes a lingering pause overlay; verified with two real browser game clients finishing/rematching while paused"
+    "src/ui.js": "Remove pause overlay on a peer finish; host route/mode selection, crew garage return, host transfer setup and lobby exit; tested with two actual browser game clients",
+    "server.js": "Deny local artifacts and browser profile files over HTTP while preserving runtime asset and source access; 24-test suite includes direct and /@fs/ URL regression"
   }
 }
