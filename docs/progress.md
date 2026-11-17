@@ -1,3 +1,9 @@
+# Current revision: 0.6.0-rc.1
+
+The focused duel now has inertial transitions, render interpolation, authored turning, physical blade sweeps, bounded cloth, revised camera/HUD and a scan-textured courtyard with spatial foley and an adaptive score. See [implementation and evidence](motion-amplification.md). The Remote Desktop game restriction remains respected; rendered acceptance and AAA quality remain unmet.
+
+## Historical 0.5.0 revision
+
 # Current revision: 0.5.0-rc.1
 
 Scope shifted to the Ashen Trial: a focused duel with skinned characters, authored/retargeted motion and collision-aware root movement. The story campaign remains separately selectable and save-safe. See [current implementation and evidence](ashen-trial.md). Older records below are historical and do not establish AAA visual acceptance.

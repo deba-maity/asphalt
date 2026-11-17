@@ -169,7 +169,7 @@
       "creation_method": "CC0 artist-authored characters and animation, compiled and retargeted by tools/compile_performance_assets.py and tests/bake_performance.gd. Not motion capture.",
       "author": "Quaternius; Gonzalo Furnier (animation)",
       "license": "CC0-1.0",
-      "modifications": "Ranger outfits combined with base heads, palette shader, skeleton retargeting, curated clips and root curves. See performance/provenance.json for pinned source hashes.",
+      "modifications": "Ranger outfits combined with base heads, palette shader, skeleton retargeting, curated clips and root curves. See performance/provenance.json for pinned source hashes. Contact-phase bake and root-yaw curves; high-quality compressed texture imports up to 2048 pixels.",
       "runtime_files": [
         "performance/clip_inventory.json",
         "performance/LICENSE-CC0.txt",
@@ -199,7 +199,8 @@
         "performance/textures/dd64da2af3180f0c8f0b.png",
         "performance/textures/df680cbc1967a61e8599.png",
         "performance/textures/e1051d3d56df9cf061bc.png",
-        "performance/textures/f9f4f2fb3eeeefb0b6f0.png"
+        "performance/textures/f9f4f2fb3eeeefb0b6f0.png",
+        "performance/gait_phases.json"
       ],
       "attribution_requirements": "CC0 has no attribution condition. Credit and source notices are voluntarily retained."
     },
@@ -208,16 +209,99 @@
       "source_url": null,
       "author": "ASHEN VOW contributors",
       "license": "MIT",
-      "creation_method": "Original animation integration, root-motion controller, analytic foot correction and runtime palette shader",
+      "creation_method": "Original inertial pose transitions, render interpolation, phase-aligned locomotion, authored turning, bounded foot correction, cloth simulation, physical sword sweeps, camera, effects and audio integration",
       "modifications": "Original code integrating separately licensed CC0 art/motion",
       "runtime_files": [
         "performance/cloth.gdshader",
         "../scripts/performance_figure.gd",
         "../scripts/performance_motion.gd",
         "../scripts/performance_feet.gd",
-        "../scripts/trial_world.gd"
+        "../scripts/trial_world.gd",
+        "../scripts/pose_transition.gd",
+        "../scripts/pose_interpolator.gd",
+        "../scripts/performance_turn.gd",
+        "../scripts/performance_balance.gd",
+        "../scripts/performance_cape.gd",
+        "../scripts/weapon_sweep.gd",
+        "../scripts/combat_effects.gd",
+        "../scripts/trial_camera.gd",
+        "../scripts/court_art.gd",
+        "../scripts/trial_audio.gd",
+        "../scripts/trial_score.gd"
       ],
       "attribution_requirements": "Retain root MIT notice"
+    },
+    {
+      "id": "asset_trial_court",
+      "source_url": "https://polyhaven.com",
+      "creation_method": "CC0 downloaded models, PBR maps and panorama; original courtyard composition and beveled architecture",
+      "author": "Andreas Mischok; Kless Gyzen; Rico Cilliers; Rob Tuytel; Tina",
+      "license": "CC0-1.0",
+      "modifications": "Source geometry/pixels unchanged; mesh selection, transforms, material assignment and compressed imports. See court/provenance.json.",
+      "runtime_files": [
+        "court/rock_moss_set_01/rock_moss_set_01.gltf",
+        "court/rock_moss_set_01/textures/rock_moss_set_01_nor_gl_1k.jpg",
+        "court/rock_moss_set_01/rock_moss_set_01.bin",
+        "court/rock_moss_set_01/textures/rock_moss_set_01_rough_1k.jpg",
+        "court/rock_moss_set_01/textures/rock_moss_set_01_diff_1k.jpg",
+        "court/large_castle_door/large_castle_door.gltf",
+        "court/large_castle_door/large_castle_door.bin",
+        "court/large_castle_door/textures/large_castle_door_nor_gl_1k.jpg",
+        "court/large_castle_door/textures/large_castle_door_arm_1k.jpg",
+        "court/large_castle_door/textures/large_castle_door_diff_1k.jpg",
+        "court/cobblestone_floor_08/Diffuse.jpg",
+        "court/cobblestone_floor_08/nor_gl.jpg",
+        "court/cobblestone_floor_08/arm.jpg",
+        "court/castle_brick_07/Diffuse.jpg",
+        "court/castle_brick_07/nor_gl.jpg",
+        "court/castle_brick_07/arm.jpg",
+        "court/forest_ground_04/Diffuse.jpg",
+        "court/forest_ground_04/nor_gl.jpg",
+        "court/forest_ground_04/arm.jpg",
+        "court/sunset_forest.hdr"
+      ],
+      "attribution_requirements": "No CC0 attribution condition; voluntary credits and full dedication accompany the executable."
+    },
+    {
+      "id": "asset_trial_foley",
+      "source_url": "https://kenney.nl/assets/impact-sounds",
+      "creation_method": "Selected CC0 RPG Audio and Impact Sounds recordings",
+      "author": "Kenney Vleugels / Kenney.nl",
+      "license": "CC0-1.0",
+      "modifications": "Original files retained; spatial playback, round-robin variation, pitch, gain and room reverb applied at runtime.",
+      "runtime_files": [
+        "trial_audio/knifeSlice.ogg",
+        "trial_audio/knifeSlice2.ogg",
+        "trial_audio/cloth1.ogg",
+        "trial_audio/cloth2.ogg",
+        "trial_audio/cloth3.ogg",
+        "trial_audio/drawKnife1.ogg",
+        "trial_audio/footstep_concrete_000.ogg",
+        "trial_audio/footstep_concrete_001.ogg",
+        "trial_audio/footstep_concrete_002.ogg",
+        "trial_audio/impactPunch_heavy_000.ogg",
+        "trial_audio/impactPunch_heavy_001.ogg",
+        "trial_audio/impactPunch_heavy_002.ogg",
+        "trial_audio/impactMetal_medium_000.ogg",
+        "trial_audio/impactMetal_medium_001.ogg",
+        "trial_audio/impactMetal_medium_002.ogg",
+        "trial_audio/impactMetal_heavy_000.ogg",
+        "trial_audio/impactSoft_heavy_000.ogg"
+      ],
+      "attribution_requirements": "No CC0 attribution condition; publisher notices voluntarily retained."
+    },
+    {
+      "id": "asset_trial_score",
+      "source_url": "https://github.com/sgossner/VSCO-2-CE",
+      "creation_method": "Original 16-bar composition rendered offline from pinned CC0 orchestral samples by tools/author_trial_score.py",
+      "author": "ASHEN VOW contributors (composition); Versilian Studios / Sam Gossner; Ivy Audio / Simon Dalzell; Elan Hickler / Soundemote (sample cutting)",
+      "license": "MIT composition and code; CC0-1.0 source recordings",
+      "modifications": "Pitch, amplitude envelopes, sequencing, stereo balance and circular convolution; two sample-aligned 48-second PCM stems. See trial_audio/score_sources.json.",
+      "runtime_files": [
+        "trial_audio/score_base.wav",
+        "trial_audio/score_intensity.wav"
+      ],
+      "attribution_requirements": "Retain MIT notice; CC0 recording credits voluntarily retained."
     }
   ]
 }

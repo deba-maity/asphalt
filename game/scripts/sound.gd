@@ -13,6 +13,7 @@ var silence: bool=false
 var current_ambience: String=""
 var clock: float=0
 var music_starts: int=0
+var trial_score: bool=false
 
 func _ready() -> void:
 	process_mode=Node.PROCESS_MODE_PAUSABLE
@@ -51,9 +52,10 @@ func update_volumes() -> void:
 	for pair in [["Master",Preferences.volume],["Music",Preferences.music_volume],["Effects",Preferences.effects_volume],["Ambient",Preferences.ambient_volume]]:
 		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(pair[0]),linear_to_db(maxf(.00001,float(pair[1]))))
 
-func context(zone: String, in_combat: bool, quiet: bool=false) -> void:
+func context(zone: String, in_combat: bool, quiet: bool=false, use_trial_score: bool=false) -> void:
 	combat=in_combat
 	silence=quiet
+	trial_score=use_trial_score
 	var next="amb_ashes" if zone=="zone_counting_shore" else ("amb_river" if zone=="zone_sere_mill" else "amb_wind")
 	if next!=current_ambience:
 		current_ambience=next
@@ -70,8 +72,8 @@ func _process(delta: float) -> void:
 	clock+=delta
 	music_blend=move_toward(music_blend,1.0 if combat else 0.0,delta*.45)
 	if tracks.size()==2:
-		tracks[0].volume_db=linear_to_db(maxf(.00001,(1-music_blend)*(.0 if silence else .24)))
-		tracks[1].volume_db=linear_to_db(maxf(.00001,music_blend*(.0 if silence else .23)))
+		tracks[0].volume_db=linear_to_db(maxf(.00001,(1-music_blend)*(.0 if silence or trial_score else .24)))
+		tracks[1].volume_db=linear_to_db(maxf(.00001,music_blend*(.0 if silence or trial_score else .23)))
 	if ambience!=null: ambience.volume_db=-40 if silence else -16
 
 func play(id: String) -> void:

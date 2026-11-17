@@ -17,8 +17,9 @@ var difficulty: String="standard"
 var subtitle_size: int=23
 var camera_shake: bool=false
 var reduced_effects: bool=false
-var fps_cap: int=30
+var fps_cap: int=60
 var render_height: int=720
+var antialiasing: int=2
 var fullscreen: bool=false
 var window_height: int=720
 var bindings: Dictionary={}
@@ -141,10 +142,12 @@ func load_settings(path: String="") -> bool:
 	if subtitle_size not in [23,27,31]: subtitle_size=23
 	camera_shake=bool(c.get_value("access","camera_shake",false))
 	reduced_effects=bool(c.get_value("access","reduced_effects",false))
-	fps_cap=int(c.get_value("video","fps_cap",30))
-	if fps_cap not in [30,60]: fps_cap=30
+	fps_cap=int(c.get_value("video","fps_cap",60))
+	if fps_cap not in [30,60,90,120]: fps_cap=60
 	render_height=int(c.get_value("video","render_height",720))
-	if render_height not in [540,720,900]: render_height=720
+	if render_height not in [540,720,900,1080]: render_height=720
+	antialiasing=int(c.get_value("video","antialiasing",2))
+	if antialiasing not in [0,2,4]: antialiasing=2
 	window_height=int(c.get_value("video","window_height",720))
 	if window_height not in [720,900,1080]: window_height=720
 	fullscreen=bool(c.get_value("video","fullscreen",false))
@@ -165,6 +168,7 @@ func load_settings(path: String="") -> bool:
 func apply() -> void:
 	Engine.max_fps=fps_cap
 	var root=get_tree().root
+	root.msaa_3d={0:Viewport.MSAA_DISABLED,2:Viewport.MSAA_2X,4:Viewport.MSAA_4X}[antialiasing]
 	root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	root.content_scale_size=Vector2i(1280,720)
 	root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_KEEP
@@ -186,7 +190,7 @@ func save(path: String="") -> bool:
 	var c=ConfigFile.new()
 	for key in ["sensitivity","invert"]: c.set_value("input",key,get(key))
 	for key in ["volume","music_volume","effects_volume","ambient_volume"]: c.set_value("audio",key,get(key))
-	for key in ["shadows","fps_cap","render_height","window_height","fullscreen"]: c.set_value("video",key,get(key))
+	for key in ["shadows","fps_cap","render_height","window_height","fullscreen","antialiasing"]: c.set_value("video",key,get(key))
 	for key in ["difficulty","subtitle_size","camera_shake","reduced_effects"]: c.set_value("access",key,get(key))
 	for key in ["low_memory","speculative_mb"]: c.set_value("streaming",key,get(key))
 	for key in bindings: c.set_value("bindings",key,bindings[key])

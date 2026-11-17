@@ -1,0 +1,11 @@
+{
+  "baseline_commit": "f8291133361260b1c196d6fa3fdeb67d56124611",
+  "fixture": "tools/qa/measure_gait.gd",
+  "fixture_sha256": "e48c3984aebec95741ad340c13b8e05d2cff2ce7dd05309dd7f9445286fe5180",
+  "metric": "Horizontal toe speed when current and previous toe heights are below 0.07 m. Includes low swing motion; not pure planted-foot slip.",
+  "limits": [
+    "Strafing/backward travel speeds differ between revisions.",
+    "No GPU or FPS measurement.",
+    "Same input fixture and actual physics rates used."
+  ]
+}

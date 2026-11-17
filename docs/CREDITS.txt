@@ -22,4 +22,20 @@ Sources: https://quaternius.com and game/assets/performance/provenance.json.
 Selected assets are modified, combined and retargeted for this game.
 See PERFORMANCE_ASSET_LICENSE.txt. No franchise assets or paid assets used.
 
+Ashen Trial courtyard art: Poly Haven, CC0 1.0.
+Kless Gyzen (mossy rocks), Tina (castle door), Rob Tuytel (stone/ground),
+Rico Cilliers (ground adjustment), Andreas Mischok (forest panorama).
+See COURT_ASSET_LICENSE.txt and game/assets/court/provenance.json.
+
+Ashen Trial foley: Kenney Vleugels / Kenney.nl, CC0 1.0.
+RPG Audio and Impact Sounds; selected recordings retained unchanged.
+Original trial score: ASHEN VOW contributors, using CC0 VSCO 2 CE recordings.
+Recordings: Versilian Studios / Sam Gossner; Ivy Audio / Simon Dalzell.
+Sample cutting: Elan Hickler / Soundemote.
+See TRIAL_AUDIO_LICENSE.txt and game/assets/trial_audio/ for provenance.
+
+Optional offline authoring/review: NumPy (BSD-3-Clause), SoundFile (BSD-3-Clause),
+libsndfile (LGPL-2.1-or-later), Three.js (MIT), Playwright (Apache-2.0).
+These development tools are not distributed in the game executable.
+
 ASHEN VOW is a working title, not a claim of trademark clearance.

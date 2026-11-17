@@ -38,6 +38,8 @@ var rebind_back: String=""
 var rebind_status: Label
 var threat_text: Label
 var help_caption: Label
+var player_panel: PanelContainer
+var objective_panel: PanelContainer
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -120,7 +122,8 @@ func build_hud() -> void:
 	hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hud)
-	var left = column(panel(hud,Vector2(28,26),Vector2(295,143)))
+	player_panel=panel(hud,Vector2(28,26),Vector2(295,143))
+	var left = column(player_panel)
 	text(left,"R A Y A N   /   WAYFARER",18,GOLD)
 	health = ProgressBar.new()
 	health.custom_minimum_size = Vector2(258,13)
@@ -135,7 +138,8 @@ func build_hud() -> void:
 	stamina.add_theme_stylebox_override("background",bar_style(Color("353b3a")))
 	left.add_child(stamina)
 	status = text(left,"",16)
-	var right = column(panel(hud,Vector2(883,26),Vector2(369,145)))
+	objective_panel=panel(hud,Vector2(883,26),Vector2(369,145))
+	var right = column(objective_panel)
 	chapter_label = text(right,"01   /   BREAD AND STEEL",17,GOLD)
 	objective_text = text(right,"",18)
 	objective_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -165,6 +169,16 @@ func build_hud() -> void:
 	lock_label = text(hud,"◇",34,GOLD)
 	lock_label.visible = false
 	hud.visible = false
+
+func trial_layout(enabled: bool) -> void:
+	objective_panel.visible=not enabled
+	player_panel.add_theme_stylebox_override("panel",style(Color(.035,.045,.05,.35),Color.TRANSPARENT) if enabled else style(Color(.055,.08,.10,.94),Color(.75,.64,.42,.35)))
+	toast_label.position=Vector2(265,520) if enabled else Vector2(265,594)
+	tutorial.visible=true; tutorial.modulate.a=1
+	tutorial.position=Vector2(32,678) if enabled else Vector2(32,643)
+	tutorial.size=Vector2(890,28) if enabled else Vector2(980,60)
+	tutorial.add_theme_font_size_override("font_size",15 if enabled else 17)
+	help_caption.text=Preferences.prompt("{journal} Trial guide · {pause} Pause" if enabled else "{journal} Journal · {pause} Pause")
 
 func show_menu() -> void:
 	Session.running=false
@@ -232,12 +246,12 @@ func show_pause() -> void:
 	shade()
 	var c = column(panel(overlay,Vector2(425,150),Vector2(430,420)),13)
 	text(c,"A moment of quiet",32,GOLD)
-	text(c,Campaign.chapter(Session.data.chapter).title.to_upper(),17)
-	button(c,"Return to the road",play).grab_focus()
-	button(c,"Journal & controls",show_journal)
+	text(c,"THE ASHEN TRIAL" if main.trial_active else Campaign.chapter(Session.data.chapter).title.to_upper(),17)
+	button(c,"Return to the duel" if main.trial_active else "Return to the road",play).grab_focus()
+	button(c,"Trial guide" if main.trial_active else "Journal & controls",show_journal)
 	button(c,"Settings",func(): show_settings("pause"))
-	button(c,"Save & return to title",func(): world.save_current(); Session.running = false; show_menu())
-	button(c,"Save & quit",func(): world.save_current(); main.finish())
+	button(c,"Return to title" if main.trial_active else "Save & return to title",func(): world.save_current(); Session.running = false; show_menu())
+	button(c,"Quit" if main.trial_active else "Save & quit",func(): world.save_current(); main.finish())
 
 func show_settings(back: String, tab: String="Play") -> void:
 	var settings=SettingsPanel.new()
@@ -583,6 +597,6 @@ func show_trial_guide() -> void:
 	var c=column(panel(overlay,Vector2(230,90),Vector2(820,530)),16)
 	text(c,"THE ASHEN TRIAL",30,GOLD)
 	text(c,"Defeat the Cinder Warden in a single duel.",22)
-	text(c,"Light attacks chain into a three-strike sequence.\nQueue the next strike as the current swing finishes.\nA heavy attack commits longer and deals more damage.\nGuard just before impact to parry; roll to escape.\nThe Warden's recovery is your opening.\nDraughts heal, but leave you exposed while drinking.",19)
+	text(c,"Light attacks form a three-move chain; the finisher cuts twice.\nQueue the next move as the current swing finishes.\nA heavy attack commits longer and deals more damage.\nGuard just before impact to parry; evade to escape.\nThe Warden's recovery is your opening.\nA draught restores health when you drink; a hit can interrupt it.",19)
 	text(c,Preferences.help_text(),16)
 	button(c,"Return to the duel",play).grab_focus()

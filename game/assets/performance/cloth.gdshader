@@ -24,6 +24,8 @@ void fragment() {
 	vec3 orm=texture(orm_map,UV).rgb;
 	METALLIC=metallic_factor*(has_orm ? orm.b : 1.0);
 	ROUGHNESS=max(.32,roughness_factor*(has_orm ? orm.g : 1.0));
+	AO=has_orm ? orm.r : 1.0;
+	AO_LIGHT_AFFECT=.45;
 	if (has_normal) {
 		NORMAL_MAP=texture(normal_map,UV).rgb;
 		NORMAL_MAP_DEPTH=normal_strength;

@@ -3,6 +3,18 @@ extends RefCounted
 
 static var curves: Dictionary={}
 
+static func turn_fraction(clip: String, time: float) -> float:
+	if curves.is_empty(): curves=JSON.parse_string(FileAccess.get_file_as_string("res://assets/performance/root_motion.json"))
+	var keys: Array=curves[clip].yaw
+	var index=mini(int(time*30),keys.size()-2)
+	var a: Array=keys[index]; var b: Array=keys[index+1]
+	var yaw=lerpf(a[1],b[1],clampf((time-float(a[0]))/maxf(.001,float(b[0])-float(a[0])),0,1))
+	return clampf(yaw/float(keys[-1][1]),0,1)
+
+static func stride(clip: String) -> float:
+	if curves.is_empty(): curves=JSON.parse_string(FileAccess.get_file_as_string("res://assets/performance/root_motion.json"))
+	return maxf(.1,float(curves.get(clip,{}).get("distance",1.0)))
+
 static func curve(clip: String, time: float) -> Vector3:
 	if curves.is_empty(): curves=JSON.parse_string(FileAccess.get_file_as_string("res://assets/performance/root_motion.json"))
 	if not curves.has(clip): return Vector3.ZERO
@@ -42,6 +54,7 @@ static func configure(model: CombatModel, enemy: bool=false) -> void:
 	model.config.dodge.invulnerable_start=.14
 	model.config.dodge.invulnerable_end=.44
 	model.config["heal_duration"]=2.3
+	model.config["heal_apply_at"]=.88
 	model.config.stamina.regeneration=30
 	model.config.stamina.delay=.35
 	if enemy:

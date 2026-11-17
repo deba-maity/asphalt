@@ -1,0 +1,62 @@
+[
+  {
+    "distance_m": 1.78499871492386,
+    "maximum_toe_y": 0.196022480726242,
+    "mean_near_ground_toe_speed_mps": 0.0633753632039677,
+    "median_near_ground_toe_speed_mps": 0.00000716651356924558,
+    "median_travel_mps": 1.1899995803833,
+    "minimum_toe_y": 0.0150000806897879,
+    "near_ground_samples": 107,
+    "p95_near_ground_toe_speed_mps": 0.224022299051285,
+    "physics_hz": 60,
+    "scenario": "walk_forward"
+  },
+  {
+    "distance_m": 5.10000729560852,
+    "maximum_toe_y": 0.239965602755547,
+    "mean_near_ground_toe_speed_mps": 0.119921285207602,
+    "median_near_ground_toe_speed_mps": 0.0000143330271384912,
+    "median_travel_mps": 3.40001106262207,
+    "minimum_toe_y": 0.0150000117719173,
+    "near_ground_samples": 50,
+    "p95_near_ground_toe_speed_mps": 0.857864558696747,
+    "physics_hz": 60,
+    "scenario": "jog_forward"
+  },
+  {
+    "distance_m": 4.19999575614929,
+    "maximum_toe_y": 0.171720266342163,
+    "mean_near_ground_toe_speed_mps": 1.40286646496232,
+    "median_near_ground_toe_speed_mps": 0.981155157089233,
+    "median_travel_mps": 2.8000009059906,
+    "minimum_toe_y": 0.0147983720526099,
+    "near_ground_samples": 83,
+    "p95_near_ground_toe_speed_mps": 4.49447822570801,
+    "physics_hz": 60,
+    "scenario": "jog_left"
+  },
+  {
+    "distance_m": 3.59999865293503,
+    "maximum_toe_y": 0.397128224372864,
+    "mean_near_ground_toe_speed_mps": 0.33996991423445,
+    "median_near_ground_toe_speed_mps": 0.0000143051147460938,
+    "median_travel_mps": 2.39999771118164,
+    "minimum_toe_y": 0.014999776147306,
+    "near_ground_samples": 47,
+    "p95_near_ground_toe_speed_mps": 2.23266696929932,
+    "physics_hz": 60,
+    "scenario": "jog_backward"
+  },
+  {
+    "distance_m": 8.54999828338623,
+    "maximum_toe_y": 0.414238899946213,
+    "mean_near_ground_toe_speed_mps": 0.402514427977869,
+    "median_near_ground_toe_speed_mps": 0.000014312097846414,
+    "median_travel_mps": 5.70000171661377,
+    "minimum_toe_y": 0.0149999661371112,
+    "near_ground_samples": 33,
+    "p95_near_ground_toe_speed_mps": 2.75334668159485,
+    "physics_hz": 60,
+    "scenario": "sprint"
+  }
+]

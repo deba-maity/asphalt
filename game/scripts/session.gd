@@ -20,6 +20,7 @@ func _ready() -> void:
 	if "--campaign-play" in OS.get_cmdline_user_args() or "--campaign-continue" in OS.get_cmdline_user_args(): path = "user://campaign_validation"
 	if "--test-transitions" in OS.get_cmdline_user_args(): path = "user://transition_validation"
 	if "--test-quit-transition" in OS.get_cmdline_user_args() or "--test-resume-transition" in OS.get_cmdline_user_args(): path="user://quit_transition_validation"
+	if "--test-endurance" in OS.get_cmdline_user_args(): path="user://endurance_validation"
 	store = SaveStore.new(path)
 	chapter = Campaign.definition(data.zone)
 	loaded = store.load_game()
@@ -167,7 +168,7 @@ func recorded_entries() -> Array[Dictionary]:
 func begin_trial() -> void:
 	if not replay: original_store=store
 	replay=true
-	store=SaveStore.new("user://trial_validation" if validation else "user://ashen_trial")
+	store=SaveStore.new("user://endurance_trial" if "--test-endurance" in OS.get_cmdline_user_args() else ("user://trial_validation" if validation else "user://ashen_trial"))
 	data=Campaign.replay_state("ch04_between_ashes")
 	data.heals=3
 	data.health=100

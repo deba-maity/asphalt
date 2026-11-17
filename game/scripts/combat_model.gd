@@ -25,6 +25,7 @@ var counter_window: float = 0
 var posture: float = 0
 var story_fall: bool = false
 var parry_multiplier: float=1.0
+var heal_pending: bool=false
 
 func can_begin() -> bool:
 	return state == "idle" or state == "guard"
@@ -77,7 +78,8 @@ func heal() -> bool:
 		return false
 	state = "heal"
 	elapsed = 0
-	health = minf(max_health, health + 48)
+	heal_pending=float(config.get("heal_apply_at",0))>0
+	if not heal_pending: health = minf(max_health, health + 48)
 	return true
 
 func freeze(next: String) -> bool:
@@ -99,8 +101,21 @@ func active_window() -> int:
 	return -1
 
 func claim_hit(target_id: int) -> bool:
-	var key: Variant=str(target_id)+":"+str(active_window()) if attack.has("hit_windows") else target_id
-	if not active() or victims.has(key):
+	return claim_swept_hit(target_id,elapsed)
+
+# Sweeps can cross the end of a damage window between physics ticks. Validate
+# the actual contact time instead of dropping the final fraction of that cut.
+func claim_swept_hit(target_id: int, contact_time: float) -> bool:
+	if state!="attack": return false
+	var window=-1
+	if attack.has("hit_windows"):
+		var clip_time=contact_time*float(attack.get("rate",1.0))
+		for index in attack.hit_windows.size():
+			if clip_time>=float(attack.hit_windows[index][0]) and clip_time<float(attack.hit_windows[index][1]): window=index
+		if window<0: return false
+	elif contact_time<float(attack.windup) or contact_time>=float(attack.windup)+float(attack.active): return false
+	var key: Variant=str(target_id)+":"+str(window) if attack.has("hit_windows") else target_id
+	if victims.has(key):
 		return false
 	victims[key] = true
 	damage_events += 1
@@ -139,6 +154,10 @@ func receive(amount: float, in_front: bool = true, armored: bool = false, rules:
 
 func tick(delta: float) -> void:
 	elapsed += delta
+	if state!="heal": heal_pending=false
+	if state=="heal" and heal_pending and elapsed>=float(config.get("heal_apply_at",0)):
+		health=minf(max_health,health+48)
+		heal_pending=false
 	parry_flash = maxf(0,parry_flash-delta)
 	counter_window = maxf(0,counter_window-delta)
 	regen_delay = maxf(0, regen_delay - delta)
@@ -153,7 +172,7 @@ func tick(delta: float) -> void:
 	elif state == "ashstep":
 		done = elapsed >= .5
 	elif state == "hit":
-		done = elapsed >= 0.38
+		done = elapsed >= float(config.get("hit_duration",.38))
 	elif state == "heal":
 		done = elapsed >= float(config.get("heal_duration",.85))
 	if done:

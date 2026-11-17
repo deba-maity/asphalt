@@ -1,0 +1,11 @@
+{
+  "kind": "Isolated runtime joint and cloth recording, rendered with Three.js",
+  "game_screenshot": false,
+  "game_window_opened": false,
+  "frames": 591,
+  "recording_fps": 30,
+  "segments": 16,
+  "recording_sha256": "ec28019956ca79e3a0db11df2f37e9a1bbb2a6fb992fd1990c5ec883d646dde6",
+  "renderer": "Hidden Chromium / SwiftShader, independent lighting and camera",
+  "limits": "Shows recorded physics poses and props, not Godot rendering, camera, input feel or laptop performance."
+}

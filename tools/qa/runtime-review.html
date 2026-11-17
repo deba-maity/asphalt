@@ -1,0 +1,67 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Runtime motion inspection</title>
+<style>body{margin:0;background:#22282b;color:#e2ddd1;font:14px sans-serif}#label{position:absolute;left:20px;top:16px;white-space:pre-line;line-height:1.5;pointer-events:none}canvas{display:block}</style>
+<div id="label">Loading isolated runtime recording…</div>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setSize(960,720);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color('#262c30');
+scene.environment=new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(),.04).texture;
+const camera=new THREE.PerspectiveCamera(38,960/720,.05,80);
+const light=new THREE.DirectionalLight(0xffe2c0,2.8);light.position.set(-4,7,5);light.castShadow=true;
+light.shadow.mapSize.set(2048,2048);Object.assign(light.shadow.camera,{left:-12,right:12,top:12,bottom:-12,far:35});scene.add(light);
+scene.add(new THREE.HemisphereLight(0xb9d3e4,0x3d362d,.8));
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(60,60),new THREE.MeshStandardMaterial({color:0x4b4d47,roughness:.95}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+const [asset,data]=await Promise.all([new GLTFLoader().loadAsync('/models/rayan.glb'),fetch('/models/runtime.json').then(r=>r.json())]);
+scene.add(asset.scene);const tint=new THREE.Color('#70413a');
+asset.scene.traverse(n=>{if(!n.isMesh)return;n.castShadow=true;n.receiveShadow=true;
+ const materials=Array.isArray(n.material)?n.material:[n.material];for(const m of materials){m.onBeforeCompile=shader=>{
+  shader.uniforms.clothTint={value:tint};shader.fragmentShader='uniform vec3 clothTint;\n'+shader.fragmentShader;
+  shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
+   float green=(diffuseColor.g-max(diffuseColor.r,diffuseColor.b))/max(.005,diffuseColor.g);
+   float clothMask=smoothstep(.12,.35,green);
+   float luminance=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));
+   diffuseColor.rgb=mix(diffuseColor.rgb,clothTint*clamp(luminance/.22,.15,2.),clothMask);`);
+ };}});
+const bones=data.names.map(name=>{const bone=asset.scene.getObjectByName(name);if(!bone)throw Error('Missing bone '+name);return bone;});
+const [weaponAsset,flaskAsset]=await Promise.all(['weapon','flask'].map(name=>new GLTFLoader().loadAsync('/models/'+name+'.glb')));
+const grip=weaponAsset.scene;grip.position.set(0,.075,.025);grip.rotation.x=-Math.PI/2;bones[data.names.indexOf('hand_r')].add(grip);
+const flask=flaskAsset.scene;flask.position.set(0,.075,.025);flask.rotation.x=Math.PI/2;bones[data.names.indexOf('hand_r')].add(flask);
+const dropped=grip.clone(true);dropped.visible=false;scene.add(dropped);
+const textureLoader=new THREE.TextureLoader();
+const [clothMap,clothNormal]=await Promise.all(['cloth.png','cloth_normal.png'].map(name=>textureLoader.loadAsync('/surfaces/'+name)));
+for(const map of [clothMap,clothNormal]){map.wrapS=map.wrapT=THREE.RepeatWrapping;map.repeat.set(3,3);}
+clothMap.colorSpace=THREE.SRGBColorSpace;
+const clothGeometry=new THREE.BufferGeometry();clothGeometry.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(data.columns*data.rows*3),3));
+// Godot uses clockwise triangles; Three uses counterclockwise.
+const indices=[...data.triangles];for(let i=0;i<indices.length;i+=3)[indices[i+1],indices[i+2]]=[indices[i+2],indices[i+1]];
+clothGeometry.setIndex(indices);
+const uvs=[];for(let row=0;row<data.rows;row++)for(let col=0;col<data.columns;col++)uvs.push(col/(data.columns-1),row/(data.rows-1));
+clothGeometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+const cloth=new THREE.Mesh(clothGeometry,new THREE.MeshStandardMaterial({color:0x59312b,map:clothMap,normalMap:clothNormal,normalScale:new THREE.Vector2(.65,.65),roughness:.96,side:THREE.DoubleSide}));cloth.castShadow=true;cloth.receiveShadow=true;scene.add(cloth);
+function sample(index,angle=.5){
+ const frame=data.frames[Math.min(data.frames.length-1,Math.max(0,index))];
+ asset.scene.position.fromArray(frame.model,0);asset.scene.quaternion.fromArray(frame.model,3);
+ frame.bones.forEach((pose,i)=>{bones[i].position.fromArray(pose,0);bones[i].quaternion.fromArray(pose,3);});
+ asset.scene.updateMatrixWorld(true);grip.visible=frame.sword;flask.visible=frame.flask;
+ dropped.visible=!!frame.drop?.length;if(dropped.visible){dropped.position.fromArray(frame.drop,0);dropped.quaternion.fromArray(frame.drop,3);}
+ const positions=clothGeometry.getAttribute('position');frame.cloth.forEach((p,i)=>positions.setXYZ(i,...p));positions.needsUpdate=true;clothGeometry.computeVertexNormals();clothGeometry.computeBoundingSphere();
+ const center=asset.scene.position.clone();camera.position.copy(center).add(new THREE.Vector3(Math.sin(angle)*4.2,1.85,Math.cos(angle)*4.2));camera.lookAt(center.clone().add(new THREE.Vector3(0,.9,0)));
+ light.position.copy(center).add(new THREE.Vector3(-4,7,5));light.target.position.copy(center);light.target.updateMatrixWorld();
+ document.querySelector('#label').textContent=`RUNTIME JOINT / CLOTH RECORDING · ${frame.label}\n${frame.clip} · ${frame.time.toFixed(3)}s · independent WebGL renderer, not a game screenshot`;
+ renderer.render(scene,camera);return {state:frame.state,clip:frame.clip,label:frame.label};
+}
+window.review={data,sample,async video(){
+ const stream=renderer.domElement.captureStream(30),chunks=[];
+ const recorder=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9',videoBitsPerSecond:3000000});
+ recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
+ const stopped=new Promise(resolve=>recorder.onstop=resolve);recorder.start();
+ const start=performance.now();await new Promise(resolve=>{function tick(){const index=Math.floor((performance.now()-start)*data.fps/1000);sample(index,.65);if(index<data.frames.length-1)requestAnimationFrame(tick);else resolve();}tick();});
+ recorder.stop();await stopped;stream.getTracks().forEach(t=>t.stop());return Array.from(new Uint8Array(await new Blob(chunks,{type:'video/webm'}).arrayBuffer()));
+}};
+sample(30);window.ready=true;
+</script></html>

@@ -1,3 +1,9 @@
+# Current asset pipeline: 0.6.0-rc.1
+
+The current trial adds credited CC0 Poly Haven courtyard art, Kenney foley and VSCO instrument recordings for an original adaptive score. Character texture imports, gait phases and motion integration are revised. See [current implementation](motion-amplification.md), [credits](CREDITS.txt) and the [asset manifest](../game/assets/manifest.json).
+
+## Historical 0.5.0 revision
+
 # Current asset pipeline: 0.5.0-rc.1
 
 The Ashen Trial uses CC0 third-party characters and authored animation. See [current implementation](ashen-trial.md), [credits](CREDITS.txt) and [source provenance](../game/assets/performance/provenance.json). The campaign retains its procedural assets. All descriptions below concern historical revisions; their original-only statements do not apply to the new trial.

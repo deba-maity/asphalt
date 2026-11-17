@@ -10,6 +10,9 @@ var use_performance: bool = false
 var combo_index: int = 0
 var impact_pause: float = 0
 var reaction_clip: String = "Hit_Chest"
+var reaction_serial: int=0
+var effects: CombatEffects
+var swing_cue: String=""
 var enemy_id: String = ""
 var kind: String = "road_bandit"
 var encounter_id: String = ""
@@ -49,6 +52,8 @@ var impact_ring: MeshInstance3D
 var impact_time: float=0
 var hit_query: PhysicsShapeQueryParameters3D
 var hit_sphere: SphereShape3D
+var turning=PerformanceTurn.new()
+var weapon_sweep=WeaponSweep.new()
 
 func _ready() -> void:
 	floor_snap_length=.35
@@ -71,6 +76,9 @@ func _ready() -> void:
 	else:
 		figure = load("res://assets/characters/"+("rayan" if player else kind)+".tscn").instantiate()
 	add_child(figure)
+	if use_performance:
+		effects=CombatEffects.new()
+		add_child(effects)
 	hurtbox = Area3D.new()
 	hurtbox.collision_layer = 8 if player else 16
 	hurtbox.collision_mask = 0
@@ -118,6 +126,7 @@ func _ready() -> void:
 		pitch.add_child(camera)
 		camera.current = true
 		Preferences.input_reset.connect(clear_intent)
+		if use_performance: add_child(TrialCamera.new())
 	else:
 		definition = model.config.enemies[kind]
 		model.max_health = definition.health
@@ -167,6 +176,10 @@ func clear_intent() -> void:
 	velocity.x=0
 	velocity.z=0
 
+func cue_sound(id: String) -> void:
+	if use_performance and world is TrialWorld: world.foley.event(id,global_position+Vector3.UP)
+	else: Sound.play(id)
+
 func queue_intent(action: String) -> void:
 	intent.push(action,model,desired_direction())
 	consume_intent()
@@ -187,10 +200,10 @@ func consume_intent() -> void:
 		"light","heavy": try_attack(action)
 		"dodge":
 			if try_dodge() and direction.length()>.1:
-				dodge_vector=direction
+				dodge_vector=direction.normalized()
 				select_evade_clip()
 		"ashstep":
-			if try_ashstep() and direction.length()>.1: dodge_vector=direction
+			if try_ashstep() and direction.length()>.1: dodge_vector=direction.normalized()
 		"heal": try_heal()
 
 func next_combo_index() -> int:
@@ -207,7 +220,7 @@ func try_attack(id: String) -> bool:
 		if use_performance and player: combo_index=proposed_combo if id in ["light","trial_second","trial_finish"] else -1
 		if is_instance_valid(target):
 			face(target.global_position)
-		Sound.play(str(model.attack.get("cue","swing")))
+		if not use_performance: Sound.play(str(model.attack.get("cue","swing")))
 		if player:
 			world.learn(id)
 			repeated_lights = repeated_lights+1 if id == "light" else 0
@@ -223,22 +236,22 @@ func try_ashstep() -> bool:
 	if not model.ashstep():
 		if model.ash_unlocked: feedback.emit("Ashstep needs one Resolve. Land strikes or parry to recover it.")
 		return false
-	dodge_vector = desired_direction()
+	dodge_vector = desired_direction().normalized()
 	if dodge_vector.length()<.1: dodge_vector = -global_basis.z
-	Sound.play("heal")
+	cue_sound("heal")
 	world.learn("ashstep")
 	return true
 
 func try_dodge() -> bool:
 	if not model.dodge():
 		return false
-	dodge_vector = desired_direction()
+	dodge_vector = desired_direction().normalized()
 	if dodge_vector.length() < 0.1:
 		dodge_vector = -global_basis.z
 	select_evade_clip()
 	if player:
 		world.learn("dodge")
-	Sound.play("swing")
+	cue_sound("dodge" if use_performance else "swing")
 	return true
 
 func select_evade_clip() -> void:
@@ -251,9 +264,9 @@ func try_heal() -> bool:
 		Session.data.heals -= 1
 		Session.data.health = model.health
 		Session.save()
-		Sound.play("heal")
+		if not use_performance: cue_sound("heal")
 		world.learn("heal")
-		feedback.emit("Healing draught · +48 health")
+		feedback.emit("Drinking - stay clear of incoming strikes." if use_performance else "Healing draught · +48 health")
 		return true
 	return false
 
@@ -280,26 +293,35 @@ func clear_sight(other: Fighter) -> bool:
 func face(point: Vector3) -> void:
 	var diff = point-global_position
 	if Vector2(diff.x,diff.z).length() > 0.05:
-		rotation.y = atan2(-diff.x,-diff.z)
+		if use_performance: turning.desired=atan2(-diff.x,-diff.z)
+		else: rotation.y = atan2(-diff.x,-diff.z)
 
 func desired_direction() -> Vector3:
 	if use_test_direction:
 		return test_direction
 	var axis = Input.get_vector("move_left","move_right","move_forward","move_back")
-	return (yaw.basis*Vector3(axis.x,0,axis.y)).normalized()
+	var direction=yaw.basis*Vector3(axis.x,0,axis.y)
+	return direction if use_performance else direction.normalized()
 
 func _physics_process(delta: float) -> void:
 	if world == null:
 		return
 	if use_performance and impact_pause>0:
 		impact_pause=maxf(0,impact_pause-delta)
+		figure.interpolator.freeze()
+		figure.interpolator.display(figure.body_skeleton,1)
+		figure.cape.step(delta)
 		if player: update_camera_collision(delta)
 		return
 	if player:
 		intent.tick(delta)
 		model.parry_multiplier=1.4 if Preferences.difficulty=="story" else 1.0
 		if not world.can_play(): intent.clear()
+	var previous_health=model.health
 	model.tick(delta)
+	if use_performance and player and model.state=="heal" and model.health>previous_health:
+		cue_sound("heal")
+		feedback.emit("Draught restored health.")
 	light_memory = maxf(0,light_memory-delta)
 	if light_memory<=0: repeated_lights=0
 	if player:
@@ -310,6 +332,9 @@ func _physics_process(delta: float) -> void:
 		update_player(delta)
 	else:
 		update_enemy(delta)
+	if use_performance:
+		if model.state=="attack" and model.elapsed>=float(model.attack.get("tracking",.12)): turning.desired=rotation.y
+		turning.step(self,model.state,delta)
 	if use_performance and world.can_play() and model.state in ["attack","dodge"]:
 		var root_delta=PerformanceMotion.displacement(model,delta)
 		root_delta*=figure.motion_scale
@@ -318,11 +343,16 @@ func _physics_process(delta: float) -> void:
 		velocity.x=root_delta.x/maxf(delta,.001)
 		velocity.z=root_delta.z/maxf(delta,.001)
 	if model.active() and world.can_play():
+		if use_performance:
+			var cue=str(model.swing_serial)+":"+str(model.active_window())
+			if cue!=swing_cue:
+				swing_cue=cue
+				cue_sound("swing")
 		if model.attack.get("projectile",false):
 			if fired_serial != model.swing_serial:
 				fired_serial=model.swing_serial
 				world.spawn_projectile(self)
-		else: apply_hits()
+		elif not use_performance: apply_hits()
 	if not is_on_floor():
 		velocity.y -= 22*delta
 	else:
@@ -335,12 +365,16 @@ func _physics_process(delta: float) -> void:
 	var visual_speed=Vector2(displacement.x,displacement.z).length()/maxf(.001,delta)
 	var contacts_before=figure.foot_placement.contact_count
 	figure.plant_feet(self,model.state,visual_speed)
+	if use_performance:
+		weapon_sweep.sample(figure)
+		if world.can_play() and model.state=="attack": weapon_sweep.strike(self)
+	if figure.foot_placement.contact_count>contacts_before and visual_speed>.3 and model.state in ["idle","guard"]:
+		if use_performance: world.foley.event("step",global_position,lerpf(.6,1.1,clampf(visual_speed/5.7,0,1)))
+		elif player: Sound.footstep(Session.data.zone)
 	if player:
-		if figure.foot_placement.contact_count>contacts_before and visual_speed>.3 and model.state in ["idle","guard"]:
-			Sound.footstep(Session.data.zone)
 		update_camera_collision(delta)
 	impact_time=maxf(0,impact_time-delta)
-	impact_ring.visible=impact_time>0 and not Preferences.reduced_effects
+	impact_ring.visible=impact_time>0 and not Preferences.reduced_effects and not use_performance
 	impact_ring.scale=Vector3.ONE*(.25+(.16-impact_time)*2)
 	if not player:
 		health_bar.visible = model.health < model.max_health and model.state != "dead"
@@ -357,13 +391,13 @@ func _physics_process(delta: float) -> void:
 		last_state = model.state
 
 func update_player(delta: float) -> void:
-	yaw.global_position = global_position+Vector3(0,1.45,0)+camera_focus
+	if not use_performance: yaw.global_position = global_position+Vector3(0,1.45,0)+camera_focus
 	if is_instance_valid(target) and (target.model.state == "dead" or global_position.distance_to(target.global_position) > 17 or not clear_sight(target)):
 		target = null
 	if is_instance_valid(target):
 		var diff = target.global_position-global_position
-		yaw.rotation.y = lerp_angle(yaw.rotation.y,atan2(-diff.x,-diff.z),1-exp(-delta*7))
-		if model.can_begin():
+		if not use_performance: yaw.rotation.y = lerp_angle(yaw.rotation.y,atan2(-diff.x,-diff.z),1-exp(-delta*7))
+		if model.can_begin() or (use_performance and model.state=="attack" and model.elapsed<float(model.attack.get("tracking",.12))):
 			face(target.global_position)
 	if not world.can_play():
 		velocity.x = 0
@@ -376,7 +410,11 @@ func update_player(delta: float) -> void:
 		world.learn("guard")
 	var direction = desired_direction()
 	var speed = 3.4
-	if Input.is_action_pressed("sprint") and direction.length() > 0.1 and model.state == "idle" and model.spend(12*delta):
+	var forward_amount=direction.normalized().dot(-global_basis.z)
+	if use_performance and is_instance_valid(target):
+		speed=lerpf(2.8,3.4,maxf(0,forward_amount)) if forward_amount>=0 else lerpf(2.8,2.4,-forward_amount)
+	var sprint_allowed=not use_performance or not is_instance_valid(target) or forward_amount>.65
+	if sprint_allowed and Input.is_action_pressed("sprint") and direction.length() > 0.1 and model.state == "idle" and model.spend(12*delta):
 		speed = 5.7
 	if model.state == "guard":
 		speed = 1.45
@@ -390,7 +428,8 @@ func update_player(delta: float) -> void:
 		speed = 0
 	if not Preferences.gameplay_input_ready() and not use_test_direction: direction=Vector3.ZERO
 	if direction.length() > 0.1 and speed > 0 and model.state not in ["dodge","ashstep"] and not is_instance_valid(target):
-		rotation.y = lerp_angle(rotation.y,atan2(-direction.x,-direction.z),1-exp(-delta*14))
+		if use_performance: turning.desired=atan2(-direction.x,-direction.z)
+		else: rotation.y = lerp_angle(rotation.y,atan2(-direction.x,-direction.z),1-exp(-delta*14))
 	var acceleration=20.0 if direction.length()>.1 else 28.0
 	velocity.x = move_toward(velocity.x,direction.x*speed,delta*acceleration) if use_performance and model.state=="idle" else direction.x*speed
 	velocity.z = move_toward(velocity.z,direction.z*speed,delta*acceleration) if use_performance and model.state=="idle" else direction.z*speed
@@ -475,7 +514,7 @@ func apply_hits() -> void:
 		if model.claim_hit(other.get_instance_id()):
 			other.take_damage(float(model.attack.damage),self)
 
-func take_damage(amount: float, attacker: Fighter, attack_rules: Dictionary={}) -> String:
+func take_damage(amount: float, attacker: Fighter, attack_rules: Dictionary={}, contact: Vector3=Vector3.INF) -> String:
 	if not is_instance_valid(attacker): return "ignored"
 	var in_front = (-global_basis.z).dot((attacker.global_position-global_position).normalized()) > 0.0
 	var rules: Dictionary = attack_rules if not attack_rules.is_empty() else attacker.model.attack
@@ -489,34 +528,39 @@ func take_damage(amount: float, attacker: Fighter, attack_rules: Dictionary={}) 
 	var result = model.receive(amount,in_front,armor,rules)
 	if result == "ash_evade":
 		world.on_ash_evade()
-		Sound.play("parry")
+		cue_sound("parry")
 	if result == "parry":
 		if attack_rules.is_empty() and attacker.model.state!="dead":
 			attacker.model.state = "hit"
 			attacker.model.elapsed = -0.65
-		Sound.play("parry")
+			attacker.reaction_serial+=1
+			attacker.reaction_clip="Hit_Chest"
+		cue_sound("parry")
 		if player:
 			world.learn("parry")
 		feedback.emit("Parry! Their guard is open.")
 	elif result == "guard":
-		Sound.play("guard")
+		cue_sound("guard")
 	elif result in ["hit","dead"]:
-		Sound.play("hit")
+		cue_sound("hit")
 		if player:
 			Session.data.health = model.health
 		elif attacker.player:
 			attacker.model.resolve = minf(3,attacker.model.resolve+.25)
 			Session.data.resolve=attacker.model.resolve
 	if player: Session.data.resolve=model.resolve
+	if use_performance and result in ["guard","parry"]: figure.recoil(result=="parry")
 	if result in ["hit","dead","guard","parry","ash_evade"]:
 		impact_time=.16
+		if effects!=null: effects.impact(contact if contact.is_finite() else global_position+Vector3.UP*.95,(global_position-attacker.global_position).normalized(),result)
 		if player and Preferences.camera_shake: shake_time=.12
 		if use_performance and result in ["hit","guard","parry"]:
 			impact_pause=.05 if result=="parry" else .035
 			if attacker.use_performance: attacker.impact_pause=impact_pause
 			var direction=global_basis.inverse()*(attacker.global_position-global_position).normalized()
 			reaction_clip="Hit_Shoulder_L" if direction.x<-.35 else ("Hit_Shoulder_R" if direction.x>.35 else "Hit_Chest")
-			if result=="hit" and model.state=="hit": combo_index=-1
+			model.config["hit_duration"]=maxf(.38,figure.library.get_animation(reaction_clip).length)
+			if result=="hit" and model.state=="hit": combo_index=-1; reaction_serial+=1
 	return result
 
 func update_camera_collision(delta: float) -> void:

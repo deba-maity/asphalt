@@ -6,8 +6,20 @@ extends RefCounted
 var anchors: Dictionary={}
 var contact_count: int=0
 var max_correction: float=0
+var weights: Dictionary={}
+var cooldowns: Dictionary={}
+var indices: Dictionary={}
+var last_position: Vector3=Vector3.INF
+var planted: Dictionary={}
+var previous_heights: Dictionary={}
+var previous_positions: Dictionary={}
 
-func reset() -> void: anchors.clear()
+func reset() -> void:
+	anchors.clear()
+	weights.clear()
+	planted.clear()
+	previous_heights.clear()
+	previous_positions.clear()
 
 func rotate_bone_toward(rig: Skeleton3D, bone: int, from: Vector3, to: Vector3) -> void:
 	if from.length()<.0001 or to.length()<.0001: return
@@ -43,8 +55,13 @@ func solve(rig: Skeleton3D, hip: int, knee: int, ankle: int, target: Vector3, we
 
 func apply(rig: Skeleton3D, actor: CharacterBody3D, state: String, speed: float) -> void:
 	if state in ["dead","dodge","ashstep"] or not actor.is_on_floor(): reset(); return
+	var delta=actor.get_physics_process_delta_time()
+	if actor.global_position.distance_to(last_position)>2: reset()
+	last_position=actor.global_position
 	for side in ["l","r"]:
-		var ankle=rig.find_bone("foot_"+side); var ball=rig.find_bone("ball_"+side)
+		if not indices.has(side): indices[side]=[rig.find_bone("thigh_"+side),rig.find_bone("calf_"+side),rig.find_bone("foot_"+side),rig.find_bone("ball_"+side)]
+		cooldowns[side]=maxf(0,float(cooldowns.get(side,0))-delta)
+		var ankle: int=indices[side][2]; var ball: int=indices[side][3]
 		var position=rig.to_global(rig.get_bone_global_pose(ball).origin)
 		var query=PhysicsRayQueryParameters3D.create(position+Vector3.UP*.45,position-Vector3.UP*.55,1)
 		query.exclude=[actor.get_rid()]
@@ -52,14 +69,27 @@ func apply(rig: Skeleton3D, actor: CharacterBody3D, state: String, speed: float)
 		if hit.is_empty(): anchors.erase(side); continue
 		var ground: Vector3=hit.position+Vector3.UP*.025
 		var height=position.y-ground.y
-		if height>.13 or (anchors.has(side) and position.distance_to(anchors[side])>.30): anchors.erase(side)
-		if height<.055 and not anchors.has(side):
+		var rising=(height-float(previous_heights.get(side,height)))/maxf(.001,delta)
+		previous_heights[side]=height
+		var movement=(position-Vector3(previous_positions.get(side,position)))/maxf(.001,delta)
+		var foot_speed=Vector2(movement.x,movement.z).length()
+		previous_positions[side]=position
+		if planted.get(side,false) and (height>.065 or position.distance_to(anchors[side])>.28 or (foot_speed>maxf(1.4,speed*1.25) and rising>.05)):
+			planted[side]=false
+			cooldowns[side]=.12
+		# Keep the old anchor while its influence fades. Replacing it in the
+		# same tick as an overextended release causes a visible 20-30 cm snap.
+		if height<.04 and rising<.2 and foot_speed<maxf(.8,speed*.55) and not planted.get(side,false) and float(weights.get(side,0))<.05 and float(cooldowns[side])<=0:
 			anchors[side]=ground
+			planted[side]=true
+			cooldowns[side]=.16
 			if speed>.3: contact_count+=1
-		var destination=ground
-		var weight=1.0-smoothstep(.045,.14,height)
-		if anchors.has(side): destination=anchors[side]
-		var offset=(destination-position).limit_length(.22)
-		max_correction=maxf(max_correction,offset.length()*weight)
+		var desired_weight=1.0 if planted.get(side,false) else 0.0
+		var weight=move_toward(float(weights.get(side,0)),desired_weight,delta*(20 if desired_weight>0 else 12))
+		weights[side]=weight
+		var offset=(Vector3(anchors[side])-position).limit_length(.22)*weight if anchors.has(side) else Vector3.ZERO
+		offset.y=maxf(offset.y,ground.y-position.y)
+		offset=offset.limit_length(.22)
+		max_correction=maxf(max_correction,offset.length())
 		var ankle_world=rig.to_global(rig.get_bone_global_pose(ankle).origin)
-		solve(rig,rig.find_bone("thigh_"+side),rig.find_bone("calf_"+side),ankle,rig.to_local(ankle_world+offset),weight)
+		solve(rig,indices[side][0],indices[side][1],ankle,rig.to_local(ankle_world+offset),1)

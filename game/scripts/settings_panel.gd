@@ -33,13 +33,14 @@ func draw(owner_ui: GameInterface, previous: String, section: String="Play") -> 
 			slider("Camera sensitivity",.001,.009,.0002,"sensitivity")
 			toggle("Invert vertical camera","invert")
 		"Display":
-			choice("Frame cap",["30 FPS · low target","60 FPS · optional, measure on your hardware"],0 if Preferences.fps_cap==30 else 1,func(i): Preferences.fps_cap=[30,60][i])
-			choice("3D render resolution (HUD stays at 720p)",["960 × 540 · 75%","1280 × 720 · low baseline","1600 × 900 · 125%"],[540,720,900].find(Preferences.render_height),func(i): Preferences.render_height=[540,720,900][i])
+			choice("Frame cap",["30 FPS","60 FPS","90 FPS","120 FPS"],[30,60,90,120].find(Preferences.fps_cap),func(i): Preferences.fps_cap=[30,60,90,120][i])
+			choice("3D render resolution",["960 × 540","1280 × 720","1600 × 900","1920 × 1080"],[540,720,900,1080].find(Preferences.render_height),func(i): Preferences.render_height=[540,720,900,1080][i])
+			choice("Edge smoothing",["Off","2× MSAA","4× MSAA"],[0,2,4].find(Preferences.antialiasing),func(i): Preferences.antialiasing=[0,2,4][i])
 			choice("Window size",["1280 × 720","1600 × 900","1920 × 1080"],[720,900,1080].find(Preferences.window_height),func(i): Preferences.window_height=[720,900,1080][i])
 			toggle("Fullscreen (keeps chosen render scale)","fullscreen")
 			toggle("Sun shadows · modest 38m distance","shadows")
 			toggle("Low-memory transitions · release old zone first","low_memory")
-			ui.text(c,"60 FPS is a selectable cap, not a performance guarantee.\nNo driver, power-profile or operating-system settings are changed.",17)
+			ui.text(c,"Use a lower render resolution if motion feels uneven.\nHigher frame caps need sufficient graphics performance.",17)
 		"Audio":
 			for entry in [["Master","volume"],["Music","music_volume"],["Effects","effects_volume"],["Ambient","ambient_volume"]]: slider(entry[0],0,1,.05,entry[1])
 			ui.text(c,"All story information is readable in subtitles and the journal.\nCalm/combat stems blend without restarting at small boundaries.",17)

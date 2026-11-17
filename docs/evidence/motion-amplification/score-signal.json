@@ -1,0 +1,24 @@
+{
+  "seconds": 48,
+  "sample_rate": 44100,
+  "tempo_bpm": 80,
+  "bars": 16,
+  "stems": {
+    "score_base": {
+      "frames": 2116800,
+      "peak": 0.666900634765625,
+      "rms": 0.1014892593435615,
+      "loop_boundary_step": 0.003875732421875,
+      "sha256": "c913b8876f374530cc33717756712d639f511c9b0fba87fc4c7d752f3b2695f8",
+      "bytes": 8467244
+    },
+    "score_intensity": {
+      "frames": 2116800,
+      "peak": 0.728790283203125,
+      "rms": 0.12970970451928687,
+      "loop_boundary_step": 0.001495361328125,
+      "sha256": "f3fcc5a54ee5b7971d648c2e46df4eaf37914c11be5c57f8f42f7d4d074946f3",
+      "bytes": 8467244
+    }
+  }
+}

@@ -1,0 +1,82 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PLAY: Fresh validation save. Uses normal movement, interaction, damage windows and story callbacks; no teleport or invincibility.
+PLAY: Campaign traversal starts at New Game. No debug jumps, teleports, health grants or encounter flag edits.
+PLAY: Morning family interaction completed.
+PLAY: Protection contract accepted.
+PLAY: Encounter complete: evt_cart_clear
+PLAY: Shrine checkpoint activated, health and draughts restored.
+PLAY: Encounter complete: evt_ambush_clear
+PLAY: Encounter complete: evt_foreman_clear
+PLAY: Paid exactly 30 crowns.
+PLAY: Bought honeybread for 8 crowns.
+PLAY: Opening chapter completed from fresh save through movement, 5 enemies, payment, purchase and family supper.
+PLAY: Distance walked 134.0m; simulated 68.1s. Headless run: no rendered FPS measurement.
+PLAY: Pause froze player position; resumed successfully.
+PLAY: Chapter one complete; take the next-day chapter-card action.
+TRANSITION {"background_ms":257.559,"graphics_stage":"unmeasured; headless","instantiate_ms":0.056,"low_memory":true,"main_thread_swap_ms":47.522,"nodes":358,"old_zone_freed_before_construct":true,"old_zone_release_frame_ms":1.892,"ready_geometry_and_scripts_ms":18.844,"static_memory_bytes":128011732,"zone":"zone_cinder_errand"}
+PLAY: Entered zone_cinder_errand / mortal
+PLAY: Objective: q_errand
+PLAY: Objective: q_willow
+PLAY: Objective: q_return
+TRANSITION {"background_ms":512.45,"graphics_stage":"unmeasured; headless","instantiate_ms":0.08,"low_memory":true,"main_thread_swap_ms":204.071,"nodes":497,"old_zone_freed_before_construct":true,"old_zone_release_frame_ms":2.915,"ready_geometry_and_scripts_ms":69.079,"static_memory_bytes":130171361,"zone":"zone_cinder_home"}
+PLAY: Entered zone_cinder_home / mortal
+PLAY: Objective: q_bird
+PLAY: Objective: q_edda
+PLAY: Objective: q_raiders
+PLAY: Objective: q_varo
+PLAY: Objective: q_case
+PLAY: Objective: q_leave_home
+TRANSITION {"background_ms":407.686,"graphics_stage":"unmeasured; headless","instantiate_ms":0.075,"low_memory":true,"main_thread_swap_ms":53.17,"nodes":350,"old_zone_freed_before_construct":true,"old_zone_release_frame_ms":4.599,"ready_geometry_and_scripts_ms":15.226,"static_memory_bytes":129800223,"zone":"zone_sere_mill"}
+PLAY: Entered zone_sere_mill / mortal
+PLAY: Objective: q_mill_guard
+PLAY: Objective: q_rescue
+PLAY: Objective: q_ferry
+PLAY: Objective: q_list
+PLAY: Objective: q_boat
+TRANSITION {"background_ms":72.99,"graphics_stage":"unmeasured; headless","instantiate_ms":0.067,"low_memory":true,"main_thread_swap_ms":33.161,"nodes":250,"old_zone_freed_before_construct":true,"old_zone_release_frame_ms":1.096,"ready_geometry_and_scripts_ms":6.746,"static_memory_bytes":129727237,"zone":"zone_copper_stair"}
+PLAY: Entered zone_copper_stair / mortal
+PLAY: Objective: q_avel
+PLAY: Objective: q_stair_patrol
+PLAY: Objective: q_kesran
+PLAY: Objective: q_passage
+TRANSITION {"background_ms":105.716,"graphics_stage":"unmeasured; headless","instantiate_ms":0.054,"low_memory":true,"main_thread_swap_ms":22.666,"nodes":175,"old_zone_freed_before_construct":true,"old_zone_release_frame_ms":1.557,"ready_geometry_and_scripts_ms":3.16,"static_memory_bytes":128877905,"zone":"zone_counting_shore"}
+PLAY: Entered zone_counting_shore / between
+PLAY: Objective: q_memory
+PLAY: Objective: q_choice
+PLAY: Objective: q_ash_tutorial
+PLAY: Objective: q_trial
+PLAY: Objective: q_shore_gate
+PLAY: Objective: q_return_life
+TRANSITION {"background_ms":227.898,"graphics_stage":"unmeasured; headless","instantiate_ms":0.058,"low_memory":true,"main_thread_swap_ms":33.511,"nodes":283,"old_zone_freed_before_construct":true,"old_zone_release_frame_ms":0.938,"ready_geometry_and_scripts_ms":8.665,"static_memory_bytes":130268057,"zone":"zone_mill_return"}
+PLAY: Entered zone_mill_return / returned
+PLAY: Objective: q_return_witness
+PLAY: Objective: q_return_veil
+PLAY: Objective: q_hunters
+PLAY: Objective: q_serit
+PLAY: Objective: q_route
+PLAY: Objective: q_last_bridge
+TRANSITION {"background_ms":129.283,"graphics_stage":"unmeasured; headless","instantiate_ms":0.064,"low_memory":true,"main_thread_swap_ms":28.757,"nodes":313,"old_zone_freed_before_construct":true,"old_zone_release_frame_ms":1.125,"ready_geometry_and_scripts_ms":7.53,"static_memory_bytes":130668028,"zone":"zone_dawn_approach"}
+PLAY: Entered zone_dawn_approach / returned
+PLAY: Objective: q_last_guard
+PLAY: Objective: q_register
+PLAY: Objective: q_gate_elites
+PLAY: Objective: q_court
+TRANSITION {"background_ms":74.392,"graphics_stage":"unmeasured; headless","instantiate_ms":0.071,"low_memory":true,"main_thread_swap_ms":30.252,"nodes":225,"old_zone_freed_before_construct":true,"old_zone_release_frame_ms":1.931,"ready_geometry_and_scripts_ms":7.76,"static_memory_bytes":129032682,"zone":"zone_dawn_court"}
+PLAY: Entered zone_dawn_court / returned
+PLAY: Objective: q_halvek_words
+PLAY: Objective: q_halvek
+PLAY: Objective: q_broken_ledger
+PLAY: Objective: q_home_again
+TRANSITION {"background_ms":37.888,"graphics_stage":"unmeasured; headless","instantiate_ms":0.051,"low_memory":true,"main_thread_swap_ms":34.284,"nodes":321,"old_zone_freed_before_construct":true,"old_zone_release_frame_ms":0.757,"ready_geometry_and_scripts_ms":11.016,"static_memory_bytes":129794109,"zone":"zone_memorial"}
+PLAY: Entered zone_memorial / returned
+PLAY: Objective: q_bowl
+PLAY: Objective: q_bird_rest
+PLAY: Objective: q_memorial
+PLAY: PASS: all six chapters, canonical death/resurrection, five later named confrontations, memorial and credits.
+PLAY: Observed scripted traversal 382.3s, including fast dialogue and loading. Not a human playtime estimate.
+PLAY: Wall-clock 42.59s; display backend headless. Accelerated fixed-FPS runs report simulation time separately; no graphics performance inferred.
+EXIT requested: 0 mode=credits
+Frame 0 - res://scripts/main.gd:182 in function 'finish'
+Frame 1 - res://tests/campaign_playthrough.gd:48 in function 'complete'
+Frame 2 - res://tests/campaign_playthrough.gd:179 in function 'finish_after_capture'

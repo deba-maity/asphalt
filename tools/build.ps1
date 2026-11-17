@@ -21,7 +21,7 @@ $binary = Join-Path $output 'AshenVow.exe'
 $numeric = ($config.version -split '-')[0] + '.1'
 & $rcedit $binary --set-icon (Join-Path $script:RepoRoot 'game\assets\branding\ashen-vow.ico') --set-file-version $numeric --set-product-version $numeric --set-version-string ProductName 'ASHEN VOW' --set-version-string FileDescription 'ASHEN VOW native campaign candidate'
 if ($LASTEXITCODE -ne 0) { throw 'Windows icon/version stamping failed.' }
-foreach ($file in @('LICENSE','docs\GODOT_LICENSE.txt','docs\THIRD_PARTY_NOTICES.txt','docs\CREDITS.txt','docs\PERFORMANCE_ASSET_LICENSE.txt')) {
+foreach ($file in @('LICENSE','docs\GODOT_LICENSE.txt','docs\THIRD_PARTY_NOTICES.txt','docs\CREDITS.txt','docs\PERFORMANCE_ASSET_LICENSE.txt','docs\COURT_ASSET_LICENSE.txt','docs\TRIAL_AUDIO_LICENSE.txt')) {
     Copy-Item -LiteralPath (Join-Path $script:RepoRoot $file) -Destination $output
 }
 Get-FileHash -LiteralPath $binary -Algorithm SHA256 | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $output 'build-hash.json')

@@ -1,0 +1,62 @@
+{
+  "commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+  "license": "CC0-1.0",
+  "author": "Versilian Studios / Sam Gossner; Ivy Audio / Simon Dalzell; sample cutting by Elan Hickler / Soundemote",
+  "source": "https://github.com/sgossner/VSCO-2-CE",
+  "files": [
+    {
+      "file": "susvib_C1_v1_1.wav",
+      "source_path": "Strings/Cello Section/susvib/susvib_C1_v1_1.wav",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/susvib/susvib_C1_v1_1.wav",
+      "sha256": "abdcea431f384e135c469b0f3e4ac2a437f282f521dc5bcbe22abc221536e8de"
+    },
+    {
+      "file": "spic_C1_v2_RR1.wav",
+      "source_path": "Strings/Cello Section/spic/spic_C1_v2_RR1.wav",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/spic/spic_C1_v2_RR1.wav",
+      "sha256": "92de035cdbfab6e41f94115b2c23716a9e93554a4c23c1cc4b946f7492d9c927"
+    },
+    {
+      "file": "spic_C1_v2_RR2.wav",
+      "source_path": "Strings/Cello Section/spic/spic_C1_v2_RR2.wav",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/spic/spic_C1_v2_RR2.wav",
+      "sha256": "3ddc16dc8f2a95c80388e20ebaa2e5a418bc66255927dd8b2b92cc0e4976f045"
+    },
+    {
+      "file": "VlnEns_susVib_D3_v1.wav",
+      "source_path": "Strings/Violin Section/susVib/VlnEns_susVib_D3_v1.wav",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Violin%20Section/susVib/VlnEns_susVib_D3_v1.wav",
+      "sha256": "583e660bc5daa4e094aef5fc014fbb92751040be8741ed7a16847306a1fe0a99"
+    },
+    {
+      "file": "MOHorn_sus_D2_v2_1.wav",
+      "source_path": "Brass/F Horn/sus/MOHorn_sus_D2_v2_1.wav",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Brass/F%20Horn/sus/MOHorn_sus_D2_v2_1.wav",
+      "sha256": "9155ef0c33c06ebe55daeaaaca7dec4090578af6cf3d6a028fbfa7b7f2ec876e"
+    },
+    {
+      "file": "LICENSE",
+      "source_path": "LICENSE",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/LICENSE",
+      "sha256": "36ffd9dc085d529a7e60e1276d73ae5a030b020313e6c5408593a6ae2af39673"
+    },
+    {
+      "file": "README.md",
+      "source_path": "README.md",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/README.md",
+      "sha256": "8fbf399338661e6c76585ad9e75eb10324f823935168e0567553293a83f200a0"
+    },
+    {
+      "file": "BDrumNewhit_v3_rr1_Sum.wav",
+      "source_path": "Percussion/BDrumNewhit_v3_rr1_Sum.wav",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Percussion/BDrumNewhit_v3_rr1_Sum.wav",
+      "sha256": "a2d8829e8b2b59e8afb12fa396b01758827059339c2a84ad066d17b36c82d1ff"
+    },
+    {
+      "file": "cymbal-crash1_pp_rr1.wav",
+      "source_path": "Percussion/cymbal-crash1_pp_rr1.wav",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Percussion/cymbal-crash1_pp_rr1.wav",
+      "sha256": "4b4f1f76ba77877a67bb5969fde058dfd57cc455f92979d96b8e051419be1a3a"
+    }
+  ]
+}

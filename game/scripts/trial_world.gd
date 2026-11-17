@@ -6,11 +6,19 @@ var won: bool=false
 var result_delay: float=-1
 var boss_bar: ProgressBar
 var boss_panel: Control
+var foley: TrialAudio
+var boss_echo: ProgressBar
+var echo_delay: float=0
+var score: TrialScore
 
 func _ready() -> void:
 	rng.seed=7251
+	ui.trial_layout(true)
 	build_court()
+	CourtArt.dress(self)
 	batch_scenery()
+	foley=TrialAudio.new(); add_child(foley)
+	score=TrialScore.new(); add_child(score)
 	hero=Fighter.new()
 	hero.player=true
 	hero.use_performance=true
@@ -39,25 +47,37 @@ func _ready() -> void:
 	coordinator=EncounterCoordinator.new()
 	coordinator.world=self
 	add_child(coordinator)
-	boss_panel=ui.panel(ui.hud,Vector2(390,580),Vector2(500,58),Color(.045,.055,.06,.7))
+	boss_panel=ui.panel(ui.hud,Vector2(370,600),Vector2(540,58),Color(.045,.055,.06,.4))
 	var column=ui.column(boss_panel,4)
 	var title=ui.text(column,"THE CINDER WARDEN",17,ui.GOLD)
 	title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	var strip=Control.new(); strip.custom_minimum_size=Vector2(500,7); column.add_child(strip)
+	boss_echo=ProgressBar.new(); strip.add_child(boss_echo)
+	boss_echo.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	boss_echo.show_percentage=false; boss_echo.value=100
+	boss_echo.add_theme_stylebox_override("fill",ui.bar_style(Color("795b45")))
+	boss_echo.add_theme_stylebox_override("background",ui.bar_style(Color("303333")))
 	boss_bar=ProgressBar.new()
-	boss_bar.custom_minimum_size=Vector2(460,7)
+	strip.add_child(boss_bar); boss_bar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	boss_bar.show_percentage=false
 	boss_bar.add_theme_stylebox_override("fill",ui.bar_style(Color("a88062")))
-	boss_bar.add_theme_stylebox_override("background",ui.bar_style(Color("303333")))
-	column.add_child(boss_bar)
+	boss_bar.add_theme_stylebox_override("background",ui.bar_style(Color.TRANSPARENT))
+	boss_bar.value=100
 	ui.help_caption.text=Preferences.prompt("{journal} Trial guide · {pause} Pause")
 
 func _exit_tree() -> void:
 	if is_instance_valid(boss_panel): boss_panel.queue_free()
+	if is_instance_valid(ui): ui.trial_layout(false)
 
 func build_court() -> void:
 	var atmosphere=WorldEnvironment.new()
 	atmosphere.environment=ArtDirection.environment("fortress")
-	atmosphere.environment.fog_density=.009
+	var panorama=PanoramaSkyMaterial.new()
+	panorama.panorama=load("res://assets/court/sunset_forest.hdr")
+	var sky=Sky.new(); sky.sky_material=panorama
+	atmosphere.environment.sky=sky
+	atmosphere.environment.background_energy_multiplier=.65
+	atmosphere.environment.fog_density=.005
 	atmosphere.environment.ambient_light_energy=.52
 	add_child(atmosphere)
 	sun=DirectionalLight3D.new()
@@ -108,17 +128,11 @@ func build_court() -> void:
 			var block=Figure.box(self,Vector3(.53,.65,.9),Vector3(cos(angle)*2.2,3+sin(angle)*2.2,side*11),Color("858b81"))
 			block.rotation.z=angle
 		for x in [-2.2,2.2]: solid_box(Vector3(.75,3,.9),Vector3(x,1.5,side*11),Color("727a72"))
-	for i in 24:
-		var angle=TAU*i/24
-		rock(Vector3(sin(angle)*rng.randf_range(18,26),-1,cos(angle)*rng.randf_range(18,26)),Vector3(5,rng.randf_range(5,12),5))
-	for i in 18:
-		var angle=TAU*i/18
-		tree(Vector3(sin(angle)*16,0,cos(angle)*16),rng.randf_range(1.0,1.7))
 
 func _process(delta: float) -> void:
 	if not Session.running or hero==null: return
 	elapsed+=delta
-	Sound.context("zone_copper_stair",not won,ui.mode!="play")
+	Sound.context("zone_copper_stair",not won,ui.mode!="play",true)
 	if result_delay>=0:
 		result_delay-=delta
 		if result_delay<0 and ui.mode=="play": ui.show_trial_result(won)
@@ -136,7 +150,13 @@ func _process(delta: float) -> void:
 		ui.objective_text.text="Defeat the Cinder Warden.\nWatch the shoulders; punish recovery."
 		ui.tutorial.text=Preferences.prompt("{light} Chain strikes · {heavy} Heavy · {guard} Guard / parry · {dodge} Roll · {lock_on} Lock")
 		ui.status.text="%d HP · %d draughts" % [hero.model.health,Session.data.heals]
-		boss_bar.value=warden.model.health/warden.model.max_health*100
+		var next_health=warden.model.health/warden.model.max_health*100
+		if next_health<boss_bar.value: echo_delay=.45
+		boss_bar.value=next_health
+		echo_delay=maxf(0,echo_delay-delta)
+		if echo_delay<=0: boss_echo.value=move_toward(boss_echo.value,next_health,delta*70)
+		ui.tutorial.modulate.a=clampf((12-elapsed)/2,0,1)
+		ui.tutorial.visible=elapsed<12
 		warden.health_bar.visible=false
 		warden.tell_ring.visible=false
 	boss_panel.visible=ui.mode=="play"

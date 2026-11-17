@@ -1,0 +1,178 @@
+{
+  "license": "CC0-1.0",
+  "publisher": "Poly Haven",
+  "license_url": "https://polyhaven.com/license",
+  "files": [
+    {
+      "file": "rock_moss_set_01/rock_moss_set_01.gltf",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/rock_moss_set_01/rock_moss_set_01_1k.gltf",
+      "bytes": 9987,
+      "sha256": "c36675aca9c6b2be7785c2534cf413b03ec82a5a2a5407a2b1c0cdb0346c9727"
+    },
+    {
+      "file": "rock_moss_set_01/textures/rock_moss_set_01_nor_gl_1k.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_moss_set_01/rock_moss_set_01_nor_gl_1k.jpg",
+      "bytes": 209975,
+      "sha256": "eb4aad3f207f1dc5b624d74ae240372171626a66912bd71adf7bd3e518181d6e"
+    },
+    {
+      "file": "rock_moss_set_01/rock_moss_set_01.bin",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/rock_moss_set_01/rock_moss_set_01.bin",
+      "bytes": 1466380,
+      "sha256": "de8360e6175879aaf02c171911069cf5f1852547f9ca7f10e440085dbcc3315e"
+    },
+    {
+      "file": "rock_moss_set_01/textures/rock_moss_set_01_rough_1k.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_moss_set_01/rock_moss_set_01_rough_1k.jpg",
+      "bytes": 82624,
+      "sha256": "4d6ec46623abd8e2cdb855f59c7ce31873ad61b36b60e4de579e9e776a497c6b"
+    },
+    {
+      "file": "rock_moss_set_01/textures/rock_moss_set_01_diff_1k.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_moss_set_01/rock_moss_set_01_diff_1k.jpg",
+      "bytes": 168099,
+      "sha256": "40cea65d8aa4ee73a93b04af19963834d061eee9779c3fc2c1cba76eef812ccc"
+    },
+    {
+      "file": "large_castle_door/large_castle_door.gltf",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/large_castle_door/large_castle_door_1k.gltf",
+      "bytes": 6111,
+      "sha256": "e43e0a7bf56cb4f37402a133ae8bed3a010120362ef1a52ff4e59b0d83b2d656"
+    },
+    {
+      "file": "large_castle_door/large_castle_door.bin",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/large_castle_door/large_castle_door.bin",
+      "bytes": 422436,
+      "sha256": "7db2eb9d2b81207a30c849ba5de0f2c25085add88e437bc69764ce792758ff76"
+    },
+    {
+      "file": "large_castle_door/textures/large_castle_door_nor_gl_1k.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/large_castle_door/large_castle_door_nor_gl_1k.jpg",
+      "bytes": 1023095,
+      "sha256": "297929524f3a2e6634543ec1c6f0278369d3649a2eba888fa3bf9caf72ab2af1"
+    },
+    {
+      "file": "large_castle_door/textures/large_castle_door_arm_1k.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/large_castle_door/large_castle_door_arm_1k.jpg",
+      "bytes": 1016111,
+      "sha256": "2b1e832840d7393ac8a4d058630f8a8378254ad56f6601da08f1135851861955"
+    },
+    {
+      "file": "large_castle_door/textures/large_castle_door_diff_1k.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/large_castle_door/large_castle_door_diff_1k.jpg",
+      "bytes": 803253,
+      "sha256": "06b9640df9702ceee23cfd042e858ca03b8c68818a691c55d4ea2a65258db97a"
+    },
+    {
+      "file": "cobblestone_floor_08/Diffuse.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/cobblestone_floor_08/cobblestone_floor_08_diff_2k.jpg",
+      "bytes": 2289909,
+      "sha256": "9aaf7db7f660f03d0c5c129c11e83caa828fb8bca63f8cd5154d450ffc4c340f"
+    },
+    {
+      "file": "cobblestone_floor_08/nor_gl.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/cobblestone_floor_08/cobblestone_floor_08_nor_gl_2k.jpg",
+      "bytes": 3948187,
+      "sha256": "42dd5fc2da4a858f9c076c9ac5002857a1c064f8f4c4ffb12fafecffb84e96cc"
+    },
+    {
+      "file": "cobblestone_floor_08/arm.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/cobblestone_floor_08/cobblestone_floor_08_arm_2k.jpg",
+      "bytes": 805558,
+      "sha256": "c963cb6e73960e0a0562a2650d13fc6a259ef57e85945ed3b47d502697df4c03"
+    },
+    {
+      "file": "castle_brick_07/Diffuse.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/castle_brick_07/castle_brick_07_diff_2k.jpg",
+      "bytes": 2532455,
+      "sha256": "d478972c2f72fba4c22d687cc7007a26a99768bde4aaab2fa619d4b42adfc1c4"
+    },
+    {
+      "file": "castle_brick_07/nor_gl.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/castle_brick_07/castle_brick_07_nor_gl_2k.jpg",
+      "bytes": 3850244,
+      "sha256": "b322696a55e0501c636167de95eb6a749b1d4f50511160615ed8f3d12aeffca7"
+    },
+    {
+      "file": "castle_brick_07/arm.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/castle_brick_07/castle_brick_07_arm_2k.jpg",
+      "bytes": 1002046,
+      "sha256": "bff3d01b0ea682689169592299770c4acf5baa7c52bd5779d161e832f5fe757c"
+    },
+    {
+      "file": "forest_ground_04/Diffuse.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/forest_ground_04/forest_ground_04_diff_2k.jpg",
+      "bytes": 4529321,
+      "sha256": "24b8aaf4c8547305d80b0e029ec365219ab1b90748d4ca5651bdc9e75bfde5e6"
+    },
+    {
+      "file": "forest_ground_04/nor_gl.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/forest_ground_04/forest_ground_04_nor_gl_2k.jpg",
+      "bytes": 5288849,
+      "sha256": "b37ac799ed410976541e0011c246fca254e74eaa3f096ae7a7d74178db5a6d9b"
+    },
+    {
+      "file": "forest_ground_04/arm.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/forest_ground_04/forest_ground_04_arm_2k.jpg",
+      "bytes": 3418726,
+      "sha256": "a6086cb5611fabcc3dd4c9ac74bcf6cf8ed5d07e136ebe51255a5a3bea9e42c6"
+    },
+    {
+      "file": "sunset_forest.hdr",
+      "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/sunset_forest_2k.hdr",
+      "bytes": 7301510,
+      "sha256": "17a84a9a9a7d355b30adbe0d587cea851d10055ced62f7aa1e1234f21bca3feb"
+    }
+  ],
+  "assets": [
+    {
+      "id": "rock_moss_set_01",
+      "title": "Rock Moss Set 01",
+      "authors": {
+        "Kless Gyzen": "All"
+      },
+      "source": "https://polyhaven.com/a/rock_moss_set_01"
+    },
+    {
+      "id": "large_castle_door",
+      "title": "Large Castle Door",
+      "authors": {
+        "Tina": "All"
+      },
+      "source": "https://polyhaven.com/a/large_castle_door"
+    },
+    {
+      "id": "cobblestone_floor_08",
+      "title": "Cobblestone Floor 08",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "source": "https://polyhaven.com/a/cobblestone_floor_08"
+    },
+    {
+      "id": "castle_brick_07",
+      "title": "Castle Brick 07",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "source": "https://polyhaven.com/a/castle_brick_07"
+    },
+    {
+      "id": "forest_ground_04",
+      "title": "Forest Ground 04",
+      "authors": {
+        "Rob Tuytel": "Photography, Processing",
+        "Rico Cilliers": "Minor adjustment"
+      },
+      "source": "https://polyhaven.com/a/forest_ground_04"
+    },
+    {
+      "id": "sunset_forest",
+      "title": "Sunset Forest",
+      "authors": {
+        "Andreas Mischok": "All"
+      },
+      "source": "https://polyhaven.com/a/sunset_forest"
+    }
+  ]
+}

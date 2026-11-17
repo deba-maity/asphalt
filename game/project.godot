@@ -31,6 +31,7 @@ lights_and_shadows/directional_shadow/size=2048
 
 [physics]
 common/physics_ticks_per_second=60
+common/physics_interpolation=true
 
 [layer_names]
 3d_physics/layer_1="Environment"

@@ -11,9 +11,13 @@ if (-not $RealTime) { $baseArgs += @('--fixed-fps',"$SimulationHz") }
 foreach ($script in @('unit_tests','campaign_logic','ui_layout','rig_tests','motion_tests')) {
     Invoke-Godot $exe ($baseArgs+@('--script',"res://tests/$script.gd")) (Join-Path $PSScriptRoot "logs\$script.log")
 }
-foreach ($mode in @('--validate-systems','--test-transitions','--test-quality','--test-trial','--test-quit-transition','--test-resume-transition')) {
+foreach ($mode in @('--validate-systems','--test-transitions','--test-quality','--test-trial','--test-motion-quality','--test-trial-combat','--test-quit-transition','--test-resume-transition')) {
     $label = $mode.TrimStart('-')
-    Invoke-Godot $exe ($baseArgs+@('--',$mode)) (Join-Path $PSScriptRoot "logs\$label.log")
+    $modeArguments = @('--',$mode)
+    if ($mode -eq '--test-trial') { $modeArguments += "--trial-hz=$SimulationHz" }
+    if ($mode -eq '--test-motion-quality') { $modeArguments += "--motion-hz=$SimulationHz" }
+    if ($mode -eq '--test-trial-combat') { $modeArguments += "--combat-hz=$SimulationHz" }
+    Invoke-Godot $exe ($baseArgs+$modeArguments) (Join-Path $PSScriptRoot "logs\$label.log")
 }
 if ($Campaign) {
     foreach ($mode in @('--campaign-play','--campaign-continue')) {

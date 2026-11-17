@@ -10,6 +10,13 @@ Verify SHA-256 using SHA256SUMS.txt from the same release. Do not disable securi
 software. Download only from the project repository chosen by its owner.
 
 PLAY
+Choose Enter the Ashen Trial for the revised duel with the Cinder Warden.
+Light attacks form a three-move chain; the finisher cuts twice. Queue the next
+strike during recovery. Guard/parry, roll and preserve stamina. Healing arrives
+when the flask reaches your mouth; getting hit interrupts it. Rematches are
+fresh duels. Trial play preserves campaign Continue.
+
+The separate story campaign retains its existing art and progression:
 New Game starts Rayan's ordinary day; replacing progress asks for confirmation.
 Follow the objective and speak to Mira, then Saren. Light/heavy attacks, guard,
 parry, dodge and stamina matter. R drinks a healing draught. Rest at shrines to
@@ -28,8 +35,10 @@ Start pause. Physical controller acceptance remains outstanding.
 SETTINGS
 Play: Story/Standard, subtitle sizes, sensitivity/inversion, reduced effects,
 optional shake. Controls: keyboard/mouse rebinding. Audio: separate volumes.
-Display: 540p/720p/900p 3D, 30/60 cap, window/fullscreen and shadows.
-Start with 720p/30. A 60 FPS cap is optional, not a performance guarantee.
+Display: 540p through 1080p 3D, 30/60/90/120 cap, off/2x/4x MSAA,
+window/fullscreen and shadows. Fresh settings use a 60 FPS cap and 2x MSAA.
+Older saved 30 FPS settings are retained; select 60 FPS to try smoother motion.
+A selected cap is not a guarantee of sustained performance on your hardware.
 
 SAVES, LOGS AND UPDATES
 Windows: %APPDATA%\AshenVow\
@@ -52,15 +61,18 @@ previous backup. Never edit or damage your only copy for testing.
 
 KNOWN LIMITS
 All six chapters and an ending are playable, but the campaign is short.
-The multi-hour goal is unmet. Stylized hard-jointed art/animation and synthesized
-audio need human acceptance. Full rendered review, physical inputs and the
-Ryzen 5 5500U laptop benchmark remain untested. Headless tests are not FPS proof.
+The trial uses stylized skinned characters and authored animation, with new
+cloth, camera, textured scenery, foley and an adaptive orchestral score. It does
+not attain AAA franchise quality. Full rendered/audio review, physical inputs
+and Ryzen 5 5500U laptop performance remain untested. Headless checks are not
+FPS proof. The older campaign is short; a multi-hour story remains out of scope.
 
 REPORT AN ISSUE
 Use the Issues page of the owner's actual project repository when published.
 Include BUILD.json, chapter/objective/checkpoint, steps, Windows/GPU/driver,
 settings, logs and a backed-up save if relevant. Do not include personal files.
-Until a repository is configured, share those diagnostics directly with the owner.
+Repository: https://github.com/deba-maity/asphalt (ashen-vow branch).
 
 Credits and licenses: CREDITS.txt, LICENSE, GODOT_LICENSE.txt,
+PERFORMANCE_ASSET_LICENSE.txt, COURT_ASSET_LICENSE.txt, TRIAL_AUDIO_LICENSE.txt,
 THIRD_PARTY_NOTICES.txt. Working title; no trademark clearance claimed.

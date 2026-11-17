@@ -1,3 +1,10 @@
 # Godot rewrites these settings with LF during import. Keep fresh Windows
 # checkouts clean even when the user's global core.autocrlf is true.
 *.import text eol=lf
+
+# Publisher source bytes are SHA-pinned. Windows checkout must not rewrite them.
+game/assets/court/**/*.gltf -text
+game/assets/trial_audio/*LICENSE.txt -text -whitespace
+
+# Test transcripts are normalized on capture; keep portable evidence stable.
+docs/evidence/motion-amplification/*.log text eol=lf
