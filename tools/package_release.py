@@ -1,6 +1,7 @@
 """Portable, deterministic ZIP creation and artifact-derived release data (stdlib)."""
 from pathlib import Path
 import argparse, datetime as dt, hashlib, json, os, subprocess, zipfile
+from source_identity import runtime_fingerprint, verify_candidate
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -22,6 +23,12 @@ def main():
     version=config['version']; commit=git('rev-parse','HEAD')
     dirty=bool(git('status','--porcelain'))
     if dirty: raise SystemExit('Commit source changes before packaging. The source archive must match the exact clean build checkout.')
+    identity_path=args.binary_dir/'build-identity.json'
+    if not identity_path.is_file(): raise SystemExit('Missing executable build identity. Rebuild with the current tools/build.ps1.')
+    build=json.loads(identity_path.read_text(encoding='utf-8'))
+    fingerprint=runtime_fingerprint()
+    try: verify_candidate(args.binary_dir/'AshenVow.exe',build,tests,commit,fingerprint,version)
+    except ValueError as error: raise SystemExit(str(error)) from error
     epoch=int(os.environ.get('SOURCE_DATE_EPOCH',int(dt.datetime.now(dt.timezone.utc).timestamp())))
     date=dt.datetime.fromtimestamp(epoch,dt.timezone.utc).isoformat()
     output=(args.output or ROOT/'exports/releases'/('v'+version)).resolve()
@@ -31,7 +38,7 @@ def main():
     if any(output.iterdir()): raise SystemExit(f'{output} is not empty. Choose a new output directory; existing candidates/releases are never silently replaced.')
     for name in ['AshenVow.exe','LICENSE','GODOT_LICENSE.txt','THIRD_PARTY_NOTICES.txt','CREDITS.txt','PERFORMANCE_ASSET_LICENSE.txt','COURT_ASSET_LICENSE.txt','TRIAL_AUDIO_LICENSE.txt']:
         if not (args.binary_dir/name).is_file(): raise SystemExit('Required package file missing: '+name)
-    identity={'version':version,'source_commit':commit,'source_dirty':dirty,'build_date_utc':date,'engine':pin['version'],'platform':'windows','architecture':'x86_64','status':'candidate','signature':'signed' if args.signed else 'unsigned','source_headless_tests':'passed','rendered_target_laptop_tests':'not_run'}
+    identity={'version':version,'source_commit':commit,'source_dirty':dirty,'runtime_sha256':fingerprint,'binary_sha256':build['binary_sha256'],'build_date_utc':date,'engine':pin['version'],'platform':'windows','architecture':'x86_64','status':'candidate','signature':'signed' if args.signed else 'unsigned','source_headless_tests':'passed','rendered_target_laptop_tests':'not_run'}
     player=(ROOT/'docs/PLAYER_README.txt').read_text(encoding='utf-8').replace('{VERSION}',version)
     entries={name:(args.binary_dir/name).read_bytes() for name in ['AshenVow.exe','LICENSE','GODOT_LICENSE.txt','THIRD_PARTY_NOTICES.txt','CREDITS.txt','PERFORMANCE_ASSET_LICENSE.txt','COURT_ASSET_LICENSE.txt','TRIAL_AUDIO_LICENSE.txt']}
     entries['README.txt']=player.encode('utf-8')

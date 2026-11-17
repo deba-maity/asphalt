@@ -36,6 +36,7 @@ func _ready() -> void:
 	elif "--test-trial-combat" in args: script="res://tests/trial_combat_tests.gd"
 	elif "--test-trial-duel" in args: script="res://tests/trial_duel_tests.gd"
 	elif "--test-trial-presentation" in args: script="res://tests/trial_presentation_tests.gd"
+	elif "--test-audit" in args: script="res://tests/audit_tests.gd"
 	elif "--test-endurance" in args: script="res://tests/trial_endurance.gd"
 	elif "--test-trial" in args: script="res://tests/trial_tests.gd"
 	elif "--test-quality" in args: script="res://tests/quality_tests.gd"

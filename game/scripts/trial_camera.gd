@@ -64,6 +64,7 @@ func impact(direction: float, heavy: bool=false) -> void:
 	impact_velocity=(impact_velocity+Vector2(clampf(direction,-1,1)*.65,.55)*strength).limit_length(2)
 
 func step_impact(delta: float) -> void:
+	if not is_finite(delta) or delta<0: return
 	if not Preferences.camera_shake:
 		impact_offset=Vector2.ZERO; impact_velocity=Vector2.ZERO
 		return

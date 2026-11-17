@@ -20,6 +20,15 @@ func reset() -> void:
 	planted.clear()
 	previous_heights.clear()
 	previous_positions.clear()
+	cooldowns.clear()
+
+func lose_contact(side: String) -> void:
+	anchors.erase(side)
+	planted.erase(side)
+	weights.erase(side)
+	previous_heights.erase(side)
+	previous_positions.erase(side)
+	cooldowns[side]=.10
 
 func rotate_bone_toward(rig: Skeleton3D, bone: int, from: Vector3, to: Vector3) -> void:
 	if from.length()<.0001 or to.length()<.0001: return
@@ -66,7 +75,7 @@ func apply(rig: Skeleton3D, actor: CharacterBody3D, state: String, speed: float)
 		var query=PhysicsRayQueryParameters3D.create(position+Vector3.UP*.45,position-Vector3.UP*.55,1)
 		query.exclude=[actor.get_rid()]
 		var hit=actor.get_world_3d().direct_space_state.intersect_ray(query)
-		if hit.is_empty(): anchors.erase(side); continue
+		if hit.is_empty(): lose_contact(side); continue
 		var ground: Vector3=hit.position+Vector3.UP*.025
 		var height=position.y-ground.y
 		var rising=(height-float(previous_heights.get(side,height)))/maxf(.001,delta)

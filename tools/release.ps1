@@ -6,8 +6,7 @@ $config=Get-Content -LiteralPath (Join-Path $script:RepoRoot 'release-config.jso
 if (-not $OutputDirectory) { $OutputDirectory=Join-Path $script:RepoRoot "exports\releases\v$($config.version)" }
 & (Join-Path $PSScriptRoot 'test.ps1') -GodotPath $exe -Campaign
 if ($LASTEXITCODE -ne 0) { throw 'Source checks failed.' }
-$testsFile=Join-Path $PSScriptRoot 'logs\release-source-tests.json'
-@{status='passed'; scope='headless automated suite and full campaign; visual and target-laptop tests not run'} | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath $testsFile
+$testsFile=Join-Path $PSScriptRoot 'logs\source-tests-60.json'
 & (Join-Path $PSScriptRoot 'build.ps1') -GodotPath $exe -TemplateDirectory $TemplateDirectory
 $binary=Join-Path $script:RepoRoot 'exports\windows\AshenVow.exe'
 $signed=$false
@@ -17,6 +16,8 @@ if ($SigningThumbprint) {
     $result=Set-AuthenticodeSignature -FilePath $binary -Certificate $certificate -HashAlgorithm SHA256 -TimestampServer $TimestampUrl
     if ($result.Status -ne 'Valid') { throw "Signing did not validate: $($result.Status)" }
     $signed=$true
+    & python (Join-Path $PSScriptRoot 'source_identity.py') build $binary (Join-Path $script:RepoRoot 'exports\windows\build-identity.json')
+    if ($LASTEXITCODE -ne 0) { throw 'Signed binary identity recording failed.' }
 }
 $packageArgs=@((Join-Path $PSScriptRoot 'package_release.py'),'--output',$OutputDirectory,'--source-tests',$testsFile)
 if ($signed) { $packageArgs+='--signed' }

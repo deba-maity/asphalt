@@ -23,6 +23,8 @@ for artifact in data['artifacts']:
         if artifact['kind']=='source': assert archive.comment.decode('ascii')==data['source_commit'],'Source ZIP commit mismatch'
         if artifact['kind']=='windows-portable':
             build=json.loads(archive.read(next(n for n in archive.namelist() if n.endswith('/BUILD.json'))))
-            for key in ['version','source_commit','source_dirty','build_date_utc','engine','platform','architecture','status','signature']:
+            for key in ['version','source_commit','source_dirty','runtime_sha256','binary_sha256','build_date_utc','engine','platform','architecture','status','signature']:
                 assert build[key]==data[key],'Embedded build identity mismatch: '+key
+            binary=archive.read(next(n for n in archive.namelist() if n.endswith('/AshenVow.exe')))
+            assert hashlib.sha256(binary).hexdigest()==data['binary_sha256'],'Packaged executable identity mismatch'
 print('PASS: coherent candidate, clean source, final upload checksums and ZIP CRCs.')

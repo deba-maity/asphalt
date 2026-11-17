@@ -2,6 +2,7 @@ class_name SaveStore
 extends RefCounted
 
 const SCHEMA = 2
+const MAX_SAVE_BYTES=1024*1024
 var directory: String
 var last_error: String = ""
 
@@ -18,6 +19,8 @@ static func valid(d: Variant) -> bool:
 	for key in fresh():
 		if not d.has(key):
 			return false
+	for key in ["schema","currency","max_health","heals","max_heals","story_deaths","resurrections"]:
+		if not (d[key] is int or d[key] is float) or not is_finite(float(d[key])) or float(d[key])!=floorf(float(d[key])): return false
 	if not d.chapter is String or not d.zone is String or not d.checkpoint is String or not d.flags is Dictionary or not d.unlocks is Array: return false
 	if d.schema != SCHEMA or not Campaign.location_valid(d):
 		return false
@@ -36,16 +39,21 @@ static func valid(d: Variant) -> bool:
 	for key in ["currency","max_health","heals","playtime","health","resolve","max_heals"]:
 		if not (d[key] is int or d[key] is float) or not is_finite(float(d[key])):
 			return false
-	if d.currency < 0 or d.currency > 1000000 or d.max_health < 1 or d.max_health > 500 or d.health < 0 or d.health > d.max_health or d.heals < 0 or d.heals > 20 or d.playtime < 0:
+	if d.currency < 0 or d.currency > 1000000 or d.max_health < 1 or d.max_health > 500 or d.health < 0 or d.health > d.max_health or d.heals < 0 or d.heals > d.max_heals or d.playtime < 0:
 		return false
 	if d.resolve < 0 or d.resolve > 3 or (d.max_heals != 3 and d.max_heals != 4) or (d.ending and (number != 6 or not d.flags.get("campaign_complete",false))) or (d.credits and not d.ending): return false
+	if d.flags.size()>1024: return false
 	for key in d.flags:
 		if not (key is String or key is StringName) or not d.flags[key] is bool:
 			return false
+		if str(key).length()>128: return false
 	for list in [d.purchases,d.unlocks,d.rewards,d.bosses,d.completed_chapters]:
+		if list.size()>256: return false
+		var seen={}
 		for id in list:
-			if not id is String:
+			if not id is String or id.length()>128 or seen.has(id):
 				return false
+			seen[id]=true
 	for id in d.completed_chapters:
 		if Campaign.chapter(id).is_empty(): return false
 	return true
@@ -58,7 +66,7 @@ func raw_file(path: String) -> Variant:
 	if not FileAccess.file_exists(path):
 		return null
 	var file = FileAccess.open(path, FileAccess.READ)
-	if file == null or file.get_length() > 1024 * 1024:
+	if file == null or file.get_length() > MAX_SAVE_BYTES:
 		return null
 	var parser = JSON.new()
 	if parser.parse(file.get_as_text()) != OK:
@@ -109,6 +117,10 @@ func write(data: Dictionary) -> bool:
 	if not valid(data):
 		last_error = "Refused invalid progress data."
 		return false
+	var serialized=JSON.stringify(data,"\t")
+	if serialized.to_utf8_buffer().size()>MAX_SAVE_BYTES:
+		last_error="Progress data exceeds the save size limit."
+		return false
 	var primary = directory + "progress.json"
 	var backup = directory + "progress.backup.json"
 	var temporary = directory + "progress.tmp"
@@ -116,7 +128,7 @@ func write(data: Dictionary) -> bool:
 	if file == null:
 		last_error = "Could not open save temporary file."
 		return false
-	file.store_string(JSON.stringify(data, "\t"))
+	file.store_string(serialized)
 	file.flush()
 	file.close()
 	if read_file(temporary) == null:

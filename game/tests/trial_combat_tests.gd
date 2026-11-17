@@ -38,6 +38,7 @@ func run() -> void:
 	var rules=CombatModel.new(); PerformanceMotion.configure(rules)
 	rules.start_attack("trial_finish")
 	check(not rules.claim_swept_hit(1,.1) and not rules.claim_swept_hit(1,.4),"Swept contacts cannot damage during windup or between finisher cuts")
+	rules.elapsed=.7
 	check(rules.claim_swept_hit(1,.2) and not rules.claim_swept_hit(1,.21) and rules.claim_swept_hit(1,.65),"Swept contacts retain separate once-only finisher windows")
 	rules.state="hit"
 	check(not rules.claim_swept_hit(2,.2),"An interrupted attacker cannot claim a swept hit")

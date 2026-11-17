@@ -129,41 +129,85 @@ func _joy_changed(_device: int, connected: bool) -> void:
 	# Removed device events are also cleared by Godot. A disconnected device is
 	# ignored for direct-axis fallbacks; keyboard/mouse remain available.
 
+const MAX_SETTINGS_BYTES=65536
+
+static func number_setting(c: ConfigFile, section: String, key: String, fallback: float, minimum: float, maximum: float) -> float:
+	var value=c.get_value(section,key,fallback)
+	if not (value is int or value is float) or not is_finite(float(value)): return fallback
+	return clampf(float(value),minimum,maximum)
+
+static func integer_setting(c: ConfigFile, section: String, key: String, fallback: int) -> int:
+	var value=c.get_value(section,key,fallback)
+	if not (value is int or value is float) or not is_finite(float(value)) or float(value)!=floorf(float(value)) or absf(float(value))>2147483647: return fallback
+	return int(value)
+
+static func boolean_setting(c: ConfigFile, section: String, key: String, fallback: bool) -> bool:
+	var value=c.get_value(section,key,fallback)
+	return value if value is bool else fallback
+
+static func read_scalar_settings(text: String) -> ConfigFile:
+	# ConfigFile's general Variant parser can instantiate Object/Resource values.
+	# Preferences only need scalar literals. Preserve the existing generated INI
+	# format, but never pass user-writable text to that object-capable parser.
+	var result=ConfigFile.new(); var section=""
+	for raw in text.trim_prefix("\uFEFF").split("\n"):
+		var line=raw.strip_edges()
+		if line.is_empty() or line.begins_with(";") or line.begins_with("#"): continue
+		if line.begins_with("["):
+			if not line.ends_with("]"): return null
+			section=line.substr(1,line.length()-2).strip_edges()
+			continue
+		if section not in ["input","audio","video","streaming","access","bindings"]: continue
+		var equals=line.find("=")
+		if equals<=0: continue
+		var key=line.left(equals).strip_edges(); var literal=line.substr(equals+1).strip_edges()
+		if literal=="true" or literal=="false": result.set_value(section,key,literal=="true")
+		elif literal.begins_with("\""):
+			var value=JSON.parse_string(literal)
+			if value is String: result.set_value(section,key,value)
+		elif literal.is_valid_float(): result.set_value(section,key,literal.to_float())
+		# Composite, object, resource and non-finite literals are ignored. The
+		# typed getters below then supply the documented default for that key.
+	return result
+
 func load_settings(path: String="") -> bool:
 	if path.is_empty(): path=settings_path
-	var c=ConfigFile.new()
-	if c.load(path)!=OK: return false
-	sensitivity=clampf(float(c.get_value("input","sensitivity",.003)),.001,.009)
-	invert=bool(c.get_value("input","invert",false))
-	for key in ["volume","music_volume","effects_volume","ambient_volume"]: set(key,clampf(float(c.get_value("audio",key,get(key))),0,1))
-	shadows=bool(c.get_value("video","shadows",true))
-	low_memory=bool(c.get_value("streaming","low_memory",true))
-	speculative_mb=clampi(int(c.get_value("streaming","speculative_mb",24)),4,128)
-	difficulty=str(c.get_value("access","difficulty","standard"))
-	if difficulty not in ["story","standard"]: difficulty="standard"
-	subtitle_size=int(c.get_value("access","subtitle_size",23))
+	var file=FileAccess.open(path,FileAccess.READ)
+	if file==null or file.get_length()>MAX_SETTINGS_BYTES: return false
+	var bytes=file.get_buffer(MAX_SETTINGS_BYTES+1); file.close()
+	if bytes.size()>MAX_SETTINGS_BYTES: return false
+	var c=read_scalar_settings(bytes.get_string_from_utf8())
+	if c==null: return false
+	sensitivity=number_setting(c,"input","sensitivity",.003,.001,.009)
+	invert=boolean_setting(c,"input","invert",false)
+	for item in [["volume",.55],["music_volume",.45],["effects_volume",.75],["ambient_volume",.6]]:
+		set(item[0],number_setting(c,"audio",item[0],item[1],0,1))
+	shadows=boolean_setting(c,"video","shadows",true)
+	low_memory=boolean_setting(c,"streaming","low_memory",true)
+	speculative_mb=clampi(integer_setting(c,"streaming","speculative_mb",24),4,128)
+	var saved_difficulty=c.get_value("access","difficulty","standard")
+	difficulty=saved_difficulty if saved_difficulty is String and saved_difficulty in ["story","standard"] else "standard"
+	subtitle_size=integer_setting(c,"access","subtitle_size",23)
 	if subtitle_size not in [23,27,31]: subtitle_size=23
-	camera_shake=bool(c.get_value("access","camera_shake",false))
-	reduced_effects=bool(c.get_value("access","reduced_effects",false))
-	fps_cap=int(c.get_value("video","fps_cap",60))
+	camera_shake=boolean_setting(c,"access","camera_shake",false)
+	reduced_effects=boolean_setting(c,"access","reduced_effects",false)
+	fps_cap=integer_setting(c,"video","fps_cap",60)
 	if fps_cap not in [30,60,90,120]: fps_cap=60
-	render_height=int(c.get_value("video","render_height",720))
+	render_height=integer_setting(c,"video","render_height",720)
 	if render_height not in [540,720,900,1080]: render_height=720
-	antialiasing=int(c.get_value("video","antialiasing",2))
+	antialiasing=integer_setting(c,"video","antialiasing",2)
 	if antialiasing not in [0,2,4]: antialiasing=2
-	window_height=int(c.get_value("video","window_height",720))
+	window_height=integer_setting(c,"video","window_height",720)
 	if window_height not in [720,900,1080]: window_height=720
-	fullscreen=bool(c.get_value("video","fullscreen",false))
+	fullscreen=boolean_setting(c,"video","fullscreen",false)
 	bindings=BINDINGS.duplicate()
 	for action in BINDINGS:
 		if action=="pause": continue
-		var code=int(c.get_value("bindings",action,BINDINGS[action]))
-		# Validate the complete map before applying, then fall back on collisions.
-		bindings[action]=code
+		bindings[action]=integer_setting(c,"bindings",action,BINDINGS[action])
 	var unique={}
 	for action in bindings:
 		var code: int=bindings[action]
-		if unique.has(code) or code==0 or code < -2 or code in [KEY_F8,KEY_F9] or (code==KEY_ESCAPE and action!="pause"):
+		if unique.has(code) or code==0 or code < -2 or code>KEY_SPECIAL+10000 or code in [KEY_F8,KEY_F9] or (code==KEY_ESCAPE and action!="pause"):
 			bindings=BINDINGS.duplicate(); break
 		unique[code]=true
 	return true

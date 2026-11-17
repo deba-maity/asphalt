@@ -49,7 +49,7 @@ func mark(id: String) -> void:
 	save()
 
 func reward(id: String, amount: int) -> bool:
-	if id in data.rewards:
+	if id.is_empty() or amount<0 or id in data.rewards:
 		return false
 	data.rewards.append(id)
 	data.currency += amount
@@ -58,7 +58,7 @@ func reward(id: String, amount: int) -> bool:
 	return true
 
 func purchase(id: String, cost: int) -> bool:
-	if id in data.purchases or data.currency < cost:
+	if id.is_empty() or cost<0 or id in data.purchases or data.currency < cost:
 		return false
 	data.currency -= cost
 	data.purchases.append(id)

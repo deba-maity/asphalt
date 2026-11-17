@@ -34,6 +34,7 @@ func can_begin() -> bool:
 	return state == "idle" or state == "guard"
 
 func spend(amount: float) -> bool:
+	if not is_finite(amount) or amount<0 or not is_finite(stamina): return false
 	if stamina + 0.001 < amount:
 		return false
 	stamina = maxf(0, stamina - amount)
@@ -111,7 +112,7 @@ func claim_hit(target_id: int) -> bool:
 # Sweeps can cross the end of a damage window between physics ticks. Validate
 # the actual contact time instead of dropping the final fraction of that cut.
 func claim_swept_hit(target_id: int, contact_time: float) -> bool:
-	if state!="attack": return false
+	if state!="attack" or not is_finite(contact_time) or contact_time<0 or contact_time>elapsed+.0001: return false
 	var window=-1
 	if attack.has("hit_windows"):
 		var clip_time=contact_time*float(attack.get("rate",1.0))-float(attack.get("lead_in",0))
@@ -132,6 +133,7 @@ func invulnerable() -> bool:
 
 func receive(amount: float, in_front: bool = true, armored: bool = false, rules: Dictionary = {}) -> String:
 	last_guard_broken=false
+	if not is_finite(amount) or amount<=0: return "ignored"
 	if state in ["dead", "talk", "transition"]:
 		return "ignored"
 	if invulnerable() and rules.get("dodgeable",true):
@@ -164,6 +166,7 @@ func receive(amount: float, in_front: bool = true, armored: bool = false, rules:
 	return "hit"
 
 func tick(delta: float) -> void:
+	if not is_finite(delta) or delta<=0: return
 	elapsed += delta
 	parry_rearm=maxf(0,parry_rearm-delta)
 	if state!="heal": heal_pending=false

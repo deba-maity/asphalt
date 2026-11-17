@@ -25,4 +25,6 @@ foreach ($file in @('LICENSE','docs\GODOT_LICENSE.txt','docs\THIRD_PARTY_NOTICES
     Copy-Item -LiteralPath (Join-Path $script:RepoRoot $file) -Destination $output
 }
 Get-FileHash -LiteralPath $binary -Algorithm SHA256 | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath (Join-Path $output 'build-hash.json')
+& python (Join-Path $PSScriptRoot 'source_identity.py') build $binary (Join-Path $output 'build-identity.json')
+if ($LASTEXITCODE -ne 0) { throw 'Build source identity recording failed.' }
 Write-Output "Built $binary ($($config.version), unsigned)."
