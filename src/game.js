@@ -547,6 +547,7 @@ export class Game {
     this.lastFrameTime = 0;
     this.lastSimulationTime = 0;
     this.clock.reset();
+    this.lastNetwork = 0;
     this.cameraReady = false;
     this.cameraVelocity.set(0, 0, 0);
 

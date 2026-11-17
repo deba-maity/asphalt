@@ -170,7 +170,6 @@ export class UI {
     if (action === "settings") this.showSettings();
     if (action === "back") this.showHome();
     if (action === "rematch") {
-      this.layer.innerHTML = "";
       this.start();
     }
     if (action === "resume") this.game.togglePause();
@@ -407,6 +406,7 @@ export class UI {
         return; // All clients start from the same server acknowledgement.
       }
     }
+    this.releaseDriving?.();
     this.game.clearPreview();
     this.layer.innerHTML = "";
     this.hud.hidden = false;
@@ -424,6 +424,7 @@ export class UI {
     if (this.networked) this.game.setRemotePlayers(this.network.players);
   }
   exitToHome() {
+    this.releaseDriving?.();
     this.game.stop();
     this.root.querySelector(".pause-overlay")?.remove();
     this.network.close();
@@ -482,9 +483,21 @@ export class UI {
       const button = held.get(e.pointerId);
       if (!button) return;
       held.delete(e.pointerId);
+      if ([...held.values()].includes(button)) return;
       button.classList.remove("held");
       this.game.touch[button.dataset.drive] = false;
     };
+    this.releaseDriving = () => {
+      for (const button of held.values()) {
+        button.classList.remove("held");
+        this.game.touch[button.dataset.drive] = false;
+      }
+      held.clear();
+    };
+    addEventListener("blur", this.releaseDriving);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) this.releaseDriving();
+    });
     this.root.addEventListener("pointerdown", (e) => {
       const button = e.target.closest("[data-drive]");
       if (!button || !this.game.running || this.game.paused) return;
@@ -637,9 +650,11 @@ export class UI {
     }
   }
   result(data) {
+    this.releaseDriving?.();
     this.layer.innerHTML = `<section class="result screen"><p>OPERATION COMPLETE</p><h1>${esc(data.title)}</h1><div class="result-time">${time(data.time)}</div><span>${data.best ? `BEST ${time(data.best)} // ` : ""}${esc(data.mode).toUpperCase()}</span><div><button class="primary" data-action="rematch">RUN IT BACK <i>→</i></button><button data-action="home">MAIN MENU</button></div></section>`;
   }
   pause(paused) {
+    this.releaseDriving?.();
     if (!paused) {
       this.root.querySelector(".pause-overlay")?.remove();
       return;

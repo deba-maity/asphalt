@@ -16,3 +16,30 @@ test('lobby names and vehicle labels escape markup; color cannot inject style at
   assert(!html.includes('<img'));assert(!html.includes('<script>'));assert(!html.includes('position:fixed'));
   assert(html.includes('&lt;img'));assert(html.includes('--color:#ffffff'));
 });
+
+test('failed replacement and deletion take priority over stale stored values',()=>{
+  const descriptor=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
+  const disk=new Map([['quota-setting','old']]);let writable=false;
+  Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{
+    getItem(key){return disk.get(key)??null;},
+    setItem(key,value){if(!writable)throw Error('Full');disk.set(key,value);},
+    removeItem(key){if(!writable)throw Error('Blocked');disk.delete(key);},
+  }});
+  try{
+    assert.equal(storage.getItem('quota-setting'),'old');
+    storage.setItem('quota-setting','new');assert.equal(storage.getItem('quota-setting'),'new');
+    assert.equal(disk.get('quota-setting'),'old');
+    storage.removeItem('quota-setting');assert.equal(storage.getItem('quota-setting'),null);
+    writable=true;storage.setItem('quota-setting','recovered');
+    assert.equal(storage.getItem('quota-setting'),'recovered');
+    disk.set('quota-setting','another-tab');assert.equal(storage.getItem('quota-setting'),'another-tab');
+    storage.removeItem('quota-setting');assert.equal(storage.getItem('quota-setting'),null);
+  }finally{if(descriptor)Object.defineProperty(globalThis,'localStorage',descriptor);else delete globalThis.localStorage;}
+});
+
+test('a guest rematch keeps the result visible while waiting for the host',()=>{
+  let requested=false;
+  const ui={layer:{innerHTML:'Existing race result'},start(){requested=true;}};
+  UI.prototype.action.call(ui,'rematch',{});
+  assert(requested);assert.equal(ui.layer.innerHTML,'Existing race result');
+});

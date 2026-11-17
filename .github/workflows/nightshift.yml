@@ -24,4 +24,5 @@ jobs:
       - run: npm run test:smoke
       - run: node scripts/visual-contracts.mjs
       - run: node scripts/network-browser.mjs
+      - run: node scripts/network-race.mjs
       - run: node scripts/production-smoke.mjs

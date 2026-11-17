@@ -11,6 +11,9 @@ import {chromium} from 'playwright';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const seconds=Number(process.argv[2]||3600),label=process.argv[3]||new Date().toISOString().replace(/[:.]/g,'-');
 if(!Number.isInteger(seconds)||seconds<60||seconds>10800||!/^[\w-]+$/.test(label))throw Error('Usage: node scripts/endurance.mjs SECONDS LABEL');
+const port=Number(process.env.ENDURANCE_PORT||5181);
+if(!Number.isInteger(port)||port<1024||port>45000)throw Error('Invalid endurance port');
+const url=`http://127.0.0.1:${port}`;
 const output=path.join(root,'artifacts/endurance',label),snapshot=path.join(output,'source');
 try{await access(output);throw Error('Choose a new label; previous evidence is preserved');}catch(e){if(e.code!=='ENOENT')throw e;}
 await mkdir(snapshot,{recursive:true});
@@ -26,18 +29,18 @@ for(const name of ['src','server','public','server.js','vite.config.js','index.h
 await symlink(path.join(root,'node_modules'),path.join(snapshot,'node_modules'),process.platform==='win32'?'junction':'dir');
 const manifest={label,requested_seconds:seconds,source_files:files,scope:'Frozen source; explicitly stepped headless simulation; software graphics at checkpoints; not native GPU/FPS/temperature or subjective play testing'};
 await writeFile(path.join(output,'source.json'),JSON.stringify(manifest,null,2));
-const server=spawn(process.execPath,['server.js'],{cwd:snapshot,env:{...process.env,PORT:'5181',HMR_PORT:'24686',VITE_CACHE_DIR:path.join(root,'node_modules/.vite-endurance')},stdio:'ignore',windowsHide:true});
+const server=spawn(process.execPath,['server.js'],{cwd:snapshot,env:{...process.env,PORT:String(port),HMR_PORT:String(port+19505),VITE_CACHE_DIR:path.join(root,`node_modules/.vite-endurance-${port}`)},stdio:'ignore',windowsHide:true});
 let browser,report={...manifest,records:[],errors:[],result:'running'};
 const save=()=>writeFile(path.join(output,'report.json'),JSON.stringify(report,null,2));
 try {
   let ready=false;
-  for(let i=0;i<300;i++){try{if((await fetch('http://127.0.0.1:5181')).ok){ready=true;break;}}catch{}await delay(100);}
+  for(let i=0;i<300;i++){try{if((await fetch(url)).ok){ready=true;break;}}catch{}await delay(100);}
   if(!ready)throw Error('Frozen server did not start');
   browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
   const page=await browser.newPage({viewport:{width:960,height:600}});
   page.on('pageerror',error=>report.errors.push(error.message));
   page.on('console',message=>{if(message.type()==='error')report.errors.push(message.text());});
-  await page.goto('http://127.0.0.1:5181',{timeout:90000});
+  await page.goto(url,{timeout:90000});
   await page.waitForFunction(()=>window.__nightshift,null,{timeout:90000});
   await page.evaluate(async()=>{
     const {maps,modes,vehicles}=await import('/src/data.js');

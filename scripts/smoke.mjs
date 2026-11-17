@@ -117,7 +117,7 @@ try {
     "City draw calls remain within the mobile scene budget",
   );
   await page.keyboard.down("w");
-  await page.waitForTimeout(300);
+  await page.waitForFunction(() => window.__nightshift.game.player.speed > 0);
   await page.keyboard.up("w");
   assert(
     await page.evaluate(() => window.__nightshift.game.player.speed > 0),
@@ -174,6 +174,17 @@ try {
     return vehicles.length;
   });
   assert(fleet >= 23, "All fleet models are available");
+  const rematchPositions=await page.evaluate(async()=>{
+    const {game:g,ui}=window.__nightshift;
+    let sent=0;
+    const network={position(){sent++;},send(){}};
+    const config={mode:ui.mode,map:ui.map,vehicle:ui.vehicle,color:ui.color,difficulty:'easy',network};
+    g.lastNetwork=180; // Previous race's simulation clock.
+    await g.start(config);cancelAnimationFrame(g.animationFrame);g.phase='play';
+    for(let i=0;i<60;i++)g.simulate(1/60);
+    return sent;
+  });
+  assert(rematchPositions>=15 && rematchPositions<=21,'A rematch immediately resumes regular LAN position updates');
   await page.evaluate(() => window.__nightshift.ui.exitToHome());
   assert.equal(await page.locator(".pause-overlay").count(), 0);
   await page.close();
@@ -246,6 +257,15 @@ try {
     ),
     "Touch release clears held inputs",
   );
+  const sameLeft=[point(left,3),{...point(left,4),x:left.x+left.width*.65}];
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:sameLeft});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[sameLeft[1]]});
+  assert(await mobile.evaluate(()=>window.__nightshift.game.touch.KeyA),'The remaining finger keeps its control held');
+  await mobile.evaluate(()=>window.__nightshift.game.togglePause());
+  assert.equal(await mobile.locator('[data-drive].held').count(),0,'Pause clears the held appearance');
+  assert(await mobile.evaluate(()=>!window.__nightshift.game.touch.KeyA),'Pause releases touch input');
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await mobile.evaluate(()=>window.__nightshift.game.togglePause());
   await mobile.setViewportSize({ width: 390, height: 844 });
   assert.equal(
     await mobile.evaluate(() => document.documentElement.scrollWidth),
