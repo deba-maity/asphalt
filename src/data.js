@@ -603,13 +603,13 @@ export const modes = [
     detail: "Outrun the heat. Reach extraction.",
   },
   {
-    id: "versus",
-    title: "Police vs Thief",
-    detail: "LAN lobby role pursuit.",
+    id: "sprint",
+    title: "Sprint",
+    detail: "One lap against the field. Make it count.",
   },
   {
-    id: "friend",
-    title: "Friend Chase",
-    detail: "Catch or escape before time runs out.",
+    id: "cruise",
+    title: "Free Drive",
+    detail: "Explore the route at your own pace. No finish line.",
   },
 ];

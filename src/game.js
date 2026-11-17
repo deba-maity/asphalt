@@ -646,7 +646,7 @@ export class Game {
 
     this.actors.push(this.player);
 
-    if (config.mode.id === "race") {
+    if (["race", "sprint"].includes(config.mode.id)) {
       for (let i = 0; i < Math.min(5, config.aiCount || 5); i++) {
         this.spawnAI(i, "race");
       }
@@ -1178,7 +1178,7 @@ export class Game {
       if (hit === 0) {
         a.lap++;
 
-        if (this.config.mode.id === "race" && a.lap >= 3) {
+        if (["race", "sprint"].includes(this.config.mode.id) && a.lap >= (this.config.mode.id === "race" ? 3 : 1)) {
           this.finish(`${a.name} WINS`);
         }
       }
@@ -1305,7 +1305,7 @@ export class Game {
       if (hit === 0) {
         p.lap++;
 
-        if (this.config.mode.id === "race" && p.lap >= 3) {
+        if (["race", "sprint"].includes(this.config.mode.id) && p.lap >= (this.config.mode.id === "race" ? 3 : 1)) {
           this.finish("FIRST PLACE");
         }
 
@@ -1313,7 +1313,7 @@ export class Game {
           this.finish("TIME RECORDED");
         }
 
-        if (["escape", "versus", "friend"].includes(this.config.mode.id)) {
+        if (this.config.mode.id === "escape") {
           this.finish("ESCAPED THE HEAT");
         }
       }
@@ -1692,9 +1692,7 @@ export class Game {
   hudState() {
     const p = this.player;
 
-    const pursuit = ["escape", "versus", "friend"].includes(
-      this.config.mode.id,
-    );
+    const pursuit = this.config.mode.id === "escape";
 
     const rank =
       1 +
@@ -1723,11 +1721,7 @@ export class Game {
 
       time: this.elapsed,
 
-      wanted: pursuit
-        ? this.config.mode.id === "escape"
-          ? this.heat
-          : Math.max(1, Math.ceil((100 - p.health) / 20) + 1)
-        : 0,
+      wanted: pursuit ? this.heat : 0,
 
       cue: this.routeCue(),
 

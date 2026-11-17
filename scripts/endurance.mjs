@@ -46,13 +46,13 @@ try {
     const {maps,modes,vehicles}=await import('/src/data.js');
     const {game:g,ui}=window.__nightshift;
     g.audio.setEnabled(false);g.clearPreview();
-    window.soak={matches:0,steps:0,frames:0,pauseChecks:0,models:new Set(),maps:new Set(),
+    window.soak={matches:0,steps:0,frames:0,pauseChecks:0,models:new Set(),maps:new Set(),modes:new Set(),
       restart(){
         const index=this.matches++;
         ui.map=maps[index%maps.length];ui.vehicle=vehicles[index%vehicles.length];ui.color=ui.vehicle.color;
-        ui.mode=modes.find(m=>m.id===(index%3===0?'race':'time'));ui.start();
+        ui.mode=modes[index%modes.length];ui.start();
         cancelAnimationFrame(g.animationFrame);g.phase='play';g.callbacks.countdown('');
-        this.models.add(ui.vehicle.name);this.maps.add(ui.map.id);
+        this.models.add(ui.vehicle.name);this.maps.add(ui.map.id);this.modes.add(ui.mode.id);
       },
       advance(){
         if(!g.running||g.phase==='finished')this.restart();
@@ -76,7 +76,7 @@ try {
         const info=g.renderer.info;
         if(info.memory.geometries>350||info.memory.textures>128||info.programs.length>80)throw Error('Rendering resource bound exceeded');
         return {matches:this.matches,steps:this.steps,simulation_seconds:this.steps/60,checkpoint_renders:this.frames,pause_checks:this.pauseChecks,
-          models:[...this.models],maps:[...this.maps],geometries:info.memory.geometries,textures:info.memory.textures,programs:info.programs.length,
+          models:[...this.models],maps:[...this.maps],modes:[...this.modes],geometries:info.memory.geometries,textures:info.memory.textures,programs:info.programs.length,
           calls:info.render.calls,triangles:info.render.triangles,actors:g.actors.length,projectiles:g.projectiles.length};
       }};
     window.soak.restart();

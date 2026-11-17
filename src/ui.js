@@ -526,7 +526,9 @@ export class UI {
   }
   updateHUD(s) {
     if (this.hud.hidden) return;
-    const pursuit = ["escape", "versus", "friend"].includes(this.mode.id);
+    const pursuit = this.mode.id === "escape";
+    const racing = ["race", "sprint"].includes(this.mode.id);
+    const laps = this.mode.id === "sprint" ? 1 : 3;
     this.root.querySelector("#speed").textContent = String(s.speed).padStart(
       3,
       "0",
@@ -537,11 +539,11 @@ export class UI {
     this.root.querySelector("#health-text").textContent = Math.round(s.health);
     this.root.querySelector("#timer").textContent = time(s.time);
     this.root.querySelector("#position").textContent =
-      this.mode.id === "race"
-        ? `${s.rank} / ${s.actors.filter((a) => !a.police).length} • LAP ${Math.min(s.lap, 3)} / 3`
+      racing
+        ? `${s.rank} / ${s.actors.filter((a) => !a.police).length} • LAP ${Math.min(s.lap, laps)} / ${laps}`
         : pursuit
           ? "ESCAPE RUN"
-          : "TIME TRIAL";
+          : this.mode.id === "cruise" ? "FREE DRIVE" : "TIME TRIAL";
     this.root.querySelector("#checkpoint").textContent =
       `CHECKPOINT ${s.next} / ${s.total}`;
     this.root.querySelector("#drive-state").textContent =
@@ -550,7 +552,9 @@ export class UI {
       s.cue?.detail || `CHECKPOINT ${s.next} / ${s.total}`;
     this.root.querySelector("#objective").textContent = pursuit
       ? "OUTRUN THE PURSUIT"
-      : "RACE // HOLD THE LINE";
+      : this.mode.id === "cruise" ? "EXPLORE THE ROUTE"
+      : this.mode.id === "time" ? "BEAT YOUR PERSONAL BEST"
+      : `${this.mode.title.toUpperCase()} // HOLD THE LINE`;
     if (this.lastWanted !== s.wanted) {
       this.root.querySelector("#wanted").innerHTML = s.wanted
         ? `<small>HEAT</small>${"<i>◆</i>".repeat(s.wanted)}`
