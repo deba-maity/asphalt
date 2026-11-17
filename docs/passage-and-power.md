@@ -27,6 +27,8 @@ These changes remove unnecessary rendering and simulation. Temperatures and powe
 
 The full headless source and six-chapter campaign/Continue suites passed at both 30 and 60 physics ticks. The passage adds 77 checks, including twelve checks of actual slow-motion blade contact/damage. Runtime fingerprint: `be5fba9a1c76b0e2f5df8947733d8c876cce041edc8f77349505ccba32771ac3`.
 
-The real-time endurance runs and packaged verification are recorded separately when completed. No graphical game window, desktop gameplay input, physical-controller test or audio listening session was used on the Remote Desktop. Headless verification cannot establish native rendering quality, frame rate or subjective combat feel.
+The Windows candidate passed all 17 fresh-extraction checks: quality, campaign/Continue, and trial/motion/combat/duel/presentation/audit/passage at both 30 and 60 physics ticks. ZIP CRCs, SHA-256 checksums and embedded build identity agree. Seven static-site browser checks passed, including narrow layouts, keyboard focus, reduced motion and unavailable-download behavior. The completed records are under [evidence/passage-power](evidence/passage-power); the frozen real-time endurance report is added after its full hour finishes.
+
+No graphical game window, desktop gameplay input, physical-controller test or audio listening session was used on the Remote Desktop. Headless verification cannot establish native rendering quality, frame rate or subjective combat feel.
 
 The character art and existing motion foundation remain as documented in [the armor revision](armored-trial.md). This pass adds onboarding, encounter tuning and resource budgets; it does not claim a new AAA animation production.

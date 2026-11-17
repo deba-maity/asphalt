@@ -1,0 +1,108 @@
+{
+  "status": "passed",
+  "checks": [
+    {
+      "name": "quality",
+      "status": "passed",
+      "exit_code": 0,
+      "cwd": "fresh temporary extraction with spaces; no --path or editor invocation"
+    },
+    {
+      "name": "campaign",
+      "status": "passed",
+      "exit_code": 0,
+      "cwd": "fresh temporary extraction with spaces; no --path or editor invocation"
+    },
+    {
+      "name": "continue",
+      "status": "passed",
+      "exit_code": 0,
+      "cwd": "fresh temporary extraction with spaces; no --path or editor invocation"
+    },
+    {
+      "name": "trial-30",
+      "status": "passed",
+      "exit_code": 0,
+      "cwd": "fresh temporary extraction with spaces; no --path or editor invocation"
+    },
+    {
+      "name": "motion-30",
+      "status": "passed",
+      "exit_code": 0,
+      "cwd": "fresh temporary extraction with spaces; no --path or editor invocation"
+    },
+    {
+      "name": "combat-30",
+      "status": "passed",
+      "exit_code": 0,
+      "cwd": "fresh temporary extraction with spaces; no --path or editor invocation"
+    },
+    {
+      "name": "duel-30",
+      "status": "passed",
+      "exit_code": 0,
+      "cwd": "fresh temporary extraction with spaces; no --path or editor invocation"
+    },
+    {
+      "name": "presentation-30",
+      "status": "passed",
+      "exit_code": 0,
+      "cwd": "fresh temporary extraction with spaces; no --path or editor invocation"
+    },
+    {
+      "name": "audit-30",
+      "status": "passed",
+      "exit_code": 0,
+      "cwd": "fresh temporary extraction with spaces; no --path or editor invocation"
+    },
+    {
+      "name": "passage-30",
+      "status": "passed",
+      "exit_code": 0,
+      "cwd": "fresh temporary extraction with spaces; no --path or editor invocation"
+    },
+    {
+      "name": "trial-60",
+      "status": "passed",
+      "exit_code": 0,
+      "cwd": "fresh temporary extraction with spaces; no --path or editor invocation"
+    },
+    {
+      "name": "motion-60",
+      "status": "passed",
+      "exit_code": 0,
+      "cwd": "fresh temporary extraction with spaces; no --path or editor invocation"
+    },
+    {
+      "name": "combat-60",
+      "status": "passed",
+      "exit_code": 0,
+      "cwd": "fresh temporary extraction with spaces; no --path or editor invocation"
+    },
+    {
+      "name": "duel-60",
+      "status": "passed",
+      "exit_code": 0,
+      "cwd": "fresh temporary extraction with spaces; no --path or editor invocation"
+    },
+    {
+      "name": "presentation-60",
+      "status": "passed",
+      "exit_code": 0,
+      "cwd": "fresh temporary extraction with spaces; no --path or editor invocation"
+    },
+    {
+      "name": "audit-60",
+      "status": "passed",
+      "exit_code": 0,
+      "cwd": "fresh temporary extraction with spaces; no --path or editor invocation"
+    },
+    {
+      "name": "passage-60",
+      "status": "passed",
+      "exit_code": 0,
+      "cwd": "fresh temporary extraction with spaces; no --path or editor invocation"
+    }
+  ],
+  "rendered": "not_run: Remote Desktop user restriction"
+}

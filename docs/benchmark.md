@@ -6,15 +6,15 @@ This procedure is for the machine where you intend to play. No graphical benchma
 
 Copy the Windows executable, notices and repository tools to the laptop. Copy `benchmark-environment.example.json` to `benchmark-environment.json` in the repository root and fill the form: laptop model, CPU/GPU/driver, charger/battery, existing Windows power mode, actual display resolution, preset, remote-desktop status and observations. This is manual context; the game does not change power mode, driver or firmware. The wrapper copies this form into `%APPDATA%\AshenVow\benchmark-environment.json` for the executable to read.
 
-Use the default low setting first: 1280 × 720 internal 3D, 30 FPS cap, shadows on, Standard difficulty. Later compare shadows off or 540p. A 60 FPS cap is optional only after a local measurement; its presence is not a guarantee. Keep other applications and charger/battery conditions recorded. Warm-up and cold first-use behavior should be measured separately.
+For the current trial, select **Lower power** in Display first: 540p internal 3D, 30 FPS cap, MSAA and sun shadows off. Then compare **Balanced** (720p/60) under the same conditions. These are selectable budgets, not guaranteed frame rates. Existing preferences are retained; do not assume an older installation changed preset automatically. Keep other applications and charger/battery conditions recorded. Warm-up and cold first-use behavior should be measured separately.
 
 ## Manual route
 
 Launch the game locally. F8 starts recording; F8 again writes the report. F9 writes an actual viewport PNG plus JSON identifying zone, adapter, CPU, settings and your environment form. Recording does not alter story progress. Use a separate chapter replay if you want to preserve your campaign position.
 
-Play the settlement, fallen-cart fight, foreman, mill guard/bowman combination, Counting Shore trial and veil, returned elite/bowman, Halvek phases and memorial. Use consecutive natural gates/boats/chapters and several checkpoint retries. Orbit near the house, pillars and kiln, fight near a wall, turn lock-on toward a target behind you, and resize the window. Continue for at least 15–20 minutes on the laptop to expose throttling or accumulation. Listen for loop seams, balance and pause behavior. Record comfort and problems in the form; no counter replaces human observations.
+For the current trial, complete the opening and three teaching echoes, then repeat the Cinder Warden, including phase two, pillar/wall camera movement and the result/pause screens. Use F8/F9 as described above; record the trial encounter alongside its shared zone identifier. For archive regression separately, play the settlement, fallen-cart fight, foreman, mill guard/bowman combination, Counting Shore trial and veil, returned elite/bowman, Halvek phases and memorial. Use consecutive natural gates/boats/chapters and several checkpoint retries. Orbit near the house, pillars and kiln, fight near a wall, turn lock-on toward a target behind you, and resize the window. Continue for at least 15–20 minutes on the laptop to expose throttling or accumulation. Listen for loop seams, balance and pause behavior. Record comfort and problems in the form; no counter replaces human observations.
 
-## Automated sustained route
+## Automated sustained route (archived campaign)
 
 From PowerShell in the repository root **on the laptop**:
 
@@ -22,7 +22,7 @@ From PowerShell in the repository root **on the laptop**:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\benchmark.ps1 -Minutes 15
 ```
 
-This explicitly opens a local game window, runs the real New Game-to-credits automation without debug jumps, then repeats whole campaigns until at least the requested wall time has passed. It uses dedicated campaign-validation progress rather than ordinary saves. No `--fixed-fps` acceleration is used by the wrapper, so rendering and real-time pacing are exercised. It may exceed 15 minutes to finish the current campaign. Use the window close control to stop early; existing reports are still written. Do not manually fight the automated route while it controls the player.
+This route exercises the archived campaign, not the new default trial passage. It explicitly opens a local game window, runs the real New Game-to-credits automation without debug jumps, then repeats whole campaigns until at least the requested wall time has passed. It uses dedicated campaign-validation progress rather than ordinary saves. No `--fixed-fps` acceleration is used by the wrapper, so rendering and real-time pacing are exercised. It may exceed 15 minutes to finish the current campaign. Use the window close control to stop early; existing reports are still written. Do not manually fight the automated route while it controls the player.
 
 The route includes all ten zones, normal and combined encounters, bosses, realm effects and many transitions. It fast-forwards dialogue and uses consistent combat decisions. Its duration is not a human campaign-length claim. A manual run is still required for camera, readability, input, animation and sound assessment.
 

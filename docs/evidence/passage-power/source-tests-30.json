@@ -1,0 +1,10 @@
+{
+  "source_commit": "1c48292e226f92db0e9052dfd7150f2114f6a87a",
+  "source_dirty": true,
+  "runtime_sha256": "be5fba9a1c76b0e2f5df8947733d8c876cce041edc8f77349505ccba32771ac3",
+  "recorded_utc": "2026-11-17T14:16:46.082029+00:00",
+  "status": "passed",
+  "campaign": true,
+  "simulation_hz": 30,
+  "scope": "Headless source checks; native graphics, audio listening and physical input acceptance not run"
+}

@@ -1,0 +1,87 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: Main Play starts with the first easy echo
+PASS: Story is readable before any combat runs
+PASS: The return's cost has an explicit acceptance button
+PASS: Opening story buttons fit the viewport
+PASS: Briefing suspends cloth and character simulation
+PASS: Accepting the story returns control to the player
+PASS: First echo allows an approach before attacking
+PASS: Authored health ramp: 0
+PASS: Health and draughts refill at encounter start: 0
+PASS: Every encounter has a usable attack pattern: 0
+PASS: Lesson damage follows the intended gentle ramp: 0
+PASS: Slower lessons preserve authored blade-contact time: 0
+PASS: Multi-cut clip windows are not double-scaled: 0
+PASS: Easy echoes never acquire the boss's second phase: 0
+PASS: A defeated encounter resolves exactly once: 0
+PASS: Victory presents an actionable result: 0
+PASS: Result buttons fit at stage 0
+PASS: Continue leads to the next encounter in order: 1
+PASS: Authored health ramp: 1
+PASS: Health and draughts refill at encounter start: 1
+PASS: Every encounter has a usable attack pattern: 1
+PASS: Lesson damage follows the intended gentle ramp: 1
+PASS: Slower lessons preserve authored blade-contact time: 1
+PASS: Multi-cut clip windows are not double-scaled: 1
+PASS: A defensive action advances the contextual lesson
+PASS: Low health surfaces the heal lesson
+PASS: Easy echoes never acquire the boss's second phase: 1
+PASS: A defeated encounter resolves exactly once: 1
+PASS: Victory presents an actionable result: 1
+PASS: Result buttons fit at stage 1
+PASS: Continue leads to the next encounter in order: 2
+PASS: Authored health ramp: 2
+PASS: Health and draughts refill at encounter start: 2
+PASS: Every encounter has a usable attack pattern: 2
+PASS: Lesson damage follows the intended gentle ramp: 2
+PASS: Slower lessons preserve authored blade-contact time: 2
+PASS: Multi-cut clip windows are not double-scaled: 2
+PASS: Easy echoes never acquire the boss's second phase: 2
+PASS: A defeated encounter resolves exactly once: 2
+PASS: Victory presents an actionable result: 2
+PASS: Result buttons fit at stage 2
+PASS: Continue leads to the next encounter in order: 3
+PASS: Authored health ramp: 3
+PASS: Health and draughts refill at encounter start: 3
+PASS: Every encounter has a usable attack pattern: 3
+PASS: Lesson damage follows the intended gentle ramp: 3
+PASS: Slower lessons preserve authored blade-contact time: 3
+PASS: Multi-cut clip windows are not double-scaled: 3
+PASS: A defeated encounter resolves exactly once: 3
+PASS: Victory presents an actionable result: 3
+PASS: Result buttons fit at stage 3
+PASS: Final victory offers a complete narrative replay
+PASS: Tutorial tuning leaves campaign combat definitions untouched
+LESSON CONTACT stage=0 attack=light damage=3.5
+PASS: Slowed lesson blade contacts once: 0 / light
+PASS: Slowed lesson damage matches its visible contact: 0 / light
+LESSON CONTACT stage=0 attack=heavy damage=7.7
+PASS: Slowed lesson blade contacts once: 0 / heavy
+PASS: Slowed lesson damage matches its visible contact: 0 / heavy
+LESSON CONTACT stage=1 attack=light damage=4.90000000000001
+PASS: Slowed lesson blade contacts once: 1 / light
+PASS: Slowed lesson damage matches its visible contact: 1 / light
+LESSON CONTACT stage=1 attack=heavy damage=10.78
+PASS: Slowed lesson blade contacts once: 1 / heavy
+PASS: Slowed lesson damage matches its visible contact: 1 / heavy
+LESSON CONTACT stage=2 attack=light damage=7.0
+PASS: Slowed lesson blade contacts once: 2 / light
+PASS: Slowed lesson damage matches its visible contact: 2 / light
+LESSON CONTACT stage=2 attack=heavy damage=15.4
+PASS: Slowed lesson blade contacts once: 2 / heavy
+PASS: Slowed lesson damage matches its visible contact: 2 / heavy
+PASS: A loss retries the current lesson without replaying earlier fights
+PASS: Lower-power preset bounds rendering cost
+PASS: Display presets do not change combat simulation frequency
+PASS: Pause suspends scene work and caps menu updates
+PASS: Paused cloth does not continue spending simulation time
+PASS: Unfocused window uses a ten-FPS idle budget
+PASS: Resume restores the selected render cap and scene processing
+PASS: Cloth simulation resumes without a stuck world
+PASS: Title menu includes both entry routes within the viewport
+PASS: Leaving the passage restores the campaign save store
+PASS: The complete passage and retries never overwrite campaign progress
+PASS: Direct Warden practice remains available
+PASSAGE: 77 checks, 0 failures
+EXIT requested: 0 mode=play
