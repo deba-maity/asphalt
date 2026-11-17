@@ -225,6 +225,21 @@ func apply() -> void:
 	update_render_scale()
 	changed.emit()
 
+func display_preset(id: String) -> void:
+	match id:
+		"cool":
+			fps_cap=30; render_height=540; antialiasing=0; shadows=false
+		"balanced":
+			fps_cap=60; render_height=720; antialiasing=2; shadows=true
+		"sharp":
+			fps_cap=60; render_height=1080; antialiasing=2; shadows=true
+
+func display_profile() -> String:
+	if fps_cap==30 and render_height==540 and antialiasing==0 and not shadows: return "cool"
+	if fps_cap==60 and render_height==720 and antialiasing==2 and shadows: return "balanced"
+	if fps_cap==60 and render_height==1080 and antialiasing==2 and shadows: return "sharp"
+	return "custom"
+
 func update_render_scale() -> void:
 	var root=get_tree().root
 	# The fixed-aspect game area may be letterboxed. Maintain the requested

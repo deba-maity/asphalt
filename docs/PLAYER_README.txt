@@ -10,11 +10,13 @@ Verify SHA-256 using SHA256SUMS.txt from the same release. Do not disable securi
 software. Download only from the project repository chosen by its owner.
 
 PLAY
-Choose Play - The Ashen Trial for the revised duel with the Cinder Warden.
+Choose Play - The Ashen Trial for the opening story and three teaching echoes,
+then the Cinder Warden. Warden duel - skip lessons starts the full fight directly.
+Health and draughts refill between lessons; a loss retries the current encounter.
 Light attacks form a three-move chain; the finisher cuts twice. Queue the next
 strike during recovery. Guard/parry, roll and preserve stamina. Healing arrives
 when the flask reaches your mouth; getting hit interrupts it. Rematches are
-fresh duels. Trial play preserves campaign Continue.
+fresh encounters. Trial play preserves campaign Continue.
 
 Parries and heavy hits build the Warden's composure meter. Breaking it creates
 a short opening: close in and use a heavy attack for a riposte. Damage still
@@ -48,7 +50,9 @@ Play: Story/Standard, subtitle sizes, sensitivity/inversion, reduced effects,
 optional shake. Controls: keyboard/mouse rebinding. Audio: separate volumes.
 Display: 540p through 1080p 3D, 30/60/90/120 cap, off/2x/4x MSAA,
 window/fullscreen and shadows. Fresh settings use a 60 FPS cap and 2x MSAA.
-Older saved 30 FPS settings are retained; select 60 FPS to try smoother motion.
+Existing preferences are retained. Display presets: Lower power uses 30 FPS,
+540p and no shadows/MSAA; Balanced uses 60 FPS/720p; Sharper uses 60 FPS/1080p.
+Menus suspend world animation. Switching apps pauses and limits idle updates.
 A selected cap is not a guarantee of sustained performance on your hardware.
 
 SAVES, LOGS AND UPDATES

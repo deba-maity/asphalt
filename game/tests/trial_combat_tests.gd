@@ -21,7 +21,7 @@ func _process(_delta: float) -> void:
 
 func run() -> void:
 	if "--combat-hz=30" in OS.get_cmdline_user_args(): Engine.physics_ticks_per_second=30
-	main.start_trial()
+	main.start_trial(TrialPassage.WARDEN,false)
 	var hero: Fighter=main.player
 	var boss: Fighter=main.world.warden
 	hero.use_test_direction=true
@@ -32,7 +32,7 @@ func run() -> void:
 	if not "--combat-cuts-only" in OS.get_cmdline_user_args():
 		check(boss.model.swing_serial>=3,"Warden approaches and executes its live attack sequence")
 		check(hero.model.health<970 and boss.weapon_sweep.contacts>=2,"Warden's visible blade can reach the player from its chosen spacing")
-	main.start_trial(); hero=main.player; boss=main.world.warden
+	main.start_trial(TrialPassage.WARDEN,false); hero=main.player; boss=main.world.warden
 	tracing=true
 	hero.use_test_direction=true; boss.ai_enabled=false
 	var rules=CombatModel.new(); PerformanceMotion.configure(rules)

@@ -1,12 +1,14 @@
 # ASHEN VOW
 
-Current source: **0.7.0-rc.1 — The Ashen Trial**. Offline single-player sword combat, built with Godot 4.7.2 / GDScript / Compatibility.
+Current source: **0.8.0-rc.1 — The Ashen Trial**. Offline single-player sword combat, built with Godot 4.7.2 / GDScript / Compatibility.
 
-Select **Play · The Ashen Trial** for the focused duel: interpolated/inertial motion, authored turns, directional gait and foot correction, physical sword sweeps, cloth, a closer camera, textured courtyard and adaptive orchestral score. The fighters now use artist-made plate armor, original cloth mantles and a rebuilt rig. The earlier six-chapter campaign is explicitly archived with its existing visuals and saves.
+Select **Play ? The Ashen Trial** for a short passage with a reason to fight: Rayan returns to expose Avel's betrayal and preserve Mira and Isha's names, at the cost of remembering Isha's voice. Read the opening, face three gentle echoes that teach movement, defense and openings, then confront the Cinder Warden. Health and draughts refill between encounters; a loss retries the current one. **Warden duel ? skip lessons** remains available.
+
+The trial uses artist-made plate armor, retargeted authored motion, physical sword sweeps, simulated cloth, a ruined courtyard and adaptive orchestral score. The earlier six-chapter campaign remains in its archive with its existing visuals and saves.
 
 This is a substantial animation-pipeline replacement, **not God of War or Black Myth: Wukong quality**. The current trial replaces the ranger figures with detailed, licensed armor, but still lacks the custom animation and environment production of those games. Headless tests and isolated CPU asset inspection cannot establish rendered quality, input feel or laptop GPU performance. No graphical game was opened on the Remote Desktop.
 
-[Current changes and evidence](docs/armored-trial.md) | [Previous motion revision](docs/motion-amplification.md) | [Credits](docs/CREDITS.txt) | [Source provenance](game/assets/performance/provenance.json)
+[Current changes and evidence](docs/passage-and-power.md) | [Armor revision](docs/armored-trial.md) | [Previous motion revision](docs/motion-amplification.md) | [Credits](docs/CREDITS.txt) | [Source provenance](game/assets/performance/provenance.json)
 
 ## Pull, build and open on your Windows PC
 
@@ -38,9 +40,9 @@ This is an unsigned Windows candidate. Android remains experimental and was not 
 | Space / Q / R | Directional roll / lock-on / healing draught |
 | Tab / Escape | Trial guide or campaign journal / pause |
 
-Queue another light attack during a swing to chain the three-move sequence (the finisher cuts twice). A roll can cancel recovery after the swing finishes. Parries and heavy hits build composure; breaking it opens a short, close-range heavy riposte. Drinking leaves you exposed. The Warden quickens below half health. Victory and defeat offer fresh rematches; trial play preserves campaign Continue.
+Queue another light attack during a swing to chain the three-move sequence (the finisher cuts twice). A roll can cancel recovery after the swing finishes. Parries and heavy hits build composure; breaking it opens a short, close-range heavy riposte. Drinking leaves you exposed. The Warden quickens below half health. The three echoes use less health, damage and speed, with longer breathing beats. Perfect parries are optional. Trial play preserves campaign Continue.
 
-Bindings, difficulty, subtitles, audio, resolution, edge smoothing and frame cap are in Controls & settings. Fresh settings use a 60 FPS cap; existing 30 FPS preferences remain saved. Choose 60 FPS under Display to try the smoother presentation, and lower resolution if needed. Target-laptop performance is unmeasured.
+Bindings, difficulty, subtitles, audio, resolution, edge smoothing and frame cap are in Controls & settings. In **Display**, choose **Lower power** for 30 FPS / 540p / no shadows, **Balanced** for 60 FPS / 720p, or **Sharper** for 60 FPS / 1080p. Existing saved settings are preserved. Menus and pauses suspend world animation; switching apps pauses play and limits idle updates to 10 FPS. Combat timing remains independent of the rendering cap. These limits reduce avoidable work; laptop temperatures have not been measured.
 
 ## Development
 

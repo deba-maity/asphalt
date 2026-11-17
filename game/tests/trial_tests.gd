@@ -19,7 +19,7 @@ func run() -> void:
 	var original_store=Session.store
 	var original_loaded=Session.loaded.duplicate(true)
 	var legacy_attack=CombatModel.definitions().attacks.light.duplicate(true)
-	main.start_trial()
+	main.start_trial(TrialPassage.WARDEN,false)
 	var world: TrialWorld=main.world
 	var hero: Fighter=world.hero
 	world.warden.ai_enabled=false

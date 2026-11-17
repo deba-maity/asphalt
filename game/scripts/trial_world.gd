@@ -14,6 +14,8 @@ var duel: TrialDuel
 var composure_bar: ProgressBar
 var composure_label: Label
 var outcome_pending: bool=false
+var passage: TrialPassage=TrialPassage.new()
+var hud_text_time: float=0
 
 func _ready() -> void:
 	rng.seed=7251
@@ -47,16 +49,17 @@ func _ready() -> void:
 	warden.rotation.y=PI
 	warden.ai_cooldown=1.4
 	add_child(warden)
+	passage.configure(warden)
 	warden.slain.connect(_enemy_died)
 	enemies.append(warden)
-	hero.target=warden
+	hero.target=warden if not passage.training() else null
 	duel=TrialDuel.new(self)
 	coordinator=EncounterCoordinator.new()
 	coordinator.world=self
 	add_child(coordinator)
 	boss_panel=ui.panel(ui.hud,Vector2(370,584),Vector2(540,80),Color(.045,.055,.06,.4))
 	var column=ui.column(boss_panel,4)
-	var title=ui.text(column,"THE CINDER WARDEN",17,ui.GOLD)
+	var title=ui.text(column,passage.entry().name,17,ui.GOLD)
 	title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	var strip=Control.new(); strip.custom_minimum_size=Vector2(500,7); column.add_child(strip)
 	boss_echo=ProgressBar.new(); strip.add_child(boss_echo)
@@ -155,7 +158,7 @@ func _process(delta: float) -> void:
 		result_delay-=delta
 		if result_delay<0 and ui.mode=="play": ui.show_trial_result(won)
 	if ui.mode=="play":
-		if warden.phase==1 and warden.model.health<warden.model.max_health*.5 and warden.model.can_begin():
+		if not passage.training() and warden.phase==1 and warden.model.health<warden.model.max_health*.5 and warden.model.can_begin():
 			warden.phase=2
 			for id in ["light","trial_second","trial_finish","heavy"]:
 				var attack: Dictionary=warden.model.config.attacks[id]
@@ -165,11 +168,14 @@ func _process(delta: float) -> void:
 			ui.toast("The Warden quickens. Keep enough stamina to escape.",4)
 			duel.phase_changed()
 		ui.update_hud(hero,{})
-		ui.chapter_label.text="ASHEN TRIAL"
-		ui.objective_text.text="Defeat the Cinder Warden.\nWatch the shoulders; punish recovery."
-		ui.tutorial.text=Preferences.prompt("{light} Chain strikes · {heavy} Heavy · {guard} Guard / parry · {dodge} Roll · {lock_on} Lock")
-		ui.status.text="%d HP · %d draughts" % [hero.model.health,Session.data.heals]
-		if hero.model.posture>=30: ui.status.text+="\nGuard strain %d%%" % hero.model.posture
+		hud_text_time-=delta
+		if hud_text_time<=0:
+			hud_text_time=.1
+			ui.chapter_label.text=passage.entry().chapter
+			ui.objective_text.text="Defeat the echo to continue.\nHealth refills after this encounter." if passage.training() else "Defeat the Cinder Warden.\nEarn passage back to the living."
+			ui.tutorial.text=Preferences.prompt(passage.hint(self))
+			ui.status.text="%d HP · %d draughts" % [hero.model.health,Session.data.heals]
+			if hero.model.posture>=30: ui.status.text+="\nGuard strain %d%%" % hero.model.posture
 		composure_bar.value=duel.composure
 		composure_label.text="OPEN - RIPOSTE" if duel.riposte_window>0 else "COMPOSURE"
 		if duel.riposte_window>0:
@@ -179,8 +185,8 @@ func _process(delta: float) -> void:
 		boss_bar.value=next_health
 		echo_delay=maxf(0,echo_delay-delta)
 		if echo_delay<=0: boss_echo.value=move_toward(boss_echo.value,next_health,delta*70)
-		ui.tutorial.modulate.a=clampf((12-elapsed)/2,0,1)
-		ui.tutorial.visible=elapsed<12
+		ui.tutorial.modulate.a=1
+		ui.tutorial.visible=true
 		warden.health_bar.visible=false
 		warden.tell_ring.visible=false
 	boss_panel.visible=ui.mode=="play"
@@ -191,7 +197,7 @@ func _physics_process(delta: float) -> void:
 func can_play() -> bool:
 	return super.can_play() and not won and result_delay<0
 
-func learn(_action: String) -> void: pass
+func learn(action: String) -> void: passage.learn(action)
 func interact() -> void: pass
 func save_current() -> void: pass # A trial is a fresh duel; campaign persistence is untouched.
 
@@ -214,5 +220,5 @@ func resolve_outcome() -> void:
 	duel.finished=true
 	result_delay=2.6
 	if won:
-		ui.announce("VOW KEPT")
+		ui.announce("ECHO OVERCOME" if passage.training() else "VOW KEPT")
 		Sound.play("reward")

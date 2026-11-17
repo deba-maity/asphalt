@@ -41,7 +41,7 @@ func run() -> void:
 		if arg=="--telemetry-trace": trace=true
 	Engine.physics_ticks_per_second=hz
 	main=load("res://scenes/main.tscn").instantiate(); root.add_child(main)
-	main.start_trial(); hero=main.player
+	main.start_trial(TrialPassage.WARDEN,false); hero=main.player
 	main.world.warden.ai_enabled=false; hero.use_test_direction=true
 	for property in hero.figure.get_property_list():
 		if property.name=="interpolator": interpolated=true

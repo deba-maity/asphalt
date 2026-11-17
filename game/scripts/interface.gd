@@ -198,8 +198,9 @@ func show_menu() -> void:
 	serif.font_names = PackedStringArray(["Georgia","Liberation Serif"])
 	title.add_theme_font_override("font",serif)
 	text(c,"THE ASHEN TRIAL",21,GOLD)
-	text(c,"One courtyard. One warden. Keep your vow.",18)
+	text(c,"Remember your purpose. Earn a road home.",18)
 	var trial_button=button(c,"Play · The Ashen Trial",func(): main.start_trial())
+	button(c,"Warden duel · skip lessons",func(): main.start_trial(TrialPassage.WARDEN,false))
 	button(c,"Earlier campaign · prototype archive",show_archive)
 	button(c,"Controls & settings",func(): show_settings("menu"))
 	button(c,"Credits & licenses",show_asset_credits)
@@ -455,22 +456,23 @@ func update_hud(actor: Fighter, nearby: Dictionary) -> void:
 			threat_text.text=attack.get("telegraph","EVADE · cannot guard" if not attack.get("blockable",true) else "Incoming · guard / parry / dodge")
 			break
 	if actor.model.counter_window>0: threat_text.text="OPENING COUNTER · "+Preferences.label_for("heavy")
-	var current=Campaign.chapter(Session.data.chapter)
-	chapter_label.text="%02d / %s" % [int(current.number),current.title.to_upper()]
 	health.value = actor.model.health/actor.model.max_health*100
 	stamina.value = actor.model.stamina
-	status.text = "%d health  ·  %d draughts  ·  %d crowns" % [actor.model.health,Session.data.heals,Session.data.currency]
-	if actor.model.ash_unlocked: status.text="%d HP · %d flasks · Resolve %.1f/3" % [actor.model.health,Session.data.heals,actor.model.resolve]
-	var objective = Session.objective()
-	var target = Vector3(objective.target[0],0,objective.target[2])
-	var distance = actor.position.distance_to(target)
-	var direction = target-actor.position
-	var forward = -actor.yaw.global_basis.z
-	var angle = atan2(forward.cross(direction.normalized()).y,forward.dot(direction.normalized()))
-	var arrow = "↑" if absf(angle) < 0.6 else ("←" if angle > 0 else "→")
-	if absf(angle)>2.4: arrow="↓"
-	objective_text.text = objective.text+"\n"+arrow+"  %dm" % distance
-	interact_text.text = Preferences.label_for("interact")+" · "+nearby.name if not nearby.is_empty() else ""
+	if not main.trial_active:
+		var current=Campaign.chapter(Session.data.chapter)
+		chapter_label.text="%02d / %s" % [int(current.number),current.title.to_upper()]
+		status.text = "%d health  ·  %d draughts  ·  %d crowns" % [actor.model.health,Session.data.heals,Session.data.currency]
+		if actor.model.ash_unlocked: status.text="%d HP · %d flasks · Resolve %.1f/3" % [actor.model.health,Session.data.heals,actor.model.resolve]
+		var objective = Session.objective()
+		var target = Vector3(objective.target[0],0,objective.target[2])
+		var distance = actor.position.distance_to(target)
+		var direction = target-actor.position
+		var forward = -actor.yaw.global_basis.z
+		var angle = atan2(forward.cross(direction.normalized()).y,forward.dot(direction.normalized()))
+		var arrow = "↑" if absf(angle) < 0.6 else ("←" if angle > 0 else "→")
+		if absf(angle)>2.4: arrow="↓"
+		objective_text.text = objective.text+"\n"+arrow+"  %dm" % distance
+		interact_text.text = Preferences.label_for("interact")+" · "+nearby.name if not nearby.is_empty() else ""
 	lock_label.visible = is_instance_valid(actor.target)
 	if lock_label.visible:
 		var point = actor.target.get_global_transform_interpolated().origin+Vector3(0,1.25,0)
@@ -610,12 +612,36 @@ func show_trial_result(won: bool) -> void:
 	hud.visible=false
 	clear_overlay()
 	shade(.45)
-	var c=column(panel(overlay,Vector2(330,150),Vector2(620,420)),12)
-	text(c,"VOW KEPT" if won else "RISE THROUGH THE ASH",30,GOLD)
-	text(c,"A voice from the ash: 'Carry that vow home.'" if won else "Read the shoulders. Leave yourself a way out.",19)
+	var c=column(panel(overlay,Vector2(300,105),Vector2(680,510)),12)
+	var training=world.passage.training()
+	text(c,("ECHO OVERCOME" if training else "VOW KEPT") if won else "RISE THROUGH THE ASH",30,GOLD)
+	var ending=text(c,world.passage.entry().after if won else "The ash returns you to this encounter. Read the shoulders; leave room for one more breath.",20)
+	ending.custom_minimum_size.x=620; ending.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	if world is TrialWorld and world.duel!=null: text(c,world.duel.summary(),17)
 	text(c,"Your story campaign progress is preserved.",16)
-	button(c,"Challenge the Warden again",func(): main.start_trial()).grab_focus()
+	if won and training:
+		button(c,"Continue · health and draughts restored",func(): main.start_trial(main.trial_stage+1)).grab_focus()
+	else:
+		button(c,"Challenge the Warden again" if won else "Retry this encounter",func(): main.start_trial(main.trial_stage,false)).grab_focus()
+	if won and not training: button(c,"Replay the passage from the beginning",func(): main.start_trial())
+	button(c,"Return to title",show_menu)
+
+func show_trial_briefing() -> void:
+	mode="trial_briefing"
+	get_tree().paused=true
+	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
+	hud.visible=false
+	clear_overlay(); shade(.78)
+	var entry: Dictionary=world.passage.entry()
+	var c=column(panel(overlay,Vector2(210,40),Vector2(860,640)),12)
+	text(c,entry.chapter,16,GOLD)
+	text(c,entry.title,32)
+	var scroll=ScrollContainer.new(); scroll.custom_minimum_size=Vector2(810,400); c.add_child(scroll)
+	var words=column(scroll,18); words.custom_minimum_size.x=790
+	for pair in [[entry.story,21,INK],[entry.voice,20,GOLD],[entry.lesson,19,INK]]:
+		var line=text(words,pair[0],pair[1],pair[2])
+		line.custom_minimum_size.x=780; line.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	button(c,"Accept the cost · begin" if main.trial_stage==0 else "Step into the court",func(): play(); announce(entry.chapter)).grab_focus()
 	button(c,"Return to title",show_menu)
 
 func show_trial_guide() -> void:
@@ -624,8 +650,8 @@ func show_trial_guide() -> void:
 	clear_overlay()
 	shade()
 	var c=column(panel(overlay,Vector2(230,90),Vector2(820,530)),16)
-	text(c,"THE ASHEN TRIAL",30,GOLD)
-	text(c,"The Warden keeps the names the fire could not take.\nEarn a road home without forgetting why you left.",19)
+	text(c,world.passage.entry().chapter,30,GOLD)
+	text(c,"Return to expose Avel's betrayal and carry Mira and Isha's names into dawn.\nThree echoes prepare you. The Warden guards the road back.",19)
 	text(c,"Chain light attacks as each swing finishes; the finisher cuts twice.\nParries and heavy hits break the Warden's composure.\nClose in and use {heavy} during the break for a riposte.\nHis raised cleave cannot be blocked: evade or parry.\nPatterns end in a breathing beat. Use it to recover stamina.\nA draught heals when you drink; taking a hit interrupts it.",18)
 	text(c,Preferences.trial_help_text(),16)
 	button(c,"Return to the duel",play).grab_focus()

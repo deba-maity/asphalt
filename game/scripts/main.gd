@@ -10,6 +10,8 @@ var last_install_metrics: Dictionary = {}
 var story_token: int = 0
 var story_active: bool = false
 var benchmark: BenchmarkRecorder
+var trial_stage: int=TrialPassage.WARDEN
+var budget: RuntimeBudget
 
 func _ready() -> void:
 	ui = GameInterface.new()
@@ -21,6 +23,7 @@ func _ready() -> void:
 	trial_active=true
 	load_world()
 	ui.show_menu()
+	budget=RuntimeBudget.new(); budget.main=self; add_child(budget)
 	benchmark=BenchmarkRecorder.new()
 	benchmark.main=self
 	add_child(benchmark)
@@ -37,6 +40,7 @@ func _ready() -> void:
 	elif "--test-trial-duel" in args: script="res://tests/trial_duel_tests.gd"
 	elif "--test-trial-presentation" in args: script="res://tests/trial_presentation_tests.gd"
 	elif "--test-audit" in args: script="res://tests/audit_tests.gd"
+	elif "--test-passage" in args: script="res://tests/passage_tests.gd"
 	elif "--test-endurance" in args: script="res://tests/trial_endurance.gd"
 	elif "--test-trial" in args: script="res://tests/trial_tests.gd"
 	elif "--test-quality" in args: script="res://tests/quality_tests.gd"
@@ -73,6 +77,7 @@ func load_world() -> void:
 	Session.chapter = Campaign.definition(Session.data.zone)
 	if trial_active:
 		world=TrialWorld.new()
+		world.passage=TrialPassage.new(trial_stage)
 	else:
 		var scene = ResourceLoader.load(Campaign.zone(Session.data.zone).scene,"PackedScene",ResourceLoader.CACHE_MODE_REUSE)
 		world = scene.instantiate()
@@ -159,7 +164,7 @@ func finish_story_death(token: int) -> void:
 
 func restart_checkpoint() -> void:
 	if trial_active:
-		start_trial()
+		start_trial(trial_stage,false)
 		return
 	if transitions.state == "loading": return
 	transitions.reset()
@@ -199,11 +204,12 @@ func finish(code: int = 0) -> void:
 	await get_tree().process_frame
 	get_tree().quit(code)
 
-func start_trial() -> void:
+func start_trial(stage: int=0, briefing: bool=true) -> void:
 	transitions.cancel()
 	trial_active=true
+	trial_stage=clampi(stage,0,TrialPassage.WARDEN)
 	Session.begin_trial()
 	load_world()
 	ui.play()
-	ui.announce("ASHEN TRIAL")
-	ui.toast("The Cinder Warden awaits. Chain light strikes during recovery; guard just before impact to parry.",7)
+	if briefing: ui.show_trial_briefing()
+	else: ui.announce(world.passage.entry().chapter)

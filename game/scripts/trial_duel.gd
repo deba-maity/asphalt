@@ -99,7 +99,8 @@ func drive_warden(actor: Fighter, delta: float) -> void:
 	recovery=maxf(0,recovery-delta)
 	advance_cooldown=maxf(0,advance_cooldown-delta)
 	if was_attacking and actor.model.state!="attack":
-		recovery=maxf(recovery,(.75 if actor.phase==1 else .5) if pattern_finished else .16)
+		var rest: float=world.passage.entry().rest if world.passage.training() else (.75 if actor.phase==1 else .5)
+		recovery=maxf(recovery,rest if pattern_finished else .16)
 		was_attacking=false
 	if actor.model.state=="attack":
 		was_attacking=true
@@ -126,7 +127,7 @@ func drive_warden(actor: Fighter, delta: float) -> void:
 					return
 		move_tactically(actor,forward,float(actor.definition.speed))
 		return
-	var patterns: Array=FIRST_PATTERNS if actor.phase==1 else LAST_PATTERNS
+	var patterns: Array=world.passage.patterns(actor.phase)
 	var pattern: Array=patterns[pattern_index%patterns.size()]
 	var id: String=pattern[mini(cut_index,pattern.size()-1)]
 	var cost: float=actor.model.config.attacks[id].cost

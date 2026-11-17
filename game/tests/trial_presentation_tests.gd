@@ -14,7 +14,7 @@ func seconds(value: float) -> void:
 
 func run() -> void:
 	if "--presentation-hz=30" in OS.get_cmdline_user_args(): Engine.physics_ticks_per_second=30
-	main.start_trial()
+	main.start_trial(TrialPassage.WARDEN,false)
 	var hero: Fighter=main.player; var boss: Fighter=main.world.warden
 	hero.use_test_direction=true; boss.ai_enabled=false
 	await seconds(.3)
@@ -118,7 +118,7 @@ func run() -> void:
 	await seconds(.4)
 	check(absf(wrapf(hero.rotation.y-yaw,-PI,PI))<.001,"Committed advancing cut does not home toward a moving target")
 	await seconds(1.5)
-	main.start_trial(); hero=main.player; boss=main.world.warden
+	main.start_trial(TrialPassage.WARDEN,false); hero=main.player; boss=main.world.warden
 	hero.use_test_direction=true; hero.position=Vector3(0,.05,0); boss.position=Vector3(0,.05,-3.2)
 	boss.rotation.y=PI; boss.phase=2; boss.ai_cooldown=0
 	main.world.duel.advance_cooldown=0

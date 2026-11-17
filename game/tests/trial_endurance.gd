@@ -22,13 +22,19 @@ var phase_two_samples: int=0
 var advancing_swings: int=0
 var last_serials: Dictionary={}
 var failure_reasons: Array[String]=[]
+var next_pause: float=45
+var idle_until: float=0
+var idle_clocks: Vector2
+var idle_checks: int=0
+var training_samples: int=0
 
 func _ready() -> void:
+	process_mode=Node.PROCESS_MODE_ALWAYS
 	rng.seed=85171
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--endurance-seconds="): duration=float(arg.split("=")[1])
 	started=Time.get_ticks_msec()
-	main.start_trial()
+	main.start_trial(0,false)
 	main.player.use_test_direction=true
 	print("ENDURANCE START duration=",duration," seconds; headless real-time stress fixture")
 
@@ -36,16 +42,27 @@ func _process(delta: float) -> void:
 	var elapsed=(Time.get_ticks_msec()-started)/1000.0
 	var hero: Fighter=main.player
 	var boss: Fighter=main.world.warden
+	if idle_until>0:
+		if not is_equal_approx(hero.figure.cape.clock,idle_clocks.x) or not is_equal_approx(boss.figure.cape.clock,idle_clocks.y):
+			failures+=1; failure_reasons.append("Scene animated during an idle budget")
+		if elapsed<idle_until: return
+		idle_until=0; idle_checks+=1; main.budget.focused=true
+		main.ui.play(); main.budget.update_policy()
+	if elapsed>=next_pause:
+		next_pause=elapsed+45; idle_until=elapsed+2
+		main.ui.show_pause(); main.budget.focused=matches%2==0; main.budget.update_policy()
+		idle_clocks=Vector2(hero.figure.cape.clock,boss.figure.cape.clock)
+		return
 	if elapsed-last_match>120 or hero.model.state=="dead" or boss.model.state=="dead":
 		Input.action_release("guard")
 		Input.action_release("sprint")
-		main.start_trial()
+		main.start_trial((matches+1)%4,false)
 		main.player.use_test_direction=true
 		last_match=elapsed; matches+=1
 		last_serials.clear()
 		return
 	hero.model.health=maxf(hero.model.health,70)
-	boss.model.health=maxf(boss.model.health,100)
+	boss.model.health=maxf(boss.model.health,boss.model.max_health*.3)
 	hero.model.stamina=maxf(hero.model.stamina,50)
 	var diff=boss.position-hero.position; diff.y=0
 	hero.test_direction=diff.normalized() if diff.length()>2.3 else Vector3(-diff.z,0,diff.x).normalized()*.7
@@ -71,6 +88,7 @@ func _process(delta: float) -> void:
 		next_invariant=.25
 		inspect_actor(hero); inspect_actor(boss)
 		if boss.phase==2: phase_two_samples+=1
+		if main.world.passage.training(): training_samples+=1
 		if failures>0:
 			Input.action_release("guard"); Input.action_release("sprint")
 			write_report(elapsed,false); set_process(false); main.finish(1); return
@@ -82,7 +100,7 @@ func _process(delta: float) -> void:
 		if baseline_nodes==0 and elapsed>=180:
 			baseline_nodes=nodes; baseline_memory=memory
 		if baseline_nodes>0 and (nodes>baseline_nodes+12 or memory>baseline_memory+64*1024*1024): failures+=1
-		var record={"seconds":elapsed,"matches":matches,"actions":actions,"nodes":nodes,"memory":memory,"failures":failures,"pose_samples":pose_samples,"phase_two_samples":phase_two_samples,"advancing_swings":advancing_swings}
+		var record={"seconds":elapsed,"matches":matches,"actions":actions,"nodes":nodes,"memory":memory,"failures":failures,"pose_samples":pose_samples,"phase_two_samples":phase_two_samples,"advancing_swings":advancing_swings,"idle_checks":idle_checks,"training_samples":training_samples}
 		records.append(record)
 		print("ENDURANCE ",JSON.stringify(record))
 		write_report(elapsed,false)
@@ -116,4 +134,4 @@ func inspect_actor(actor: Fighter) -> void:
 
 func write_report(elapsed: float, complete: bool) -> void:
 	var file=FileAccess.open("user://endurance-report.json",FileAccess.WRITE)
-	file.store_string(JSON.stringify({"complete":complete,"seconds":elapsed,"requested_seconds":duration,"matches":matches,"actions":actions,"failures":failures,"failure_reasons":failure_reasons,"peak_memory":peak_memory,"pose_samples":pose_samples,"phase_two_samples":phase_two_samples,"advancing_swings":advancing_swings,"samples":records},"  "))
+	file.store_string(JSON.stringify({"complete":complete,"seconds":elapsed,"requested_seconds":duration,"matches":matches,"actions":actions,"failures":failures,"failure_reasons":failure_reasons,"peak_memory":peak_memory,"pose_samples":pose_samples,"phase_two_samples":phase_two_samples,"advancing_swings":advancing_swings,"idle_checks":idle_checks,"training_samples":training_samples,"samples":records},"  "))

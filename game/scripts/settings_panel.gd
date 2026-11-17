@@ -33,6 +33,10 @@ func draw(owner_ui: GameInterface, previous: String, section: String="Play") -> 
 			slider("Camera sensitivity",.001,.009,.0002,"sensitivity")
 			toggle("Invert vertical camera","invert")
 		"Display":
+			choice("Display preset",["Lower power · 30 FPS / 540p / no shadows","Balanced · 60 FPS / 720p","Sharper · 60 FPS / 1080p","Custom"],["cool","balanced","sharp","custom"].find(Preferences.display_profile()),func(i):
+				if i<3:
+					Preferences.display_preset(["cool","balanced","sharp"][i])
+					ui.show_settings(back,"Display"))
 			choice("Frame cap",["30 FPS","60 FPS","90 FPS","120 FPS"],[30,60,90,120].find(Preferences.fps_cap),func(i): Preferences.fps_cap=[30,60,90,120][i])
 			choice("3D render resolution",["960 × 540","1280 × 720","1600 × 900","1920 × 1080"],[540,720,900,1080].find(Preferences.render_height),func(i): Preferences.render_height=[540,720,900,1080][i])
 			choice("Edge smoothing",["Off","2× MSAA","4× MSAA"],[0,2,4].find(Preferences.antialiasing),func(i): Preferences.antialiasing=[0,2,4][i])
@@ -40,7 +44,7 @@ func draw(owner_ui: GameInterface, previous: String, section: String="Play") -> 
 			toggle("Fullscreen (keeps chosen render scale)","fullscreen")
 			toggle("Sun shadows · modest 38m distance","shadows")
 			toggle("Low-memory transitions · release old zone first","low_memory")
-			ui.text(c,"Use a lower render resolution if motion feels uneven.\nHigher frame caps need sufficient graphics performance.",17)
+			ui.text(c,"Choose Lower power to reduce rendering work during longer sessions.\nMenus pause the 3D simulation. Switching apps pauses play and limits updates.\nCombat timing stays the same at every frame cap.",17)
 		"Audio":
 			for entry in [["Master","volume"],["Music","music_volume"],["Effects","effects_volume"],["Ambient","ambient_volume"]]: slider(entry[0],0,1,.05,entry[1])
 			ui.text(c,"All story information is readable in subtitles and the journal.\nCalm/combat stems blend without restarting at small boundaries.",17)

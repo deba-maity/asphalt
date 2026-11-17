@@ -14,7 +14,7 @@ func frames(count: int) -> void:
 
 func run() -> void:
 	if "--motion-hz=30" in OS.get_cmdline_user_args(): Engine.physics_ticks_per_second=30
-	main.start_trial()
+	main.start_trial(TrialPassage.WARDEN,false)
 	var hero: Fighter=main.player
 	main.world.warden.ai_enabled=false
 	hero.use_test_direction=true

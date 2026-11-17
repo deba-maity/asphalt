@@ -27,7 +27,7 @@ try {
     foreach ($script in @('unit_tests','campaign_logic','ui_layout','rig_tests','motion_tests')) {
         Invoke-Godot $exe ($baseArgs+@('--script',"res://tests/$script.gd")) (Join-Path $PSScriptRoot "logs\$script.log")
     }
-    foreach ($mode in @('--validate-systems','--test-transitions','--test-quality','--test-trial','--test-motion-quality','--test-trial-combat','--test-trial-duel','--test-trial-presentation','--test-audit','--test-quit-transition','--test-resume-transition')) {
+    foreach ($mode in @('--validate-systems','--test-transitions','--test-quality','--test-trial','--test-motion-quality','--test-trial-combat','--test-trial-duel','--test-trial-presentation','--test-audit','--test-passage','--test-quit-transition','--test-resume-transition')) {
         $label = $mode.TrimStart('-')
         $modeArguments = @('--',$mode)
         if ($mode -eq '--test-trial') { $modeArguments += "--trial-hz=$SimulationHz" }
@@ -36,6 +36,7 @@ try {
         if ($mode -eq '--test-trial-duel') { $modeArguments += "--duel-hz=$SimulationHz" }
         if ($mode -eq '--test-trial-presentation') { $modeArguments += "--presentation-hz=$SimulationHz" }
         if ($mode -eq '--test-audit') { $modeArguments += "--audit-hz=$SimulationHz" }
+        if ($mode -eq '--test-passage') { $modeArguments += "--passage-hz=$SimulationHz" }
         Invoke-Godot $exe ($baseArgs+$modeArguments) (Join-Path $PSScriptRoot "logs\$label.log")
     }
     if ($Campaign) {

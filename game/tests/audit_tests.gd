@@ -91,7 +91,7 @@ func run() -> void:
 	check(store.load_game().currency==0,"Oversized primary save recovers the prior valid backup")
 	# Actual physics-space ground disappearance/reacquisition catches the
 	# stale planted=true + missing anchor dictionary failure at ledges.
-	main.start_trial()
+	main.start_trial(TrialPassage.WARDEN,false)
 	var hero: Fighter=main.player; var boss: Fighter=main.world.warden
 	boss.ai_enabled=false; hero.use_test_direction=true; hero.target=null
 	await seconds(.5)

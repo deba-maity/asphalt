@@ -19,7 +19,7 @@ func seconds(value: float) -> void:
 func run() -> void:
 	if "--duel-hz=30" in OS.get_cmdline_user_args(): Engine.physics_ticks_per_second=30
 	var campaign=Session.loaded.duplicate(true)
-	main.start_trial()
+	main.start_trial(TrialPassage.WARDEN,false)
 	var world: TrialWorld=main.world
 	var hero: Fighter=world.hero
 	var boss: Fighter=world.warden
@@ -187,7 +187,7 @@ func run() -> void:
 	check(not main.ui.lock_label.visible,"Targets behind the camera do not project a false on-screen lock marker")
 	hero.trial_camera.set_process(true)
 	boss.position=Vector3(0,.05,-1.55); boss.reset_physics_interpolation()
-	main.start_trial()
+	main.start_trial(TrialPassage.WARDEN,false)
 	world=main.world; hero=world.hero; boss=world.warden
 	hero.use_test_direction=true; hero.model.max_health=5000; hero.model.health=5000
 	hero.position=Vector3(0,.05,2); boss.position=Vector3(0,.05,-2)

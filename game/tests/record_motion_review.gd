@@ -44,7 +44,7 @@ func snapshot(actor: Fighter) -> Dictionary:
 
 func run() -> void:
 	Engine.physics_ticks_per_second=60
-	main.start_trial(); hero=main.player
+	main.start_trial(TrialPassage.WARDEN,false); hero=main.player
 	main.world.warden.ai_enabled=false; main.world.warden.position=Vector3(0,.05,-9)
 	for pair in [["weapon",hero.figure.weapon],["flask",hero.figure.flask]]:
 		var prop: Node3D=pair[1].duplicate()
