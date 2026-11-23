@@ -89,14 +89,26 @@ try {
     if(elapsed>=nextMatch){await page.evaluate(()=>window.soak.restart());nextMatch=elapsed+120;}
     await page.evaluate(()=>window.soak.advance());
     if(elapsed>=nextPause){
-      const before=await page.evaluate(()=>{const g=window.__nightshift.game;g.togglePause();return {time:g.time,frame:g.renderer.info.render.frame};});
-      await delay(300);
-      const valid=await page.evaluate(before=>{
+      const before=await page.evaluate(()=>{
         const g=window.__nightshift.game;
-        const valid=g.paused && before.time===g.time && before.frame===g.renderer.info.render.frame && g.audio.context?.state==='suspended';
-        g.togglePause();cancelAnimationFrame(g.animationFrame);window.soak.pauseChecks++;return valid;
-      },before);
-      if(!valid)throw Error('Pause advanced simulation, graphics or audio');nextPause=elapsed+45;
+        // A lap may finish on the step immediately before this scheduled check.
+        if (!g.running || g.phase==='finished') window.soak.restart();
+        if (!g.paused) g.togglePause();
+        return {time:g.time,frame:g.renderer.info.render.frame};
+      });
+      await page.waitForFunction(()=>window.__nightshift.game.audio.context?.state==='suspended',null,{timeout:5000});
+      await delay(300);
+      const paused=await page.evaluate(()=>{
+        const g=window.__nightshift.game;
+        return {paused:g.paused,phase:g.phase,time:g.time,frame:g.renderer.info.render.frame,audio:g.audio.context?.state};
+      });
+      if(!paused.paused || before.time!==paused.time || before.frame!==paused.frame || paused.audio!=='suspended')
+        throw Error('Pause failed: '+JSON.stringify({before,paused}));
+      await page.evaluate(()=>{
+        const g=window.__nightshift.game;
+        g.togglePause();cancelAnimationFrame(g.animationFrame);window.soak.pauseChecks++;
+      });
+      nextPause=elapsed+45;
     }
     if(elapsed>=nextReport){
       const record=await page.evaluate(()=>window.soak.record());record.wall_seconds=elapsed;report.records.push(record);await save();

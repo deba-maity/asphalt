@@ -111,6 +111,20 @@ try {
             }
           }
         }
+        const crossings = {neon:[[5,6],[18,19]], coast:[[5,6]], dock:[[3,5]], mesa:[[7,8]]};
+        const decks = world.group.children.filter((m) => m.material?.color?.getHex() === 0x343d44);
+        const down = new Raycaster(new Vector3(), new Vector3(0,-1,0), 0, 20);
+        for (const [a,b] of crossings[map.id]) {
+          const center = Math.round((a+b)/2 * world.samples.length/world.controlRoute.length);
+          const mid = world.samples[center];
+          const tangent = world.samples[center+1].clone().sub(world.samples[center-1]).normalize();
+          for (const offset of [-55,-34,-16,0,16,34,55]) {
+            down.ray.origin.set(mid.x + tangent.z*offset, 14, mid.z - tangent.x*offset);
+            const height = 7.95 - Math.max(0, Math.abs(offset)-22)*7.9/38;
+            check(down.intersectObjects(decks,false).some(hit => Math.abs(hit.point.y-height)<.15),
+              'Flyover spans the spline and both sloping approaches: ' + map.id + ' / ' + offset);
+          }
+        }
         p.next = initialGate; p.cut = null; p.mesh.rotation.y = initialHeading;
         pos.copy(start);
       }

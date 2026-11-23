@@ -828,7 +828,7 @@ export class World {
     if (this.map.id === "neon") {
       this.buildSelectedIntersections();
 
-      this.buildFlyover(this.controlRoute[5], this.controlRoute[6]);
+      this.buildFlyover(5, 6);
 
       this.buildUnderpass(this.route[9], this.route[10]);
 
@@ -2161,18 +2161,20 @@ export class World {
 
       if (!a || !b) continue;
 
-      if (type === "flyover") this.buildFlyover(a, b);
+      if (type === "flyover") this.buildFlyover(ai, bi);
       else if (type === "underpass") this.buildUnderpass(a, b);
       else this.buildBridgeRails(a, b);
     }
   }
 
-  buildFlyover(a, b) {
-    const mid = a.clone().lerp(b, 0.5);
-
-    const heading = Math.atan2(b.x - a.x, b.z - a.z);
-
-    const yaw = heading + Math.PI / 2;
+  buildFlyover(from, to) {
+    // The middle of a chord can be far outside a hairpin. Cross the actual lane.
+    const stride = this.samples.length / this.controlRoute.length;
+    const first = from * stride;
+    const span = ((to - from + this.controlRoute.length) % this.controlRoute.length) * stride;
+    const index = Math.round(first + span / 2) % this.samples.length;
+    const mid = this.samples[index], tangent = tangentAt(this.samples, index);
+    const yaw = Math.atan2(tangent.x, tangent.z) + Math.PI / 2;
     const asphalt = this.material({ color: 0x343d44, roughness: 0.9 });
     const concrete = this.material({ color: 0x687279, roughness: 0.85 });
     const paint = this.basic({ color: 0xf2d992 });
