@@ -31,6 +31,8 @@ For a new checkout, first run `git clone --branch ashen-vow https://github.com/d
 
 This is an unsigned Windows candidate. Android remains experimental and was not built for this revision. No new release binary has been published; old 0.4.0 archives do not contain the trial.
 
+For the browser build, install the matching Godot 4.7.2 Web export template and run `python tools/build_web.py` from the repository root. The exporter caps court textures at 1024 pixels in a temporary copy of the project, keeping character art and Windows source assets at their original resolution. Serve `exports/web/` over HTTP to play locally. The player shows download progress and offers replay after quitting.
+
 ## Controls
 
 | Input | Action |

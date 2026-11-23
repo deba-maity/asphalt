@@ -202,6 +202,10 @@ func finish(code: int = 0) -> void:
 	world = null
 	await get_tree().process_frame
 	await get_tree().process_frame
+	if code == 0 and OS.has_feature("web"):
+		var browser := JavaScriptBridge.get_interface("window")
+		if browser != null:
+			browser.dispatchEvent(JavaScriptBridge.create_object("Event", "ashen-vow-quit"))
 	get_tree().quit(code)
 
 func start_first_echo(court_id: int, trained: bool) -> void:
