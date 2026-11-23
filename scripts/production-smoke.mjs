@@ -46,5 +46,23 @@ try{
   await blocked.getByRole('button',{name:/settings/i}).click();
   await blocked.locator('#quality-mode').selectOption('balanced');
   assert.equal(await blocked.locator('#quality-mode').inputValue(),'balanced');
-  console.log('PRODUCTION PASS: bundled assets, menu/race/pause/return, credits, private debug hooks, blocked storage');
+  await blocked.close();
+  const noGraphics = await browser.newPage();
+  await noGraphics.addInitScript(() => {
+    const getContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (type, ...args) {
+      if (type === 'webgl2') return null;
+      return getContext.call(this, type, ...args);
+    };
+  });
+  await noGraphics.goto(url.href);
+  const failure = noGraphics.getByRole('alert');
+  await failure.waitFor();
+  assert.match(await failure.innerText(), /WebGL 2 and hardware acceleration/i);
+  await Promise.all([
+    noGraphics.waitForEvent('domcontentloaded'),
+    failure.getByRole('button', {name: 'RETRY'}).click()
+  ]);
+  await failure.waitFor();
+  console.log('PRODUCTION PASS: bundled assets, menu/race/pause/return, credits, private debug hooks, blocked storage and unavailable WebGL');
 }finally{await browser?.close();server?.kill();}

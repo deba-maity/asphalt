@@ -6,7 +6,14 @@ let ui;
 function showStartupError(error) {
   console.error('NIGHTSHIFT failed to start', error);
   const detail = error instanceof Error ? error.message : 'An unknown browser error occurred.';
-  app.innerHTML = `<section class="startup-error" role="alert"><p>STARTUP INTERRUPTED</p><h1>NIGHTSHIFT //</h1><strong>The game could not create its 3D display.</strong><span id="startup-detail"></span><button type="button" id="retry-startup">RETRY</button><small>Open this game at http://localhost:5173 — not by double-clicking index.html.</small></section>`;
+  const graphicsError = /webgl|graphics|rendering context/i.test(detail);
+  app.innerHTML = `<section class="startup-error" role="alert">
+    <h1>NIGHTSHIFT //</h1>
+    <strong>${graphicsError ? 'The 3D display could not start.' : 'The game could not finish loading.'}</strong>
+    <span id="startup-detail"></span>
+    <small>${graphicsError ? 'Open this link in a browser with WebGL 2 and hardware acceleration enabled.' : 'Check your connection, then retry loading the game.'}</small>
+    <button type="button" id="retry-startup">RETRY</button>
+  </section>`;
   document.querySelector('#startup-detail').textContent = detail;
   document.querySelector('#retry-startup')?.addEventListener('click', () => location.reload());
 }
