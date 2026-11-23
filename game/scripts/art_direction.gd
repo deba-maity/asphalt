@@ -1,18 +1,20 @@
 class_name ArtDirection
 extends RefCounted
 
-static func environment(theme: String) -> Environment:
+static func environment(theme: String, sky: Sky = null) -> Environment:
 	var env=Environment.new()
 	var dark=theme in ["ashes","cinders"]
 	var cold=theme in ["mill","fortress","returned","ashes"]
-	var sky=Sky.new()
-	var sky_material=ProceduralSkyMaterial.new()
-	sky_material.sky_top_color=Color("182832") if dark else Color("435d70")
-	sky_material.sky_horizon_color=Color("44515a") if dark else (Color("9daaa8") if cold else Color("b9b09b"))
-	sky_material.ground_bottom_color=Color("202628")
-	sky_material.ground_horizon_color=sky_material.sky_horizon_color
-	sky_material.sky_curve=.18
-	sky.sky_material=sky_material
+	var horizon := Color("44515a") if dark else (Color("9daaa8") if cold else Color("b9b09b"))
+	if sky == null:
+		var sky_material := ProceduralSkyMaterial.new()
+		sky_material.sky_top_color = Color("182832") if dark else Color("435d70")
+		sky_material.sky_horizon_color = horizon
+		sky_material.ground_bottom_color = Color("202628")
+		sky_material.ground_horizon_color = horizon
+		sky_material.sky_curve = .18
+		sky = Sky.new()
+		sky.sky_material = sky_material
 	env.sky=sky
 	env.background_mode=Environment.BG_SKY
 	env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
@@ -22,7 +24,7 @@ static func environment(theme: String) -> Environment:
 	env.tonemap_mode=Environment.TONE_MAPPER_FILMIC
 	env.tonemap_exposure=1.12
 	env.fog_enabled=true
-	env.fog_light_color=sky_material.sky_horizon_color
+	env.fog_light_color=horizon
 	env.fog_density=.012 if dark else .0045
 	return env
 

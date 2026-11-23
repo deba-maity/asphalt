@@ -105,11 +105,10 @@ func _exit_tree() -> void:
 
 func build_court() -> void:
 	var atmosphere=WorldEnvironment.new()
-	atmosphere.environment=ArtDirection.environment("fortress")
 	var panorama=PanoramaSkyMaterial.new()
 	panorama.panorama=load("res://assets/court/sunset_forest.hdr")
 	var sky=Sky.new(); sky.sky_material=panorama
-	atmosphere.environment.sky=sky
+	atmosphere.environment=ArtDirection.environment("fortress", sky)
 	atmosphere.environment.background_energy_multiplier=.55
 	atmosphere.environment.fog_density=.006
 	atmosphere.environment.fog_sky_affect=.26
