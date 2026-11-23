@@ -896,6 +896,8 @@ export function createVehicle(
   police = false,
 ) {
   const root = new THREE.Group();
+  // Keep yaw on the full circle when presentation restores the mesh quaternion.
+  root.rotation.order = "YXZ";
   const data = {
     spec,
     wheels: [],

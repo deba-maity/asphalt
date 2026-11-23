@@ -17,6 +17,7 @@ try {
   await page.goto(url);await page.waitForFunction(()=>window.__nightshift,null,{timeout:90000});
   const result=await page.evaluate(async()=>{
     const {maps,modes,vehicles}=await import('/src/data.js');
+    const {driveStep}=await import('/src/driving.js');
     const {game:g,ui}=window.__nightshift;const results=[];
     const check=(condition,label)=>{if(!condition)throw Error(label);};
     g.clearPreview();g.mountPreview=()=>{};g.frame=()=>{};g.audio.setEnabled(false);
@@ -24,11 +25,52 @@ try {
       ui.map=map;ui.mode=mode;ui.start();g.phase='play';g.elapsed=30;
       const competitive=['race','sprint'].includes(mode.id),required=mode.id==='race'?3:1;
       check(g.actors.length===(competitive?6:1),`${mode.id}: intended starting field`);
+      if (competitive) {
+        for (const rival of g.actors.slice(1)) {
+          const start = rival.mesh.position.clone();
+          check(g.world.constrainToRoad(rival), 'Starting grid fits on the asphalt');
+          const reference = {speed: 0, heading: 0, boost: 100};
+          for (let tick = 0; tick < 60; tick++) {
+            driveStep(reference, {gas: 1}, rival.spec, 1/60);
+            const previous = rival.mesh.position.clone();
+            g.updateAI(rival, 1/60);
+            check(rival.speed <= reference.speed + 1e-8, 'Rival launch respects the car acceleration');
+            check(previous.distanceTo(rival.mesh.position) <= rival.speed / 60 + 1e-6,
+              'Rivals make no recovery jumps off the line');
+          }
+          check(rival.mesh.position.distanceTo(start) > 4, 'Rival moves off the grid');
+        }
+      }
       if(mode.id==='escape'){
         g.elapsed=90;g.updatePoliceHeat();g.updatePoliceHeat();
         check(g.actors.filter(a=>a.police).length===5,'Pursuit has five bounded police actors at full heat');
       }
       const p=g.player;
+      if (mode.id === 'time') {
+        const world = g.world, pos = p.mesh.position, start = pos.clone();
+        for (const path of [world.samples, ...world.shortcutRoads.map(s => s.points)]) {
+          for (const point of path) {
+            pos.copy(point);
+            check(world.constrainToRoad(p) && pos.equals(point), 'Main course and shortcuts stay open');
+          }
+        }
+        // Beyond the overlapping return lane near the start of Dockyard.
+        const middle = world.route[1].clone().lerp(world.route[2], .5);
+        const forward = world.route[1].clone().sub(world.route[0]).normalize();
+        for (const side of [-1, 1]) {
+          const normal = forward.clone().set(-forward.z * side, 0, forward.x * side);
+          pos.copy(middle).addScaledVector(normal, 18);
+          p.velocityX = normal.x * 8 + forward.x * 6;
+          p.velocityZ = normal.z * 8 + forward.z * 6;
+          check(!world.constrainToRoad(p), 'Shoulder is off the asphalt');
+          check(Math.abs(pos.distanceTo(middle) - 13.5) < 1e-6, 'Shoulder ends three metres past the asphalt');
+          check(Math.hypot(p.velocityX - forward.x * 6, p.velocityZ - forward.z * 6) < 1e-6,
+            'Sliding along the edge preserves forward motion');
+          pos.addScaledVector(normal, -4);
+          check(world.constrainToRoad(p), 'Driver can turn back onto the road');
+        }
+        pos.copy(start);
+      }
       g.checkProgress(p);check(p.lap===0,'Starting on the line does not finish a lap');
       const laps=mode.id==='cruise'?2:required;
       for(let lap=0;lap<laps;lap++){

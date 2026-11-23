@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { batchWorld } from "./rendering.js";
-import { advanceRoute } from "./route-motion.js";
+import { advanceRoute, deflectVelocity } from "./route-motion.js";
 import {
   createVehicle,
   animateVehicle,
@@ -34,6 +34,9 @@ const seeded = (n) => {
 
 const clamp = THREE.MathUtils.clamp;
 const TAU = Math.PI * 2;
+const roadHalfWidth = 10.5;
+const shortcutHalfWidth = 8.2;
+const shoulderAllowance = 3;
 
 function mesh(
   parent,
@@ -60,15 +63,22 @@ function mesh(
   return m;
 }
 
-function distSegment(x, z, a, b) {
-  const dx = b.x - a.x;
-  const dz = b.z - a.z;
-
-  const len2 = dx * dx + dz * dz || 1;
-
-  const t = clamp(((x - a.x) * dx + (z - a.z) * dz) / len2, 0, 1);
-
-  return Math.hypot(x - (a.x + dx * t), z - (a.z + dz * t));
+function nearestPointOnPath(position, points, closed) {
+  let distanceSq = Infinity, x = 0, z = 0;
+  const segments = closed ? points.length : points.length - 1;
+  for (let i = 0; i < segments; i++) {
+    const a = points[i], b = points[(i + 1) % points.length];
+    const dx = b.x - a.x, dz = b.z - a.z;
+    const t = clamp(((position.x - a.x) * dx + (position.z - a.z) * dz) / (dx * dx + dz * dz || 1), 0, 1);
+    const px = a.x + t * dx, pz = a.z + t * dz;
+    const squared = (position.x - px) ** 2 + (position.z - pz) ** 2;
+    if (squared < distanceSq) {
+      distanceSq = squared;
+      x = px;
+      z = pz;
+    }
+  }
+  return { x, z, distance: Math.sqrt(distanceSq) };
 }
 
 function tangentAt(points, i) {
@@ -774,7 +784,7 @@ export class World {
     const g = this.group;
 
     const road = new THREE.Mesh(
-      this.trackGeometry(createRibbonGeometry(points, 10.5, 0.05, 16)),
+      this.trackGeometry(createRibbonGeometry(points, roadHalfWidth, 0.05, 16)),
       this.roadMat,
     );
 
@@ -906,7 +916,7 @@ export class World {
 
       const road = new THREE.Mesh(
         this.trackGeometry(
-          createOpenRibbonGeometry(points, 8.2, heightProfile, 8),
+          createOpenRibbonGeometry(points, shortcutHalfWidth, heightProfile, 8),
         ),
         this.roadMat,
       );
@@ -5323,32 +5333,33 @@ export class World {
   }
 
   distanceToRoad(position) {
-    let nearest = Infinity;
-
-    for (let i = 0; i < this.route.length; i++) {
-      nearest = Math.min(
-        nearest,
-        distSegment(
-          position.x,
-          position.z,
-          this.route[i],
-          this.route[(i + 1) % this.route.length],
-        ),
-      );
-    }
-
+    let nearest = nearestPointOnPath(position, this.route, true).distance;
     for (const shortcut of this.shortcutRoads) {
-      const points = shortcut.points;
+      nearest = Math.min(nearest, nearestPointOnPath(position, shortcut.points, false).distance);
+    }
+    return nearest;
+  }
 
-      for (let i = 0; i < points.length - 1; i++) {
-        nearest = Math.min(
-          nearest,
-          distSegment(position.x, position.z, points[i], points[i + 1]),
-        );
+  constrainToRoad(actor) {
+    const position = actor.mesh.position;
+    let center = nearestPointOnPath(position, this.samples, true);
+    let pastEdge = center.distance - roadHalfWidth;
+    for (const shortcut of this.shortcutRoads) {
+      const candidate = nearestPointOnPath(position, shortcut.points, false);
+      const pastShortcut = candidate.distance - shortcutHalfWidth;
+      if (pastShortcut < pastEdge) {
+        center = candidate;
+        pastEdge = pastShortcut;
       }
     }
-
-    return nearest;
+    if (pastEdge > shoulderAllowance) {
+      const nx = (center.x - position.x) / center.distance;
+      const nz = (center.z - position.z) / center.distance;
+      position.x += nx * (pastEdge - shoulderAllowance);
+      position.z += nz * (pastEdge - shoulderAllowance);
+      deflectVelocity(actor, nx, nz, 0);
+    }
+    return pastEdge <= 0;
   }
 
   getRoadHeightAt(x, z) {

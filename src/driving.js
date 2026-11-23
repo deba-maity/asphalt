@@ -1,6 +1,10 @@
 import { damp } from './timing.js';
 const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
 
+export function engineAcceleration(spec) {
+  return 4 + spec.accel * (spec.kind === 'bike' ? .115 : spec.kind === 'heavy' ? .078 : .105);
+}
+
 // Lightweight arcade dynamics: a real travel vector catches up with the
 // chassis heading. Releasing drift recovers grip continuously, not by snapping
 // the car sideways. All rates use seconds and are shared across render modes.
@@ -11,9 +15,8 @@ export function driveStep(state, input, spec, dt) {
   const gas = clamp(Number(input.gas) || 0, 0, 1), brake = clamp(Number(input.brake) || 0, 0, 1);
   const steerTarget = clamp(Number(input.steer) || 0, -1, 1);
   const before = state.speed;
-  const acceleration = 4 + spec.accel * (bike ? .115 : heavy ? .078 : .105);
   if (brake > .01) state.speed -= (5 + spec.braking * .12) * brake * dt;
-  else if (gas > .01) state.speed += acceleration * gas * dt;
+  else if (gas > .01) state.speed += engineAcceleration(spec) * gas * dt;
   else state.speed *= Math.exp(-dt * (input.hand ? 1.5 : .36));
   const boosting = !!input.boost && state.boost > 1 && state.speed > 10 && brake < .1;
   state.boost = clamp(state.boost + (boosting ? -20 : 5.5) * dt, 0, 100);

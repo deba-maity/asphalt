@@ -13,12 +13,13 @@ import { Effects } from "./effects.js";
 import { AudioEngine } from "./audio.js";
 import { QUALITY, createEnvironment } from "./rendering.js";
 import { FixedClock, damp, spring, pixelRatioFor } from "./timing.js";
-import { driveStep } from "./driving.js";
+import { driveStep, engineAcceleration } from "./driving.js";
 import { SkidTrails } from "./skid-trails.js";
 import { angleDelta, deflectVelocity } from "./route-motion.js";
 
 const clamp = THREE.MathUtils.clamp;
 const mod = (a, n) => ((a % n) + n) % n;
+const gridRowSpacing = 8;
 
 const LOW_POWER_DEVICE = (() => {
   const coarse =
@@ -629,6 +630,11 @@ export class Game {
     this.player = this.makeActor(config.vehicle, config.color, false, "YOU");
 
     this.player.mesh.position.copy(this.world.route[0]);
+    const competitive = ["race", "sprint"].includes(config.mode.id);
+    if (competitive) {
+      const forward = this.world.route[1].clone().sub(this.world.route[0]).normalize();
+      this.player.mesh.position.addScaledVector(forward, 3 * gridRowSpacing);
+    }
 
     this.alignActorToRoad(this.player);
 
@@ -646,7 +652,7 @@ export class Game {
 
     this.actors.push(this.player);
 
-    if (["race", "sprint"].includes(config.mode.id)) {
+    if (competitive) {
       for (let i = 0; i < Math.min(5, config.aiCount || 5); i++) {
         this.spawnAI(i, "race");
       }
@@ -814,13 +820,13 @@ export class Game {
 
       a.mesh.position.add(new THREE.Vector3((i - 1) * 3, 0.05, i));
     } else {
-      a.mesh.position.copy(this.world.route[0]);
+      a.mesh.position.copy(this.player.mesh.position);
 
       const lane = [-5.8, 5.8, -2.8, 2.8, 0][i % 5];
       const row = Math.floor(i / 2);
 
       a.mesh.position
-        .addScaledVector(forward, -30 - row * 16 - i * 5)
+        .addScaledVector(forward, -(row + 1) * gridRowSpacing)
         .addScaledVector(side, lane);
     }
 
@@ -902,21 +908,8 @@ export class Game {
     p.mesh.position.z += p.velocityZ * dt;
     Object.assign(p.mesh.userData, { acceleration: p.acceleration, yawRate: p.yawRate, slip: p.slip });
 
-    const radius = Math.hypot(p.mesh.position.x, p.mesh.position.z);
-
-    const boundary = this.world.boundaryRadius || 360;
-
-    if (radius > boundary) {
-      p.mesh.position.multiplyScalar(boundary / radius);
-      deflectVelocity(p,-p.mesh.position.x,-p.mesh.position.z,.2);
-      p.speed *= -0.35;
-
-      this.shake = 1;
-    }
-
-    const roadDistance = this.world.distanceToRoad(p.mesh.position);
-
-    p.onRoad = roadDistance < 10.5;
+    const hit = this.collisions(p);
+    p.onRoad = this.world.constrainToRoad(p);
 
     if (!p.onRoad && !p.spec.offroadImmune) {
       const penalty = monster
@@ -926,12 +919,6 @@ export class Game {
           : 0.93;
 
       p.speed *= Math.pow(penalty, dt * 18);
-
-      if (roadDistance > 44) {
-        // No frame-by-frame sign inversion: the car remains steerable back to
-        // the road instead of oscillating between forward and reverse.
-        p.speed *= Math.exp(-dt * 3);
-      }
     }
 
     this.alignActorToRoad(p);
@@ -988,7 +975,7 @@ export class Game {
 
     this.checkProgress(p);
 
-    if (this.collisions(p)) {
+    if (hit) {
       p.health = Math.max(0, p.health - 4 * dt);
 
       this.shake = 0.7;
@@ -1158,11 +1145,13 @@ export class Game {
         ? 0.74 + (this.heat - 1) * 0.04
         : 0.62 + a.skill * 0.2);
 
-    a.speed = THREE.MathUtils.lerp(
+    const targetSpeed = THREE.MathUtils.lerp(
       a.speed,
       max,
       dt * (a.role === "police" ? 1.4 : 0.72),
     );
+    a.speed = a.role === "police" ? targetSpeed
+      : Math.min(targetSpeed, a.speed + engineAcceleration(a.spec) * dt);
 
     a.mesh.position.x -= Math.sin(a.mesh.rotation.y) * a.speed * dt;
 

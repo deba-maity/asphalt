@@ -129,6 +129,18 @@ try {
     g.keys.KeyW=true;g.touch.KeyW=false;g.updatePlayer(1/60);
     const moved=g.player.speed>0;g.keys={};return moved;
   }),'Released touch controls do not override held keyboard controls');
+  for (const [key, sign] of [["ArrowLeft", 1], ["d", -1]]) {
+    await page.evaluate(sign => {
+      const p = window.__nightshift.game.player;
+      p.mesh.rotation.y = sign * 1.54;
+      p.speed = 16;
+      p.steerInput = 0;
+    }, sign);
+    await page.keyboard.down(key);
+    await page.waitForFunction(sign =>
+      window.__nightshift.game.player.mesh.rotation.y * sign > 1.7, sign, {timeout: 10000});
+    await page.keyboard.up(key);
+  }
   const mapResults = await page.evaluate(async () => {
     const { maps, modes } = await import("/src/data.js");
     const { game: g, ui } = window.__nightshift;
@@ -233,6 +245,11 @@ try {
     y: box.y + box.height / 2,
     id,
   });
+  await mobile.evaluate(() => {
+    const p = window.__nightshift.game.player;
+    p.mesh.rotation.y = 1.54;
+    p.speed = 16;
+  });
   await cdp.send("Input.dispatchTouchEvent", {
     type: "touchStart",
     touchPoints: [point(left, 1), point(nitro, 2)],
@@ -245,6 +262,8 @@ try {
     ),
     "Two thumbs can steer and boost simultaneously",
   );
+  await mobile.waitForFunction(() => window.__nightshift.game.player.mesh.rotation.y > 1.7,
+    null, {timeout: 10000});
   await cdp.send("Input.dispatchTouchEvent", {
     type: "touchEnd",
     touchPoints: [],
