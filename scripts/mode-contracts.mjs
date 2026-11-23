@@ -18,6 +18,7 @@ try {
   const result=await page.evaluate(async()=>{
     const {maps,modes,vehicles}=await import('/src/data.js');
     const {driveStep}=await import('/src/driving.js');
+    const {Raycaster, Vector3}=await import('/node_modules/three/build/three.module.js');
     const {game:g,ui}=window.__nightshift;const results=[];
     const check=(condition,label)=>{if(!condition)throw Error(label);};
     g.clearPreview();g.mountPreview=()=>{};g.frame=()=>{};g.audio.setEnabled(false);
@@ -82,6 +83,21 @@ try {
           check(p.next === afterEntry && !p.cut, 'Jumping directly to a shortcut exit does not score');
           for (const point of road.points) { pos.copy(point); g.checkProgress(p); }
           check(!p.cut && p.next === (exit + 1) % world.route.length, 'Ordered route credited: ' + road.label);
+          // Cast onto the actual rendered road triangles at both shoulders and the centre.
+          const surfaces = world.group.children.filter((mesh) => mesh.material === world.roadMat);
+          const ray = new Raycaster(new Vector3(), new Vector3(0, -1, 0), 0, 4);
+          for (let i = 1; i < road.points.length; i++) {
+            const a = road.points[i-1], b = road.points[i];
+            const side = b.clone().sub(a).normalize();
+            for (const offset of [-7, 0, 7]) {
+              const mid = a.clone().lerp(b, .5);
+              mid.x += side.z * offset; mid.z -= side.x * offset;
+              const surface = (road.heightProfile[i-1] + road.heightProfile[i]) / 2;
+              ray.ray.origin.set(mid.x, surface + 2, mid.z);
+              check(ray.intersectObjects(surfaces, false).some(hit => Math.abs(hit.point.y - surface) < .3),
+                road.label + ': rendered asphalt spans the full ramp width at segment ' + i);
+            }
+          }
           if (road.elevated) {
             let height = world.roadSurfaceY;
             for (let i = 1; i < road.points.length; i++) {
