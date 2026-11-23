@@ -1,3 +1,5 @@
+export const gatesPerSegment = 2;
+
 export const maps = [
   {
     id: "neon",
@@ -590,7 +592,7 @@ export const modes = [
   {
     id: "race",
     title: "Race",
-    detail: "Three laps. Own the route.",
+    detail: "Cross the green gates in order. Finish three laps ahead of the field.",
   },
   {
     id: "time",
@@ -605,7 +607,7 @@ export const modes = [
   {
     id: "sprint",
     title: "Sprint",
-    detail: "One lap against the field. Make it count.",
+    detail: "One lap against five rivals. Follow the green gates to the checkered line.",
   },
   {
     id: "cruise",

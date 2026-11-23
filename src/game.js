@@ -13,7 +13,7 @@ import { Effects } from "./effects.js";
 import { AudioEngine } from "./audio.js";
 import { QUALITY, createEnvironment } from "./rendering.js";
 import { FixedClock, damp, spring, pixelRatioFor } from "./timing.js";
-import { driveStep, engineAcceleration } from "./driving.js";
+import { driveStep } from "./driving.js";
 import { SkidTrails } from "./skid-trails.js";
 import { angleDelta, deflectVelocity } from "./route-motion.js";
 
@@ -791,10 +791,8 @@ export class Game {
   alignActorToRoad(actor) {
     if (!actor?.mesh || !this.world) return;
 
-    alignVehicleToSurface(
-      actor.mesh,
-      this.world.getRoadHeightAt(actor.mesh.position.x, actor.mesh.position.z),
-    );
+    actor.surfaceY = this.world.getRoadHeightAt(actor.mesh.position.x, actor.mesh.position.z, actor.surfaceY ?? 0);
+    alignVehicleToSurface(actor.mesh, actor.surfaceY);
   }
 
   spawnAI(i, role = "racer") {
@@ -820,6 +818,7 @@ export class Game {
 
       a.mesh.position.add(new THREE.Vector3((i - 1) * 3, 0.05, i));
     } else {
+      a.raceLane = ((i % 3) - 1) * 3.2;
       a.mesh.position.copy(this.player.mesh.position);
 
       const lane = [-5.8, 5.8, -2.8, 2.8, 0][i % 5];
@@ -1116,77 +1115,73 @@ export class Game {
     return false;
   }
 
-  updateAI(a, dt) {
-    let target;
-
-    if (a.role === "police") {
-      target = this.player.mesh.position;
-    } else {
-      target = this.world.route[a.next];
+  updateRacer(a, dt) {
+    const world = this.world, position = a.mesh.position, samples = world.samples;
+    const stride = samples.length / world.route.length;
+    const end = (a.next || world.route.length) * stride;
+    let nearest = end, distance = Infinity;
+    for (let index = end - stride; index <= end; index++) {
+      const d = position.distanceToSquared(samples[index % samples.length]);
+      if (d < distance) { distance = d; nearest = index; }
     }
-
-    const dx = target.x - a.mesh.position.x;
-
-    const dz = target.z - a.mesh.position.z;
-
-    const desired = Math.atan2(-dx, -dz);
-
-    let delta =
-      mod(desired - a.mesh.rotation.y + Math.PI, Math.PI * 2) - Math.PI;
-
-    a.mesh.rotation.y +=
-      clamp(delta, -1.5 * dt, 1.5 * dt) * (a.role === "police" ? 1.5 : 1);
-
-    const specMax = (a.spec.maxSpeed || 260) / 5.7;
-
-    const max =
-      specMax *
-      (a.role === "police"
-        ? 0.74 + (this.heat - 1) * 0.04
-        : 0.62 + a.skill * 0.2);
-
-    const targetSpeed = THREE.MathUtils.lerp(
-      a.speed,
-      max,
-      dt * (a.role === "police" ? 1.4 : 0.72),
-    );
-    a.speed = a.role === "police" ? targetSpeed
-      : Math.min(targetSpeed, a.speed + engineAcceleration(a.spec) * dt);
-
-    a.mesh.position.x -= Math.sin(a.mesh.rotation.y) * a.speed * dt;
-
-    a.mesh.position.z -= Math.cos(a.mesh.rotation.y) * a.speed * dt;
-
+    let look = nearest, length = 0;
+    const lookAhead = Math.max(12, Math.abs(a.speed) * .65);
+    while (length < lookAhead) {
+      const i = look % samples.length;
+      const next = (i + 1) % samples.length;
+      length += samples[i].distanceTo(samples[next]);
+      look++;
+    }
+    const target = samples[look % samples.length];
+    const ahead = samples[(look + 1) % samples.length];
+    const forward = ahead.clone().sub(target).normalize();
+    const x = target.x + forward.z * a.raceLane;
+    const z = target.z - forward.x * a.raceLane;
+    const desired = Math.atan2(position.x - x, position.z - z);
+    const error = angleDelta(a.mesh.rotation.y, desired);
+    const cruise = (a.spec.maxSpeed || 260) / 5.7 * a.skill * .85;
+    const corner = clamp(1 - Math.abs(error) * .75, .35, 1);
+    const targetSpeed = cruise * corner;
+    a.heading = a.mesh.rotation.y;
+    driveStep(a, {
+      gas: a.speed < targetSpeed ? 1 : 0,
+      brake: a.speed > targetSpeed + 2 ? .65 : 0,
+      steer: clamp(-error * 2.5, -1, 1),
+    }, a.spec, dt);
+    a.mesh.rotation.y = a.heading;
+    position.x += a.velocityX * dt;
+    position.z += a.velocityZ * dt;
+    this.collisions(a);
+    a.onRoad = world.constrainToRoad(a);
+    if (!a.onRoad && !a.spec.offroadImmune) a.speed *= Math.pow(.93, dt * 18);
     this.alignActorToRoad(a);
-
-    if (a.role !== "police" && Math.hypot(dx, dz) < 14) {
-      const hit = a.next;
-
-      a.next = (a.next + 1) % this.world.route.length;
-
-      if (hit === 0) {
+    const gate = world.route[a.next];
+    if (Math.hypot(position.x - gate.x, position.z - gate.z) < 15.5) {
+      if (a.next === 0) {
         a.lap++;
-
-        if (["race", "sprint"].includes(this.config.mode.id) && a.lap >= (this.config.mode.id === "race" ? 3 : 1)) {
-          this.finish(`${a.name} WINS`);
-        }
+        if (a.lap >= (this.config.mode.id === "race" ? 3 : 1)) this.finish(a.name + " WINS");
       }
+      a.next = (a.next + 1) % world.route.length;
     }
+    animateVehicle(a.mesh, a.speed, false, this.time, -a.steerInput, a.acceleration < -2, false, dt);
+  }
 
-    if (
-      a.role !== "police" &&
-      this.world.distanceToRoad(a.mesh.position) > 28
-    ) {
-      a.mesh.position.lerp(this.world.route[a.next], dt * 0.8);
-    }
-
-    if (a.role === "police" && Math.hypot(dx, dz) < 5) {
+  updateAI(a, dt) {
+    if (a.role !== "police") { this.updateRacer(a, dt); return; }
+    const target = this.player.mesh.position;
+    const dx = target.x - a.mesh.position.x, dz = target.z - a.mesh.position.z;
+    const error = angleDelta(a.mesh.rotation.y, Math.atan2(-dx, -dz));
+    a.mesh.rotation.y += clamp(error, -1.5 * dt, 1.5 * dt) * 1.5;
+    const max = (a.spec.maxSpeed || 260) / 5.7 * (.74 + (this.heat - 1) * .04);
+    a.speed = THREE.MathUtils.lerp(a.speed, max, dt * 1.4);
+    a.mesh.position.x -= Math.sin(a.mesh.rotation.y) * a.speed * dt;
+    a.mesh.position.z -= Math.cos(a.mesh.rotation.y) * a.speed * dt;
+    this.alignActorToRoad(a);
+    if (Math.hypot(dx, dz) < 5) {
       this.player.health = Math.max(0, this.player.health - 8 * dt);
-
       this.shake = 1;
     }
-
-    animateVehicle(a.mesh, a.speed, false, this.time, delta, false, false, dt);
+    animateVehicle(a.mesh, a.speed, false, this.time, error, false, false, dt);
   }
 
   updateRemote(a, dt) {
@@ -1214,11 +1209,11 @@ export class Game {
 
   collisions(p) {
     let hit = false;
-
-    for (const a of this.actors) {
-      if (a === p || a.remote) {
-        continue;
-      }
+    // Earlier racers have already resolved this pair during this simulation step.
+    const start = this.actors.indexOf(p) + 1;
+    for (let i = start; i < this.actors.length; i++) {
+      const a = this.actors[i];
+      if (a.remote) continue;
 
       const d = p.mesh.position.distanceTo(a.mesh.position);
 
@@ -1276,18 +1271,40 @@ export class Game {
   }
 
   checkProgress(p) {
-    let hit = -1;
-
-    for (let step = 0; step < Math.min(6, this.world.route.length); step++) {
-      const index = (p.next + step) % this.world.route.length;
-      const point = this.world.route[index];
-
-      if (p.mesh.position.distanceTo(point) < 15.5) {
-        hit = index;
-        break;
+    const world = this.world;
+    const pos = p.mesh.position;
+    const near = (point, radius) => Math.hypot(pos.x - point.x, pos.z - point.z) < radius;
+    let hit = near(world.route[p.next], 15.5) ? p.next : -1;
+    // A legal shortcut substitutes its own ordered gates between the two junctions.
+    if (!p.cut) {
+      for (const road of world.shortcutRoads) {
+        const entry = world.authorSegmentToRouteIndex(road.from);
+        if (p.next !== (entry + 1) % world.route.length) continue;
+        const fork = road.points[3];
+        if (near(fork, 10)) { p.cut = { road, gate: 4 }; break; }
       }
     }
-
+    if (p.cut) {
+      const { road, gate } = p.cut;
+      const target = road.points[gate];
+      if (near(target, 12)) {
+        if (gate === road.points.length - 1) {
+          hit = world.authorSegmentToRouteIndex(road.to);
+          p.cut = null;
+        } else {
+          p.cut.gate++;
+        }
+      } else if (hit >= 0 || !near(target, 65)) {
+        p.cut = null;
+      }
+      if (p.cut) {
+        const cutPoint = road.points[p.cut.gate].clone();
+        cutPoint.y = road.heightProfile[p.cut.gate];
+        world.setNextMarker(world.authorSegmentToRouteIndex(road.to), road.label, cutPoint);
+        return;
+      }
+      world.setNextMarker(p.next);
+    }
     if (hit >= 0) {
       p.next = (hit + 1) % this.world.route.length;
 
@@ -1309,7 +1326,7 @@ export class Game {
 
       p.progress = p.lap * this.world.route.length + p.next;
 
-      this.world.setNextMarker(p.next);
+      this.world.setNextMarker(p.next, p.next ? undefined : this.finalLap() ? "FINISH" : "LAP LINE");
     }
   }
 
@@ -1450,6 +1467,22 @@ export class Game {
 
       cops++;
     }
+  }
+
+  returnToCheckpoint() {
+    if (!this.paused || this.phase !== "play") return;
+    const p = this.player;
+    const previous = mod(p.next - 1, this.world.route.length);
+    p.cut = null;
+    p.mesh.position.copy(this.world.route[previous]);
+    p.mesh.rotation.y = this.routeAngle(previous);
+    p.surfaceY = this.world.roadSurfaceY;
+    p.speed = p.velocityX = p.velocityZ = p.steerInput = p.slip = 0;
+    this.alignActorToRoad(p);
+    this.rememberPose(p.mesh);
+    this.cameraReady = false;
+    this.world.setNextMarker(p.next, p.next === 0 && this.finalLap() ? "FINISH" : undefined);
+    this.togglePause();
   }
 
   togglePause() {
@@ -1647,6 +1680,10 @@ export class Game {
     this.camera.updateProjectionMatrix();
   }
 
+  finalLap() {
+    return this.config.mode.id !== "cruise" && (this.config.mode.id !== "race" || this.player.lap >= 2);
+  }
+
   routeCue() {
     const p = this.player;
     const route = this.world.route;
@@ -1655,6 +1692,14 @@ export class Game {
     const prev = route[(index - 1 + n) % n];
     const here = route[index];
     const next = route[(index + 1) % n];
+    const target = p.cut ? p.cut.road.points[p.cut.gate] : here;
+    const distanceToTarget = Math.round(Math.hypot(target.x - p.mesh.position.x, target.z - p.mesh.position.z));
+    const facing = -(target.x - p.mesh.position.x) * Math.sin(p.mesh.rotation.y)
+      - (target.z - p.mesh.position.z) * Math.cos(p.mesh.rotation.y);
+    if (distanceToTarget > 16 && facing < -0.55 * distanceToTarget)
+      return { label: "WRONG WAY", detail: "TURN BACK TOWARD THE GREEN GATE" };
+    if (p.cut) return { label: p.cut.road.label, detail: distanceToTarget + "M TO THE NEXT MARKER" };
+    if (!index) return { label: this.finalLap() ? "FINISH LINE" : "LAP LINE", detail: distanceToTarget + "M TO THE CHECKERED LINE" };
     const incoming = here.clone().sub(prev).normalize();
     const outgoing = next.clone().sub(here).normalize();
     const cross = incoming.x * outgoing.z - incoming.z * outgoing.x;
@@ -1665,11 +1710,11 @@ export class Game {
     let label = "KEEP STRAIGHT";
 
     if (angle > 2.25) {
-      label = cross > 0 ? "HAIRPIN LEFT" : "HAIRPIN RIGHT";
+      label = cross < 0 ? "HAIRPIN LEFT" : "HAIRPIN RIGHT";
     } else if (angle > 0.86) {
-      label = cross > 0 ? "TURN LEFT" : "TURN RIGHT";
+      label = cross < 0 ? "TURN LEFT" : "TURN RIGHT";
     } else if (angle > 0.34) {
-      label = cross > 0 ? "EASY LEFT" : "EASY RIGHT";
+      label = cross < 0 ? "EASY LEFT" : "EASY RIGHT";
     }
 
     return {
@@ -1683,15 +1728,12 @@ export class Game {
 
     const pursuit = this.config.mode.id === "escape";
 
-    const rank =
-      1 +
-      this.actors.filter(
-        (a) =>
-          a !== p &&
-          !a.police &&
-          a.lap * this.world.route.length + a.next >
-            p.lap * this.world.route.length + p.next,
-      ).length;
+    const field = this.actors.filter((a) => !a.police && !a.remote);
+    const score = (a) => a.lap * this.world.route.length + (a.next || this.world.route.length);
+    const lead = score(p);
+    const gate = this.world.route[p.next];
+    const rank = 1 + field.filter((a) => a !== p && (score(a) > lead ||
+      (score(a) === lead && a.mesh.position.distanceToSquared(gate) < p.mesh.position.distanceToSquared(gate)))).length;
 
     return {
       speed: Math.round(Math.abs(p.speed) * 5.7),

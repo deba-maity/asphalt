@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { gatesPerSegment } from "./data.js";
 import { batchWorld } from "./rendering.js";
 import { advanceRoute, deflectVelocity } from "./route-motion.js";
 import {
@@ -81,11 +82,11 @@ function nearestPointOnPath(position, points, closed) {
   return { x, z, distance: Math.sqrt(distanceSq) };
 }
 
-function tangentAt(points, i) {
+function tangentAt(points, i, closed = true) {
   const n = points.length;
 
-  const prev = points[(i - 1 + n) % n];
-  const next = points[(i + 1) % n];
+  const prev = points[closed ? (i - 1 + n) % n : Math.max(0, i - 1)];
+  const next = points[closed ? (i + 1) % n : Math.min(n - 1, i + 1)];
 
   const t = new THREE.Vector3(next.x - prev.x, 0, next.z - prev.z);
 
@@ -238,7 +239,7 @@ function createOpenRibbonGeometry(points, halfWidth, y, uvScale = 8) {
 
   for (let i = 0; i < n; i++) {
     const p = points[i];
-    const t = tangentAt(points, i);
+    const t = tangentAt(points, i, false);
     const side = new THREE.Vector3(-t.z, 0, t.x);
     const left = p.clone().addScaledVector(side, halfWidth);
     const right = p.clone().addScaledVector(side, -halfWidth);
@@ -329,7 +330,7 @@ export class World {
 
     this.route = sampleHybridClosedRoute(
       this.controlRoute,
-      2,
+      gatesPerSegment,
       map.straightSegments || [],
     );
 
@@ -827,7 +828,7 @@ export class World {
     if (this.map.id === "neon") {
       this.buildSelectedIntersections();
 
-      this.buildFlyover(this.route[5], this.route[6]);
+      this.buildFlyover(this.controlRoute[5], this.controlRoute[6]);
 
       this.buildUnderpass(this.route[9], this.route[10]);
 
@@ -891,6 +892,9 @@ export class World {
       opacity: 0.66,
     });
 
+    const branchArrows = [];
+    const arrowTransform = new THREE.Object3D();
+
     for (const shortcut of shortcuts) {
       const points = this.createShortcutPoints(shortcut);
       const elevated = Boolean(shortcut.elevated);
@@ -924,18 +928,35 @@ export class World {
       road.userData.worldOwned = true;
       this.group.add(road);
 
+      for (let i = 2; i < points.length - 1; i += 2) {
+        const a = points[i - 1], b = points[i + 1];
+        const direction = b.clone().sub(a);
+        const pitch = -Math.atan2(heightProfile[i + 1] - heightProfile[i - 1], Math.hypot(direction.x, direction.z));
+        arrowTransform.rotation.set(pitch, Math.atan2(direction.x, direction.z), 0, "YXZ");
+        arrowTransform.position.copy(points[i]).y = heightProfile[i] + .12;
+        arrowTransform.scale.set(1.25, 1, 1.6);
+        arrowTransform.updateMatrix();
+        branchArrows.push(arrowTransform.matrix.clone());
+      }
+      const entrance = points[2], heading = tangentAt(points, 2, false);
+      const entryYaw = Math.atan2(heading.x, heading.z);
+      const sign = localPoint(entrance, entryYaw, shortcutHalfWidth + 1.5, heightProfile[2] + 2.6, 0);
+      this.addPanel(sign, entryYaw + Math.PI, shortcut.label, "OPTIONAL SHORTCUT", 8, 2);
+
       const edges = [
         this.createContinuousLine(
           points,
           -7.65,
           0.05,
           heightProfile.map((h) => h + 0.085),
+          false,
         ),
         this.createContinuousLine(
           points,
           7.65,
           0.05,
           heightProfile.map((h) => h + 0.085),
+          false,
         ),
       ];
       edges.forEach((edge) => {
@@ -965,22 +986,24 @@ export class World {
       }
 
       if (elevated) {
-        const mid = points[Math.floor(points.length / 2)];
-        const yaw = Math.atan2(
-          points.at(-1).x - points[0].x,
-          points.at(-1).z - points[0].z,
-        );
-        const len = points[0].distanceTo(points.at(-1));
-
-        mesh(
-          this.group,
-          box,
-          deckMat,
-          [mid.x, this.roadSurfaceY + 5.62, mid.z],
-          [len * 0.72, 0.54, 10.2],
-          [0, yaw, 0],
-        );
-
+        // The underside and parapets follow the same curve and grade as the tyres.
+        for (let i = 1; i < points.length; i++) {
+          const a = points[i - 1].clone(); a.y = heightProfile[i - 1];
+          const b = points[i].clone(); b.y = heightProfile[i];
+          const along = b.clone().sub(a);
+          const yaw = Math.atan2(along.x, along.z);
+          const pitch = -Math.atan2(along.y, Math.hypot(along.x, along.z));
+          const mid = a.clone().lerp(b, 0.5);
+          const deck = mesh(this.group, box, deckMat, [mid.x, mid.y - 0.42, mid.z],
+            [shortcutHalfWidth * 2, 0.65, along.length() + 0.25]);
+          deck.rotation.set(pitch, yaw, 0, "YXZ");
+          for (const side of [-1, 1]) {
+            const edge = localPoint(mid, yaw, side * (shortcutHalfWidth - 0.12), 0, 0);
+            const rail = mesh(this.group, box, railMat, [edge.x, mid.y + 0.48, edge.z],
+              [0.24, 0.8, along.length() + 0.35]);
+            rail.rotation.copy(deck.rotation);
+          }
+        }
         for (const step of [0.32, 0.5, 0.68]) {
           const index = Math.floor(step * (points.length - 1));
           const p = points[index];
@@ -991,11 +1014,13 @@ export class World {
             deckMat,
             [p.x, Math.max(1.6, h * 0.5), p.z],
             [1.4, Math.max(2.2, h), 1.4],
-            [0, yaw, 0],
           );
         }
       }
     }
+    this.installInstance("shortcutArrows", routeArrowGeo,
+      this.basic({ color: 0xffc870, side: THREE.DoubleSide, toneMapped: false }),
+      branchArrows);
   }
 
   createSignTexture(title, subtitle, accent = this.map.accent) {
@@ -1115,8 +1140,8 @@ export class World {
     this.addPanel(
       localPoint(start, startYaw, 0, 5.7, -1.9),
       startYaw,
+      "START / FINISH",
       this.map.name,
-      this.map.tag || "street circuit",
       11.6,
       2.45,
     );
@@ -1430,16 +1455,21 @@ export class World {
     const q = new THREE.Quaternion();
     const matrix = new THREE.Matrix4();
     const yAxis = new THREE.Vector3(0, 1, 0);
-    const step = this.lowPower ? 18 : 12;
+    const interval = this.lowPower ? 20 : 14;
+    let travelled = interval;
     const material = this.basic({
-      color: this.map.accent,
+      color: 0x63ffd4,
+      toneMapped: false,
       transparent: true,
-      opacity: this.lowPower ? 0.42 : 0.55,
+      opacity: 0.88,
       depthWrite: false,
       side: THREE.DoubleSide,
     });
 
-    for (let i = 3; i < points.length; i += step) {
+    for (let i = 0; i < points.length; i++) {
+      travelled += points[i].distanceTo(points[(i + points.length - 1) % points.length]);
+      if (travelled < interval) continue;
+      travelled %= interval;
       const p = points[i];
       const t = tangentAt(points, i);
       const yaw = Math.atan2(t.x, t.z);
@@ -1447,7 +1477,7 @@ export class World {
       matrix.compose(
         new THREE.Vector3(p.x, this.roadSurfaceY + 0.13, p.z),
         q.setFromAxisAngle(yAxis, yaw),
-        new THREE.Vector3(2.35, 1, 3.25),
+        new THREE.Vector3(1.55, 1, 1.85),
       );
       matrices.push(matrix.clone());
     }
@@ -1494,14 +1524,14 @@ export class World {
     this.group.add(edgeLeft, edgeRight);
   }
 
-  createContinuousLine(points, laneOffset, width, y) {
+  createContinuousLine(points, laneOffset, width, y, closed = true) {
     const verts = [];
     const inds = [];
 
     for (let i = 0; i < points.length; i++) {
       const p = points[i];
 
-      const t = tangentAt(points, i);
+      const t = tangentAt(points, i, closed);
 
       const s = new THREE.Vector3(-t.z, 0, t.x);
 
@@ -1519,17 +1549,18 @@ export class World {
       verts.push(a.x, py, a.z, b.x, py, b.z);
     }
 
-    for (let i = 0; i < points.length - 1; i++) {
+    for (let i = 0; i < (closed ? points.length : points.length - 1); i++) {
       const k = i * 2;
 
+      const next = ((i + 1) % points.length) * 2;
       inds.push(
         k,
-        k + 2,
+        next,
         k + 1,
 
         k + 1,
-        k + 2,
-        k + 3,
+        next,
+        next + 1,
       );
     }
 
@@ -2125,8 +2156,8 @@ export class World {
     const entries = plans[this.map.id] || [];
 
     for (const [type, ai, bi] of entries) {
-      const a = this.route[ai % this.route.length];
-      const b = this.route[bi % this.route.length];
+      const a = this.controlRoute[ai % this.controlRoute.length];
+      const b = this.controlRoute[bi % this.controlRoute.length];
 
       if (!a || !b) continue;
 
@@ -2142,63 +2173,24 @@ export class World {
     const heading = Math.atan2(b.x - a.x, b.z - a.z);
 
     const yaw = heading + Math.PI / 2;
-
-    const deckMat = this.material({
-      color: 0x252b31,
-      roughness: 0.62,
-      metalness: 0.28,
-    });
-
-    const pillarMat = this.material({
-      color: 0x3b4246,
-      roughness: 0.82,
-      metalness: 0.13,
-    });
-
-    const lightMat = this.basic({
-      color: 0xd9f7ff,
-    });
-
-    mesh(
-      this.group,
-      box,
-      deckMat,
-      [mid.x, 7.6, mid.z],
-      [44, 0.55, 8.2],
-      [0, yaw, 0],
-    );
-
-    const side = new THREE.Vector3(-Math.cos(heading), 0, Math.sin(heading));
-
-    for (const sign of [-1, 1]) {
-      const p = mid.clone().addScaledVector(side, sign * 12.5);
-
-      mesh(
-        this.group,
-        box,
-        pillarMat,
-        [p.x, 3.7, p.z],
-        [1.25, 7.4, 1.25],
-        [0, yaw, 0],
-      );
+    const asphalt = this.material({ color: 0x343d44, roughness: 0.9 });
+    const concrete = this.material({ color: 0x687279, roughness: 0.85 });
+    const paint = this.basic({ color: 0xf2d992 });
+    // Local Z runs across the race course. Both approaches meet the ground.
+    const section = (x, z1, h1, z2, h2, width, height, material) => {
+      const pos = localPoint(mid, yaw, x, (h1 + h2) / 2, (z1 + z2) / 2);
+      const slab = mesh(this.group, box, material, [pos.x, pos.y, pos.z],
+        [width, height, Math.hypot(z2 - z1, h2 - h1) + 0.10]);
+      slab.rotation.set(-Math.atan2(h2 - h1, z2 - z1), yaw, 0, "YXZ");
+    };
+    for (const [z1, h1, z2, h2] of [[-60, -0.3, -22, 7.6], [-22, 7.6, 22, 7.6], [22, 7.6, 60, -0.3]]) {
+      section(0, z1, h1, z2, h2, 9.8, 0.7, asphalt);
+      for (const side of [-1, 1]) section(side * 4.8, z1, h1 + 0.75, z2, h2 + 0.75, 0.3, 0.9, concrete);
+      section(0, z1, h1 + 0.37, z2, h2 + 0.37, 0.12, 0.04, paint);
     }
-
-    for (let i = -3; i <= 3; i++) {
-      const p = mid
-        .clone()
-        .addScaledVector(
-          new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw)),
-          i * 5.5,
-        );
-
-      mesh(
-        this.group,
-        box,
-        lightMat,
-        [p.x, 7.92, p.z],
-        [0.8, 0.08, 2.6],
-        [0, yaw, 0],
-      );
+    for (const offset of [-19, 19]) {
+      const p = localPoint(mid, yaw, 0, 3.65, offset);
+      mesh(this.group, box, concrete, [p.x, p.y, p.z], [6.8, 7.3, 1.3], [0, yaw, 0]);
     }
   }
 
@@ -4880,6 +4872,25 @@ export class World {
 
   buildCheckpoints() {
     const g = this.group;
+    const canvas = document.createElement("canvas");
+    canvas.width = 512; canvas.height = 96;
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const beaconMaterial = new THREE.SpriteMaterial({map: texture, transparent: true, toneMapped: false});
+    this.materials.push(beaconMaterial);
+    this.textures.push(texture);
+    this.gateBeacon = new THREE.Sprite(beaconMaterial);
+    this.gateBeacon.scale.set(10.6, 2, 1);
+    this.gateBeacon.renderOrder = 2;
+    g.add(this.gateBeacon);
+    const start = this.route[0], yaw = this.segmentAngle(0);
+    const tiles = [this.basic({color: 0xf8fafc}), this.basic({color: 0x11151b})];
+    for (let row = 0; row < 2; row++) {
+      for (let column = 0; column < 20; column++) {
+        const tile = localPoint(start, yaw, column - 9.5, 0.21, row - 0.5);
+        mesh(g, box, tiles[(row + column) % 2], [tile.x,tile.y,tile.z], [1, 0.035, 1], [0,yaw,0]);
+      }
+    }
 
     for (let i = 0; i < this.route.length; i++) {
       const point = this.route[i];
@@ -4904,11 +4915,11 @@ export class World {
         opacity: 0.18,
       });
 
-      mesh(marker, box, postMat, [-8.2, 2.0, 0], [0.12, 4.0, 0.12]);
+      mesh(marker, box, postMat, [-10.2, 2.4, 0], [0.38, 4.8, 0.38]);
 
-      mesh(marker, box, postMat, [8.2, 2.0, 0], [0.12, 4.0, 0.12]);
+      mesh(marker, box, postMat, [10.2, 2.4, 0], [0.38, 4.8, 0.38]);
 
-      mesh(marker, box, glow, [0, 3.85, 0], [14.8, 0.07, 0.1]);
+      mesh(marker, box, glow, [0, 4.75, 0], [20.7, 0.24, 0.24]);
 
       const arrow = mesh(
         marker,
@@ -5293,7 +5304,7 @@ export class World {
 
       alignVehicleToSurface(
         traffic,
-        this.getRoadHeightAt(traffic.position.x, traffic.position.z),
+        this.roadSurfaceY,
       );
 
       traffic.rotation.y = Math.atan2(-tangent.x, -tangent.z);
@@ -5318,16 +5329,27 @@ export class World {
     }
   }
 
-  setNextMarker(index) {
+  setNextMarker(index, label = index ? "GATE " + index : "LAP LINE", position = this.route[index]) {
+    const texture = this.gateBeacon.material.map;
+    if (this.gateLabel !== label) {
+      this.gateLabel = label;
+      const ctx = texture.image.getContext("2d");
+      ctx.fillStyle = "#062a29"; ctx.fillRect(0, 0, 512, 96);
+      ctx.lineWidth = 8; ctx.strokeStyle = "#76ffce"; ctx.strokeRect(4, 4, 504, 88);
+      ctx.fillStyle = "#ffffff"; ctx.font = "bold 52px sans-serif"; ctx.textAlign = "center";
+      ctx.fillText(label, 256, 67, 485);
+      texture.needsUpdate = true;
+    }
+    this.gateBeacon.position.set(position.x, (position.y || 0) + 6.6, position.z);
+    if (this.activeMarker === index) return;
+    this.activeMarker = index;
     this.markers.forEach((marker, i) => {
       const active = i === index;
-
-      marker.userData.glow.color.set(active ? 0xefffff : this.map.accent);
-
-      marker.userData.glow.opacity = active ? 0.36 : 0.06;
-
-      marker.userData.postMat.opacity = active ? 0.42 : 0.14;
-
+      marker.visible = active || i === (index + 1) % this.route.length;
+      marker.userData.glow.color.set(active ? 0x66ffcc : 0xe1fff6);
+      marker.userData.glow.opacity = active ? 0.93 : 0.27;
+      marker.userData.postMat.color.set(active ? 0x66ffcc : 0xb1d9d5);
+      marker.userData.postMat.opacity = active ? 0.93 : 0.32;
       marker.userData.arrow.visible = active;
     });
   }
@@ -5362,7 +5384,7 @@ export class World {
     return pastEdge <= 0;
   }
 
-  getRoadHeightAt(x, z) {
+  getRoadHeightAt(x, z, previousHeight) {
     let nearest = Infinity;
     let height = this.roadSurfaceY;
 
@@ -5393,7 +5415,12 @@ export class World {
       }
     }
 
-    if (nearest < 8.9) return height;
+    if (nearest < 8.9) {
+      // At grade-separated crossings a car beneath a bridge stays on the lower road.
+      if (Number.isFinite(previousHeight) && height - previousHeight > 1.1 &&
+          nearestPointOnPath({ x, z }, this.samples, true).distance <= roadHalfWidth + shoulderAllowance) return this.roadSurfaceY;
+      return height;
+    }
 
     return this.roadSurfaceY;
   }
@@ -5434,7 +5461,7 @@ export class World {
 
       alignVehicleToSurface(
         traffic.mesh,
-        this.getRoadHeightAt(traffic.mesh.position.x, traffic.mesh.position.z),
+        this.roadSurfaceY,
       );
 
       traffic.mesh.rotation.y = traffic.heading;

@@ -69,6 +69,33 @@ try {
           pos.addScaledVector(normal, -4);
           check(world.constrainToRoad(p), 'Driver can turn back onto the road');
         }
+        const initialGate = p.next, initialHeading = p.mesh.rotation.y;
+        const gate = world.route[initialGate];
+        p.mesh.rotation.y = Math.atan2(gate.x - pos.x, gate.z - pos.z);
+        check(g.routeCue().label === 'WRONG WAY', 'Head-up guidance warns when driving away');
+        for (const road of world.shortcutRoads) {
+          const entry = world.authorSegmentToRouteIndex(road.from);
+          const afterEntry = (entry + 1) % world.route.length;
+          const exit = world.authorSegmentToRouteIndex(road.to);
+          p.next = afterEntry; p.cut = null;
+          pos.copy(world.route[exit]); g.checkProgress(p);
+          check(p.next === afterEntry && !p.cut, 'Jumping directly to a shortcut exit does not score');
+          for (const point of road.points) { pos.copy(point); g.checkProgress(p); }
+          check(!p.cut && p.next === (exit + 1) % world.route.length, 'Ordered route credited: ' + road.label);
+          if (road.elevated) {
+            let height = world.roadSurfaceY;
+            for (let i = 1; i < road.points.length; i++) {
+              for (let j = 1; j <= 16; j++) {
+                const pt = road.points[i - 1].clone().lerp(road.points[i], j / 16);
+                const next = world.getRoadHeightAt(pt.x, pt.z, height);
+                check(Math.abs(next - height) < .9, 'Raised shortcut stays continuous: ' + road.label);
+                height = next;
+              }
+              check(Math.abs(height - road.heightProfile[i]) < .15, 'Player rides the visible deck: ' + road.label);
+            }
+          }
+        }
+        p.next = initialGate; p.cut = null; p.mesh.rotation.y = initialHeading;
         pos.copy(start);
       }
       g.checkProgress(p);check(p.lap===0,'Starting on the line does not finish a lap');

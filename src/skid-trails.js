@@ -25,7 +25,7 @@ export class SkidTrails {
     const points = rear.map(w => {
       const x = p.x + Math.cos(yaw) * w.pivot.position.x + Math.sin(yaw) * w.pivot.position.z;
       const z = p.z - Math.sin(yaw) * w.pivot.position.x + Math.cos(yaw) * w.pivot.position.z;
-      return new THREE.Vector3(x, world.getRoadHeightAt(x, z) + .018, z);
+      return new THREE.Vector3(x, world.getRoadHeightAt(x, z, actor.surfaceY) + .018, z);
     });
     if (this.previous && this.previous.length === points.length) {
       const travel = points[0].distanceTo(this.previous[0]);

@@ -1,5 +1,5 @@
 import { storage } from "./storage.js";
-import { maps, modes, vehicles } from "./data.js";
+import { gatesPerSegment, maps, modes, vehicles } from "./data.js";
 
 const stat = (label, value, color = "cyan", pct = value) =>
   `<div class="stat"><span>${label}</span><i><b style="width:${Math.max(0, Math.min(100, pct))}%;--stat-color:${color}"></b></i><strong>${value}</strong></div>`;
@@ -176,6 +176,7 @@ export class UI {
       this.start();
     }
     if (action === "resume") this.game.togglePause();
+    if (action === "recover") this.game.returnToCheckpoint();
   }
 
   shell(kicker, title, body, back = true) {
@@ -212,13 +213,13 @@ export class UI {
     const cards = maps
       .map(
         (m, i) =>
-          `<button class="map-card map-${m.id} ${selected === m.id ? "selected" : ""}" data-action="choose-map" data-id="${m.id}">${mapArt(m)}<div class="map-card-copy"><span>ROUTE ${String(i + 1).padStart(2, "0")}</span><h2>${esc(m.name)}</h2><p>${esc(m.tag)}</p><div class="map-facts"><b>${m.route.length} CP</b><span>${m.straightSegments?.length || 0} SPRINTS</span><span>${m.shortcuts?.length || 0} CUTS</span></div></div><i class="map-arrow">↗</i></button>`,
+          `<button class="map-card map-${m.id} ${selected === m.id ? "selected" : ""}" data-action="choose-map" data-id="${m.id}">${mapArt(m)}<div class="map-card-copy"><span>ROUTE ${String(i + 1).padStart(2, "0")}</span><h2>${esc(m.name)}</h2><p>${esc(m.tag)}</p><div class="map-facts"><b>${m.route.length * gatesPerSegment} GATES</b><span>${m.straightSegments?.length || 0} SPRINTS</span><span>${m.shortcuts?.length || 0} CUTS</span></div></div><i class="map-arrow">↗</i></button>`,
       )
       .join("");
     this.shell(
       `${esc(this.mode.title).toUpperCase()} // ROUTE SELECT`,
       "City routes",
-      `<div class="map-selector"><div class="map-selector-head"><div><span>WORLD ATLAS</span><p>Pick a route by pace: straights for speed, cuts for risk, curves for handling.</p></div><div class="map-selected-label">${esc((maps.find((m) => m.id === selected) || maps[0]).name).toUpperCase()}</div></div><div class="map-grid-premium">${cards}</div><div class="map-detail-strip"><div><small>SELECTED DISTRICT</small><b>${esc((maps.find((m) => m.id === selected) || maps[0]).tag).toUpperCase()}</b></div><div><small>RACE ROUTE</small><b>${(maps.find((m) => m.id === selected) || maps[0]).route.length} CHECKPOINTS / ${(maps.find((m) => m.id === selected) || maps[0]).straightSegments?.length || 0} STRAIGHTS</b></div><div><small>ATMOSPHERE</small><b>${selected === "neon" ? "NEON NIGHT" : selected === "coast" ? "COASTAL DAWN" : selected === "dock" ? "INDUSTRIAL DUSK" : "DESERT SUNSET"}</b></div></div></div>`,
+      `<div class="map-selector"><div class="map-selector-head"><div><span>WORLD ATLAS</span><p>Green arrows trace the circuit. Amber arrows mark optional shortcuts that rejoin it.</p></div><div class="map-selected-label">${esc((maps.find((m) => m.id === selected) || maps[0]).name).toUpperCase()}</div></div><div class="map-grid-premium">${cards}</div><div class="map-detail-strip"><div><small>SELECTED DISTRICT</small><b>${esc((maps.find((m) => m.id === selected) || maps[0]).tag).toUpperCase()}</b></div><div><small>RACE ROUTE</small><b>${(maps.find((m) => m.id === selected) || maps[0]).route.length * gatesPerSegment} GATES / ${(maps.find((m) => m.id === selected) || maps[0]).straightSegments?.length || 0} STRAIGHTS</b></div><div><small>ATMOSPHERE</small><b>${selected === "neon" ? "NEON NIGHT" : selected === "coast" ? "COASTAL DAWN" : selected === "dock" ? "INDUSTRIAL DUSK" : "DESERT SUNSET"}</b></div></div></div>`,
     );
   }
 
@@ -440,6 +441,7 @@ export class UI {
     if (this.networked) this.game.setRemotePlayers(this.network.players);
   }
   exitToHome() {
+    this.routeMap = null;
     this.releaseDriving?.();
     this.game.stop();
     this.root.querySelector(".pause-overlay")?.remove();
@@ -542,7 +544,7 @@ export class UI {
     node.classList.toggle("go", value === "GO!");
   }
   setRunning(running) {
-    if (!running) this.hud.hidden = true;
+    if (!running) { this.hud.hidden = true; this.routeMap = null; }
   }
   updateHUD(s) {
     if (this.hud.hidden) return;
@@ -574,7 +576,7 @@ export class UI {
       ? "OUTRUN THE PURSUIT"
       : this.mode.id === "cruise" ? "EXPLORE THE ROUTE"
       : this.mode.id === "time" ? "BEAT YOUR PERSONAL BEST"
-      : `${this.mode.title.toUpperCase()} // HOLD THE LINE`;
+      : `${this.mode.title.toUpperCase()} // FOLLOW THE GREEN GATES`;
     if (this.lastWanted !== s.wanted) {
       this.root.querySelector("#wanted").innerHTML = s.wanted
         ? `<small>HEAT</small>${"<i>◆</i>".repeat(s.wanted)}`
@@ -586,70 +588,60 @@ export class UI {
       routeProgress.style.width = `${Math.max(3, Math.min(100, ((s.next - 1) / Math.max(1, s.total - 1)) * 100))}%`;
     this.drawMap(s);
   }
-  drawMap(s) {
-    const c = this.mini,
-      ctx = c.getContext("2d"),
-      route = this.game.world.route.map((p) => [p.x, p.z]),
-      w = c.width,
-      h = c.height;
-    ctx.clearRect(0, 0, w, h);
+  mapBackground(world, width, height) {
+    if (this.routeMap?.world === world && this.routeMap.canvas.width === width && this.routeMap.canvas.height === height) return this.routeMap;
+    const paths = [world.samples, ...world.shortcutRoads.map((road) => road.points)];
+    let extent = 1;
+    for (const path of paths) for (const p of path) extent = Math.max(extent, Math.abs(p.x), Math.abs(p.z));
+    const scale = Math.min(width, height) * .42 / extent;
+    const canvas = document.createElement("canvas");
+    canvas.width = width; canvas.height = height;
+    const ctx = canvas.getContext("2d");
     ctx.fillStyle = "rgba(7,11,19,.82)";
-    ctx.fillRect(0, 0, w, h);
-    const maxExtent = Math.max(
-      1,
-      ...route.map((p) => Math.max(Math.abs(p[0]), Math.abs(p[1]))),
-    );
-    const scale = (Math.min(w, h) * 0.42) / maxExtent,
-      ox = w / 2,
-      oy = h / 2;
-    const point = (p) => [ox + p[0] * scale, oy + p[1] * scale];
-    const mid = (a, b) => [(a[0] + b[0]) * 0.5, (a[1] + b[1]) * 0.5];
-    const start = mid(point(route.at(-1)), point(route[0]));
-    ctx.beginPath();
-    ctx.moveTo(start[0], start[1]);
-    route.forEach((p, i) => {
-      const a = point(p);
-      const b = mid(a, point(route[(i + 1) % route.length]));
-      ctx.quadraticCurveTo(a[0], a[1], b[0], b[1]);
-    });
-    ctx.closePath();
-    ctx.strokeStyle = s.map.accent;
-    ctx.lineWidth = 7;
-    ctx.globalAlpha = 0.16;
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = s.map.accent;
-    ctx.stroke();
-    route.forEach((p, i) => {
-      const [x, y] = point(p);
-      ctx.fillStyle = i === s.targetIndex ? "#ffffff" : "#4f9cb0";
+    ctx.fillRect(0, 0, width, height);
+    ctx.lineJoin = "round";
+    paths.forEach((path, index) => {
       ctx.beginPath();
-      ctx.arc(x, y, i === s.targetIndex ? 4 : 1.8, 0, Math.PI * 2);
-      ctx.fill();
-      if (i === s.targetIndex) {
-        ctx.strokeStyle = s.map.accent;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(x, y, 6, 0, Math.PI * 2);
-        ctx.stroke();
+      path.forEach((p, i) => {
+        const x = width / 2 + p.x * scale, y = height / 2 + p.z * scale;
+        if (!i) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      if (!index) ctx.closePath();
+      ctx.setLineDash(index ? [2, 3] : []);
+      ctx.lineWidth = index ? 1.2 : 3; ctx.strokeStyle = index ? "#a6adba" : "#63788b"; ctx.stroke();
+    });
+    this.routeMap = { world, canvas, scale };
+    return this.routeMap;
+  }
+  drawMap(s) {
+    const c = this.mini, ctx = c.getContext("2d"), world = this.game.world;
+    const { canvas, scale } = this.mapBackground(world, c.width, c.height);
+    const ox = c.width / 2, oy = c.height / 2;
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.drawImage(canvas, 0, 0);
+    const cut = s.player.cut;
+    const target = cut ? cut.road.points[cut.gate] : world.route[s.targetIndex];
+    const car = s.player.mesh.position;
+    ctx.beginPath(); ctx.moveTo(ox + car.x * scale, oy + car.z * scale);
+    const trace = (p) => ctx.lineTo(ox + p.x * scale, oy + p.z * scale);
+    if (cut) {
+      for (let i = cut.gate; i < cut.road.points.length; i++) trace(cut.road.points[i]);
+    } else {
+      const samples = world.samples;
+      const stride = samples.length / world.route.length;
+      const end = (s.targetIndex || world.route.length) * stride;
+      let closest = end, best = Infinity;
+      for (let i = end - stride; i <= end; i++) {
+        const distance = car.distanceToSquared(samples[i % samples.length]);
+        if (distance < best) { best = distance; closest = i; }
       }
-    });
-    if (route[s.targetIndex]) {
-      const [tx, ty] = point(route[s.targetIndex]);
-      const px = ox + s.player.mesh.position.x * scale,
-        py = oy + s.player.mesh.position.z * scale;
-      ctx.strokeStyle = "#ffffff";
-      ctx.globalAlpha = 0.42;
-      ctx.lineWidth = 1.4;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.moveTo(px, py);
-      ctx.lineTo(tx, ty);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.globalAlpha = 1;
+      for (let i = closest; i <= end + 3 * stride; i++) trace(samples[i % samples.length]);
     }
+    ctx.strokeStyle = "#65ffcb"; ctx.lineWidth = 3.5; ctx.lineJoin = "round"; ctx.stroke();
+    const start = world.route[0];
+    ctx.fillStyle = "#fff"; ctx.fillRect(ox + start.x * scale - 2, oy + start.z * scale - 2, 4, 4);
+    ctx.beginPath(); ctx.arc(ox + target.x * scale, oy + target.z * scale, 4, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff"; ctx.fill(); ctx.strokeStyle = "#43e5ae"; ctx.lineWidth = 1.5; ctx.stroke();
     for (const a of s.actors) {
       const x = ox + a.mesh.position.x * scale,
         y = oy + a.mesh.position.z * scale;
@@ -686,7 +678,7 @@ export class UI {
     }
     this.root.insertAdjacentHTML(
       "beforeend",
-      `<div class="pause-overlay"><p>PAUSED</p><button class="primary" data-action="resume">RESUME</button><button data-action="home">QUIT TO MENU</button></div>`,
+      `<div class="pause-overlay"><p>PAUSED</p><button class="primary" data-action="resume">RESUME</button>${this.game.phase === "play" ? '<button data-action="recover">RETURN TO LAST GATE</button>' : ""}<button data-action="home">QUIT TO MENU</button></div>`,
     );
   }
   toast(message) {

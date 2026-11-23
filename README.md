@@ -2,6 +2,10 @@
 
 Racing, time trials and pursuit across four districts, on the `nightshift` branch of `deba-maity/asphalt`. This branch is independent of `ashen-vow`; `main` is unchanged. Current source: **1.1.0-rc.1**.
 
+[Play Nightshift in a browser](https://deba-maity.github.io/asphalt/nightshift/)
+
+Choose **Hit the Streets**, a mode, a district and a vehicle, then **Deploy**. Hold **W** or **Up** to accelerate and steer with **A/D** or **Left/Right**. Follow the green arrows through the numbered gates. Amber ramps are optional shortcuts. The checkered line counts each completed lap. Sprint takes one lap and Race takes three. If you lose the route, open Pause and choose **Return to last gate**.
+
 ## Install and open on your own PC
 
 Use Node.js 22 or newer. From the repository in PowerShell:
