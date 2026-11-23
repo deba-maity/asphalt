@@ -25,7 +25,8 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(world.hero) or not is_instance_valid(world.warden): return
 	var playing=Session.running and world.ui.mode=="play" and not world.won and world.hero.model.state!="dead"
 	presence=move_toward(presence,1.0 if playing else 0.0,delta*.7)
-	intensity=lerpf(intensity,1.0 if world.warden.phase==2 else .3,1-exp(-delta*.8))
+	var target_intensity = 0.0 if world.arrival != null else (1.0 if world.warden.phase == 2 else .3)
+	intensity=lerpf(intensity,target_intensity,1-exp(-delta*.8))
 	volume_db=linear_to_db(maxf(.00001,presence))
 	synchronized.set_sync_stream_volume(1,linear_to_db(maxf(.00001,intensity*.20)))
 

@@ -60,6 +60,20 @@ func configure(actor: Fighter) -> void:
 		for key in ["windup","active","recovery","tracking"]:
 			if attack.has(key): attack[key]/=data.rate
 		# hit_windows and lead_in are clip seconds; leave those unchanged.
+	# Each knight's armor materials are private copies. Give the echoes a visible
+	# spectral rim while preserving the Warden's own dark steel.
+	var echo_color: Color = [Color("81baad"), Color("8ca4c1"), Color("c6ac87")][stage]
+	for piece in actor.figure.model_root.find_children("Knight*", "MeshInstance3D", true, false):
+		for surface in piece.mesh.get_surface_count():
+			var armor = piece.get_surface_override_material(surface)
+			if armor is StandardMaterial3D:
+				armor.albedo_color = echo_color
+				armor.rim_enabled = true
+				armor.rim = .72
+				armor.rim_tint = .85
+				armor.emission_enabled = true
+				armor.emission = echo_color
+				armor.emission_energy_multiplier = .12
 	var cape=actor.figure.cape.material_override
 	cape.set_shader_parameter("cloth_color",[Color("716350"),Color("435d63"),Color("695044")][stage])
 
@@ -78,6 +92,9 @@ func hint(world: TrialWorld) -> String:
 	if world.hero.model.health<55 and Session.data.heals>0: return "{heal} Drink a draught when safe. Being hit interrupts healing."
 	if world.hero.model.stamina<28: return "Let stamina recover. Walking costs nothing; leave enough for one roll."
 	if stage==0:
+		if learned.has("rehearsal"):
+			if world.duel.hits == 0: return "Read the echo's shoulder. Hold {guard} through its cut and use {light} as it recovers."
+			return "A landed strike costs stamina. Walk between attacks and finish the echo at your own pace."
 		if world.hero.total_distance<2: return "{move_forward}/{move_left}/{move_back}/{move_right} Move · Mouse / right stick: look around"
 		if not learned.has("lock"): return "{lock_on} Lock onto the echo · Stay close enough for the blade to reach"
 		if world.duel.hits<2: return "{light} Strike · Press again near the end of a swing to chain it"

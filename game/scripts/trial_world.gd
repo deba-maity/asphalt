@@ -1,6 +1,8 @@
 class_name TrialWorld
 extends ChapterWorld
 
+var arrival: TrialArrival
+var court_camera: Camera3D
 var warden: Fighter
 var won: bool=false
 var result_delay: float=-1
@@ -82,6 +84,21 @@ func _ready() -> void:
 	column.add_child(composure_bar)
 	ui.help_caption.text=Preferences.prompt("{journal} Trial guide · {pause} Pause")
 
+func begin_arrival() -> void:
+	arrival = TrialArrival.new()
+	arrival.world = self
+	add_child(arrival)
+	boss_panel.hide()
+
+func frame_court() -> void:
+	if court_camera == null:
+		court_camera = Camera3D.new()
+		court_camera.fov = 56
+		add_child(court_camera)
+	court_camera.position = Vector3(6.4, 3.5, 8.4)
+	court_camera.look_at(Vector3(-2.8, 1.15, 2.5))
+	court_camera.make_current()
+
 func _exit_tree() -> void:
 	if is_instance_valid(boss_panel): boss_panel.queue_free()
 	if is_instance_valid(ui): ui.trial_layout(false)
@@ -95,6 +112,7 @@ func build_court() -> void:
 	atmosphere.environment.sky=sky
 	atmosphere.environment.background_energy_multiplier=.55
 	atmosphere.environment.fog_density=.006
+	atmosphere.environment.fog_sky_affect=.26
 	atmosphere.environment.fog_light_color=Color("8c9c9c")
 	atmosphere.environment.ambient_light_energy=.38
 	add_child(atmosphere)
@@ -153,7 +171,14 @@ func build_court() -> void:
 func _process(delta: float) -> void:
 	if not Session.running or hero==null: return
 	elapsed+=delta
-	Sound.context("zone_copper_stair",not won,ui.mode!="play",true)
+	Sound.context("zone_copper_stair",arrival == null and not won,ui.mode!="play",true)
+	if arrival != null and ui.mode == "play":
+		ui.update_hud(hero, {})
+		hud_text_time -= delta
+		if hud_text_time <= 0:
+			hud_text_time = .12
+			arrival.refresh_hud()
+		return
 	if result_delay>=0:
 		result_delay-=delta
 		if result_delay<0 and ui.mode=="play": ui.show_trial_result(won)
@@ -173,7 +198,8 @@ func _process(delta: float) -> void:
 			hud_text_time=.1
 			ui.chapter_label.text=passage.entry().chapter
 			ui.objective_text.text="Defeat the echo to continue.\nHealth refills after this encounter." if passage.training() else "Defeat the Cinder Warden.\nEarn passage back to the living."
-			ui.tutorial.text=Preferences.prompt(passage.hint(self))
+			ui.tutorial.text=ui.play_prompt(passage.hint(self))
+			if ui.touch_preferred: ui.help_caption.text = "Menu · Trial guide and settings"
 			ui.status.text="%d HP · %d draughts" % [hero.model.health,Session.data.heals]
 			if hero.model.posture>=30: ui.status.text+="\nGuard strain %d%%" % hero.model.posture
 		composure_bar.value=duel.composure
@@ -192,13 +218,17 @@ func _process(delta: float) -> void:
 	boss_panel.visible=ui.mode=="play"
 
 func _physics_process(delta: float) -> void:
-	if duel!=null: duel.tick(delta)
+	if duel!=null and arrival == null: duel.tick(delta)
 
 func can_play() -> bool:
 	return super.can_play() and not won and result_delay<0
 
-func learn(action: String) -> void: passage.learn(action)
-func interact() -> void: pass
+func learn(action: String) -> void:
+	passage.learn(action)
+	if arrival != null: arrival.learn(action)
+
+func interact() -> void:
+	if arrival != null: arrival.interact()
 func save_current() -> void: pass # A trial is a fresh duel; campaign persistence is untouched.
 
 func _enemy_died(_enemy: Fighter) -> void:

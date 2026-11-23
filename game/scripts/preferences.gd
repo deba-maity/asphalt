@@ -219,7 +219,7 @@ func apply() -> void:
 	root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	root.content_scale_size=Vector2i(1280,720)
 	root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_KEEP
-	if DisplayServer.get_name()!="headless":
+	if DisplayServer.get_name()!="headless" and not OS.has_feature("web"):
 		root.mode=Window.MODE_FULLSCREEN if fullscreen else Window.MODE_WINDOWED
 		if not fullscreen: root.size=Vector2i(roundi(window_height*16.0/9),window_height)
 	update_render_scale()
@@ -245,7 +245,7 @@ func update_render_scale() -> void:
 	# The fixed-aspect game area may be letterboxed. Maintain the requested
 	# internal 3D height when the window/display is larger than the HUD base.
 	var area_height=minf(root.size.y,root.size.x*9.0/16)
-	root.scaling_3d_scale=clampf(render_height/maxf(1,area_height),.25,2)
+	root.scaling_3d_scale=clampf(render_height/maxf(1,area_height),.25,1.0 if OS.has_feature("web") else 2.0)
 
 func save(path: String="") -> bool:
 	if path.is_empty(): path=settings_path

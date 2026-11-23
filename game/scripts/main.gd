@@ -204,12 +204,22 @@ func finish(code: int = 0) -> void:
 	await get_tree().process_frame
 	get_tree().quit(code)
 
+func start_first_echo(court_id: int, trained: bool) -> void:
+	if not is_instance_valid(world) or world.get_instance_id() != court_id or ui.mode not in ["play", "journal"]: return
+	start_trial(0, false)
+	if trained:
+		world.passage.learn("rehearsal")
+		world.hero.target = world.warden
+	ui.announce("THE FIRST ECHO")
+	ui.toast("The echo lifts its blade. Let the first cut pass, then answer.", 4)
+
 func start_trial(stage: int=0, briefing: bool=true) -> void:
 	transitions.cancel()
 	trial_active=true
 	trial_stage=clampi(stage,0,TrialPassage.WARDEN)
 	Session.begin_trial()
 	load_world()
+	if trial_stage == 0 and briefing: world.begin_arrival()
 	ui.play()
 	if briefing: ui.show_trial_briefing()
 	else: ui.announce(world.passage.entry().chapter)

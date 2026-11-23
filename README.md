@@ -2,7 +2,9 @@
 
 Current source: **0.8.0-rc.1 — The Ashen Trial**. Offline single-player sword combat, built with Godot 4.7.2 / GDScript / Compatibility.
 
-Select **Play - The Ashen Trial** for a short passage with a reason to fight: Rayan returns to expose Avel's betrayal and preserve Mira and Isha's names, but the gate takes the memory of Isha's voice. Read the opening, face three gentle echoes that teach movement, defense and openings, then confront the Cinder Warden. Health and draughts refill between encounters; a loss retries the current one. **Warden duel - skip lessons** remains available.
+[Play Ashen Vow in a browser](https://deba-maity.github.io/asphalt/ashen-vow/play/)
+
+Choose **Begin journey · The Counting Shore**. Walk to the glowing ember with **WASD**, then press **E** to listen. A quiet echo lets you practice locking on (**Q**), landing a light strike (left mouse), guarding (**Ctrl**) and rolling (**Space**). Press **E** when you want to start the first encounter. Three echoes prepare you for the Cinder Warden. Health, stamina and draughts refill for each fight. On touchscreens, move with the left pad and swipe the court to look around. The on-screen controls change with each lesson. Experienced players can choose **Warden duel · skip lessons** from the title.
 
 The trial uses artist-made plate armor, retargeted authored motion, physical sword sweeps, simulated cloth, a ruined courtyard and adaptive orchestral score. The earlier six-chapter campaign remains in its archive with its existing visuals and saves.
 

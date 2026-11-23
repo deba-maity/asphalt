@@ -25,6 +25,79 @@ func check_layout(label: String) -> void:
 		valid=valid and rect.position.x>=0 and rect.position.y>=0 and rect.end.x<=1281 and rect.end.y<=721
 	check(valid,label)
 
+func touch(index: int, point: Vector2, pressed: bool) -> void:
+	var event := InputEventScreenTouch.new()
+	event.index = index
+	event.position = point
+	event.pressed = pressed
+	get_viewport().push_input(event, true)
+
+func test_touch_lesson() -> void:
+	main.ui.show_menu()
+	touch(0, Vector2(1100, 300), true)
+	touch(0, Vector2(1100, 300), false)
+	button_named("Begin journey").pressed.emit()
+	await frames(4)
+	button_named("Accept the cost").pressed.emit()
+	await seconds(.35)
+	var controls: TrialTouch = main.ui.touch_controls
+	check(main.ui.touch_preferred and controls.is_visible_in_tree(), "Touch input enables the trial pad")
+	var forward := TrialTouch.PAD + Vector2.UP * 63
+	touch(1, forward, true)
+	await seconds(1.0)
+	touch(1, forward, false)
+	await seconds(.3)
+	check(main.world.arrival.near_ember(), "The touch pad walks to the memorial")
+	var use: Vector2 = TrialTouch.BUTTONS.interact[0]
+	touch(2, use, true)
+	touch(2, use, false)
+	check(main.world.warden.visible, "Touch Listen reveals the echo")
+	var lock: Vector2 = TrialTouch.BUTTONS.lock_on[0]
+	touch(2, lock, true)
+	touch(2, lock, false)
+	check(main.player.target == main.world.warden, "Touch Lock acquires the echo")
+	touch(1, forward, true)
+	await seconds(.65)
+	touch(1, forward, false)
+	await seconds(.2)
+	var strike: Vector2 = TrialTouch.BUTTONS.light[0]
+	touch(2, strike, true)
+	touch(2, strike, false)
+	await seconds(1.4)
+	check(main.world.arrival.step == TrialArrival.Step.GUARD, "Touch Strike lands a real practice hit")
+	var guard: Vector2 = TrialTouch.BUTTONS.guard[0]
+	touch(1, TrialTouch.PAD + Vector2.RIGHT * 32, true)
+	touch(2, guard, true)
+	await seconds(.58)
+	check(main.world.arrival.step == TrialArrival.Step.DODGE, "Guard and movement work with two fingers")
+	touch(2, guard, false)
+	touch(1, forward, false)
+	check(not Input.is_action_pressed("guard") and controls.stick == Vector2.ZERO, "Touch releases clear guard and movement")
+	var roll: Vector2 = TrialTouch.BUTTONS.dodge[0]
+	touch(3, roll, true)
+	touch(3, roll, false)
+	await seconds(.8)
+	check(main.world.arrival.step == TrialArrival.Step.READY, "Touch Roll completes practice")
+	touch(2, use, true)
+	touch(2, use, false)
+	await frames(6)
+	check(main.world.arrival == null and main.world.passage.learned.has("rehearsal"), "Touch Begin starts a fresh fight and remembers the rehearsal")
+	await seconds(.3)
+	touch(1, forward, true)
+	check(controls.stick.length() > .9, "Touch movement is active before opening the menu")
+	touch(3, TrialTouch.BUTTONS.pause[0], true)
+	await frames(2)
+	check(main.ui.mode == "pause" and controls.fingers.is_empty() and controls.stick == Vector2.ZERO, "Pausing clears every held finger")
+	main.ui.show_menu()
+	button_named("Begin journey").pressed.emit()
+	await frames(4)
+	button_named("Accept the cost").pressed.emit()
+	await frames(4)
+	main.ui.show_trial_guide()
+	button_named("Skip practice").pressed.emit()
+	await frames(6)
+	check(main.trial_stage == 0 and main.world.arrival == null and not main.world.passage.learned.has("rehearsal"), "The guide can skip rehearsal and keeps first-time fight hints")
+
 func run() -> void:
 	if "--passage-hz=30" in OS.get_cmdline_user_args(): Engine.physics_ticks_per_second=30
 	var original_store=Session.store
@@ -32,9 +105,10 @@ func run() -> void:
 	campaign_before=FileAccess.get_file_as_string(before_path) if FileAccess.file_exists(before_path) else ""
 	var base=CombatModel.definitions().duplicate(true)
 	var attack_before=CombatModel.new(); PerformanceMotion.configure(attack_before,true)
-	main.start_trial()
+	check(not main.world.warden.visible and main.world.court_camera.current, "Title frames the quiet court")
+	button_named("Begin journey").pressed.emit()
 	await frames(4)
-	check(main.trial_stage==0 and main.world.passage.training(),"Main Play starts with the first easy echo")
+	check(main.trial_stage==0 and main.world.passage.training(),"Begin journey opens the Counting Shore")
 	check(main.ui.mode=="trial_briefing" and get_tree().paused,"Story is readable before any combat runs")
 	check(button_named("Accept the cost")!=null,"The return's cost has an explicit acceptance button")
 	check_layout("Opening story buttons fit the viewport")
@@ -44,7 +118,51 @@ func run() -> void:
 	button_named("Accept the cost").pressed.emit()
 	await frames(5)
 	check(main.ui.mode=="play" and not get_tree().paused and main.world.can_play(),"Accepting the story returns control to the player")
-	check(main.world.hero.target==null and main.world.warden.ai_cooldown>0,"First echo allows an approach before attacking")
+	var arrival: TrialArrival = main.world.arrival
+	var trainee: Fighter = main.player
+	var echo: Fighter = main.world.warden
+	check(not echo.visible and not echo.ai_enabled and main.world.enemies.is_empty(), "Arrival has no visible or targetable enemy")
+	check(trainee.camera.current and not main.world.boss_panel.visible, "Entering the shore restores the player camera and hides the boss bar")
+	main.world.interact()
+	check(arrival.step==TrialArrival.Step.EMBER, "The ember must be approached")
+	trainee.use_test_direction=true
+	trainee.test_direction=Vector3.FORWARD
+	await seconds(1.1)
+	trainee.test_direction=Vector3.ZERO
+	await seconds(.3)
+	check(arrival.near_ember(), "Normal walking reaches the ember from spawn")
+	main.world.interact()
+	check(echo.visible and not echo.ai_enabled and arrival.step==TrialArrival.Step.LOCK, "Listening manifests a peaceful echo")
+	var waiting_at = echo.position
+	await seconds(6)
+	check(trainee.model.health==100 and echo.position.distance_to(waiting_at)<.1 and echo.model.swing_serial==0, "Waiting past the old attack timer never starts combat")
+	main.ui.show_pause()
+	main.ui.play()
+	await seconds(.3)
+	trainee.toggle_target()
+	check(trainee.target==echo and arrival.step==TrialArrival.Step.STRIKE, "Lock lesson accepts an acquired target")
+	trainee.try_attack("light")
+	await seconds(1.4)
+	check(arrival.step==TrialArrival.Step.STRIKE, "Swinging out of reach does not complete the lesson")
+	trainee.test_direction=Vector3.FORWARD
+	await seconds(.54)
+	trainee.test_direction=Vector3.ZERO
+	await seconds(.35)
+	trainee.try_attack("light")
+	await seconds(1.8)
+	check(arrival.step==TrialArrival.Step.GUARD and echo.model.health==echo.model.max_health, "A real blade contact advances practice without harming the echo")
+	Input.action_press("guard")
+	await seconds(.55)
+	Input.action_release("guard")
+	await seconds(.2)
+	check(arrival.step==TrialArrival.Step.DODGE, "Holding guard earns the next instruction")
+	trainee.try_dodge()
+	await seconds(1.2)
+	check(arrival.step==TrialArrival.Step.READY and not echo.ai_enabled, "Rolling completes the lesson and combat still waits")
+	main.world.interact()
+	await frames(5)
+	check(main.world.arrival==null and main.world.warden.ai_enabled and main.trial_stage==0, "Explicit challenge begins the first echo")
+	check(main.player.model.stamina==100 and main.player.model.health==100, "Practice hands off with full health and stamina")
 	for stage in 4:
 		if stage>0:
 			check(main.trial_stage==stage and main.ui.mode=="trial_briefing","Continue leads to the next encounter in order: "+str(stage))
@@ -130,5 +248,6 @@ func run() -> void:
 	check((FileAccess.get_file_as_string(before_path) if FileAccess.file_exists(before_path) else "")==campaign_before,"The complete passage and retries never overwrite campaign progress")
 	button_named("skip lessons").pressed.emit(); await frames(4)
 	check(main.trial_stage==3 and main.ui.mode=="play" and main.world.warden.model.max_health==340,"Direct Warden practice remains available")
+	await test_touch_lesson()
 	print("PASSAGE: ",checks," checks, ",failures," failures")
 	main.finish(0 if failures==0 else 1)

@@ -579,6 +579,9 @@ func apply_hits() -> void:
 
 func take_damage(amount: float, attacker: Fighter, attack_rules: Dictionary={}, contact: Vector3=Vector3.INF) -> String:
 	if not is_instance_valid(attacker): return "ignored"
+	if world is TrialWorld and world.arrival != null:
+		world.arrival.contact(self, attacker)
+		return "practice"
 	var health_before=model.health
 	var in_front = (-global_basis.z).dot((attacker.global_position-global_position).normalized()) > 0.0
 	var rules: Dictionary = attack_rules if not attack_rules.is_empty() else attacker.model.attack

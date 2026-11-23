@@ -40,8 +40,9 @@ func draw(owner_ui: GameInterface, previous: String, section: String="Play") -> 
 			choice("Frame cap",["30 FPS","60 FPS","90 FPS","120 FPS"],[30,60,90,120].find(Preferences.fps_cap),func(i): Preferences.fps_cap=[30,60,90,120][i])
 			choice("3D render resolution",["960 × 540","1280 × 720","1600 × 900","1920 × 1080"],[540,720,900,1080].find(Preferences.render_height),func(i): Preferences.render_height=[540,720,900,1080][i])
 			choice("Edge smoothing",["Off","2× MSAA","4× MSAA"],[0,2,4].find(Preferences.antialiasing),func(i): Preferences.antialiasing=[0,2,4][i])
-			choice("Window size",["1280 × 720","1600 × 900","1920 × 1080"],[720,900,1080].find(Preferences.window_height),func(i): Preferences.window_height=[720,900,1080][i])
-			toggle("Fullscreen (keeps chosen render scale)","fullscreen")
+			if not OS.has_feature("web"):
+				choice("Window size",["1280 × 720","1600 × 900","1920 × 1080"],[720,900,1080].find(Preferences.window_height),func(i): Preferences.window_height=[720,900,1080][i])
+				toggle("Fullscreen (keeps chosen render scale)","fullscreen")
 			toggle("Sun shadows · modest 38m distance","shadows")
 			toggle("Low-memory transitions · release old zone first","low_memory")
 			ui.text(c,"Choose Lower power to reduce rendering work during longer sessions.\nMenus pause the 3D simulation. Switching apps pauses play and limits updates.\nCombat timing stays the same at every frame cap.",17)

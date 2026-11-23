@@ -40,6 +40,8 @@ var threat_text: Label
 var help_caption: Label
 var player_panel: PanelContainer
 var objective_panel: PanelContainer
+var touch_controls: TrialTouch
+var touch_preferred: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -67,9 +69,17 @@ func style(color: Color, border: Color = Color.TRANSPARENT) -> StyleBoxFlat:
 	s.content_margin_bottom = 12
 	return s
 
+func play_prompt(value: String) -> String:
+	if touch_preferred and is_instance_valid(main) and main.trial_active:
+		value = value.replace("{move_forward}/{move_left}/{move_back}/{move_right}", "Left pad")
+		value = value.replace("Mouse / right stick: look around", "Swipe to look around")
+		for action: String in TrialTouch.BUTTONS:
+			value = value.replace("{" + action + "}", TrialTouch.BUTTONS[action][2])
+	return Preferences.prompt(value)
+
 func text(parent: Node, value: String, size: int = 20, color: Color = INK) -> Label:
 	var l = Label.new()
-	l.text = Preferences.prompt(value)
+	l.text = play_prompt(value)
 	l.add_theme_font_size_override("font_size",size)
 	l.add_theme_color_override("font_color",color)
 	l.theme = theme
@@ -168,9 +178,15 @@ func build_hud() -> void:
 	threat_text.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	lock_label = text(hud,"◇",34,GOLD)
 	lock_label.visible = false
+	touch_controls = TrialTouch.new()
+	touch_controls.ui = self
+	touch_controls.hide()
+	hud.add_child(touch_controls)
 	hud.visible = false
 
 func trial_layout(enabled: bool) -> void:
+	touch_controls.visible = enabled and touch_preferred
+	interact_text.text = ""
 	objective_panel.visible=not enabled
 	threat_text.position=Vector2(360,254) if enabled else Vector2(360,225)
 	player_panel.add_theme_stylebox_override("panel",style(Color(.035,.045,.05,.35),Color.TRANSPARENT) if enabled else style(Color(.055,.08,.10,.94),Color(.75,.64,.42,.35)))
@@ -183,6 +199,10 @@ func trial_layout(enabled: bool) -> void:
 
 func show_menu() -> void:
 	Session.running=false
+	if world is TrialWorld:
+		world.warden.hide()
+		world.hero.target = null
+		world.frame_court()
 	Sound.context(Session.data.zone,false,true)
 	Session.return_to_main_save()
 	mode = "menu"
@@ -198,8 +218,8 @@ func show_menu() -> void:
 	serif.font_names = PackedStringArray(["Georgia","Liberation Serif"])
 	title.add_theme_font_override("font",serif)
 	text(c,"THE ASHEN TRIAL",21,GOLD)
-	text(c,"Remember your purpose. Earn a road home.",18)
-	var trial_button=button(c,"Play · The Ashen Trial",func(): main.start_trial())
+	text(c,"Cross the Counting Shore and carry their names home.",18)
+	var trial_button=button(c,"Begin journey · The Counting Shore",func(): main.start_trial())
 	button(c,"Warden duel · skip lessons",func(): main.start_trial(TrialPassage.WARDEN,false))
 	button(c,"Earlier campaign · prototype archive",show_archive)
 	button(c,"Controls & settings",func(): show_settings("menu"))
@@ -256,8 +276,12 @@ func play() -> void:
 	get_tree().paused = false
 	hud.visible = true
 	clear_overlay()
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	refresh_tutorial()
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if touch_preferred and world is TrialWorld else Input.MOUSE_MODE_CAPTURED
+	if world is TrialWorld:
+		world.hero.camera.make_current()
+		help_caption.text=Preferences.prompt("{journal} Trial guide · {pause} Pause")
+		if world.arrival != null: world.arrival.refresh_hud()
+	else: refresh_tutorial()
 
 func show_pause() -> void:
 	if world == null:
@@ -271,7 +295,7 @@ func show_pause() -> void:
 	var c = column(panel(overlay,Vector2(425,150),Vector2(430,420)),13)
 	text(c,"A moment of quiet",32,GOLD)
 	text(c,"THE ASHEN TRIAL" if main.trial_active else Campaign.chapter(Session.data.chapter).title.to_upper(),17)
-	button(c,"Return to the duel" if main.trial_active else "Return to the road",play).grab_focus()
+	button(c,"Resume journey" if main.trial_active else "Return to the road",play).grab_focus()
 	button(c,"Trial guide" if main.trial_active else "Journal & controls",show_journal)
 	button(c,"Settings",func(): show_settings("pause"))
 	button(c,"Return to title" if main.trial_active else "Save & return to title",func(): world.save_current(); Session.running = false; show_menu())
@@ -334,7 +358,6 @@ func show_records() -> void:
 			l.custom_minimum_size.x=740
 			l.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	button(c,"Back to objectives",show_journal).grab_focus()
-
 func show_dialogue(lines: Array, id: String, callback: Callable, choice: bool) -> void:
 	story_paused=false
 	mode = "dialogue"
@@ -424,7 +447,7 @@ func show_ending() -> void:
 	Sound.play("reward")
 
 func toast(value: String, seconds: float = 4) -> void:
-	toast_label.text = Preferences.prompt(value)
+	toast_label.text = play_prompt(value)
 	toast_timer = seconds
 
 func bar_style(color: Color) -> StyleBoxFlat:
@@ -489,6 +512,11 @@ func _process(delta: float) -> void:
 	announce_label.modulate.a = minf(1,announce_timer)
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch and event.pressed and event.device != InputEvent.DEVICE_ID_EMULATION and not touch_preferred:
+		touch_preferred = true
+		if main.trial_active:
+			touch_controls.show()
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	if not rebinding.is_empty():
 		if event is InputEventKey and event.pressed and not event.echo:
 			if event.keycode==KEY_ESCAPE: rebinding=""; show_settings(rebind_back,"Controls")
@@ -631,7 +659,20 @@ func show_trial_briefing() -> void:
 	get_tree().paused=true
 	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
 	hud.visible=false
-	clear_overlay(); shade(.78)
+	clear_overlay()
+	if world.arrival != null:
+		world.frame_court()
+		shade(.17)
+		var story = column(panel(overlay,Vector2(54,86),Vector2(458,525)),15)
+		text(story,"THE COUNTING SHORE",16,GOLD)
+		text(story,"The last ember",34)
+		for line in ["The last thing Rayan remembers is Avel's blade on the Copper Stair. He wakes in an empty court. An ember burns where the road should be.", "The register that names Mira and Isha's killers is still among the living. Rayan has come to carry their names home.", "KEEPER   You may take her words back with you. The sound of Isha's voice stays here."]:
+			var words = text(story,line,18)
+			words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		button(story,"Accept the cost · approach the ember",play).grab_focus()
+		button(story,"Return to title",show_menu)
+		return
+	shade(.78)
 	var entry: Dictionary=world.passage.entry()
 	var c=column(panel(overlay,Vector2(210,40),Vector2(860,640)),12)
 	text(c,entry.chapter,16,GOLD)
@@ -650,6 +691,15 @@ func show_trial_guide() -> void:
 	clear_overlay()
 	shade()
 	var c=column(panel(overlay,Vector2(230,90),Vector2(820,530)),16)
+	if world.arrival != null:
+		text(c,"Practice on the Counting Shore",30,GOLD)
+		for i in range(TrialArrival.LESSONS.size()):
+			var active = i == world.arrival.step
+			var mark = "✓  " if i < world.arrival.step else ("›  " if active else "    ")
+			text(c,mark + str(TrialArrival.LESSONS[i][1]),18,GOLD if active else INK)
+		button(c,"Return to practice",play).grab_focus()
+		button(c,"Skip practice and face the first echo",world.arrival.begin_encounter)
+		return
 	text(c,world.passage.entry().chapter,30,GOLD)
 	text(c,"Return to expose Avel's betrayal and carry Mira and Isha's names into dawn.\nThree echoes prepare you. The Warden guards the road back.",19)
 	text(c,"Chain light attacks as each swing finishes; the finisher cuts twice.\nParries and heavy hits break the Warden's composure.\nClose in and use {heavy} during the break for a riposte.\nHis raised cleave cannot be blocked: evade or parry.\nPatterns end in a breathing beat. Use it to recover stamina.\nA draught heals when you drink; taking a hit interrupts it.",18)
