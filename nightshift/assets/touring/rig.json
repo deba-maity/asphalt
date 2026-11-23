@@ -1,0 +1,48 @@
+{
+  "length": 4.7,
+  "wheels": [
+    {
+      "name": "Wheel_FL",
+      "position": [
+        0.8386797904968262,
+        0.371264785528183,
+        -1.5372799634933472
+      ],
+      "front": true,
+      "radius": 0.3718667713514947
+    },
+    {
+      "name": "Wheel_FR",
+      "position": [
+        -0.8386765718460083,
+        0.371264785528183,
+        -1.5372815132141113
+      ],
+      "front": true,
+      "radius": 0.3718667713514947
+    },
+    {
+      "name": "Wheel_RR",
+      "position": [
+        -0.8094044923782349,
+        0.3721328675746918,
+        1.3291102647781372
+      ],
+      "front": false,
+      "radius": 0.3718667713514947
+    },
+    {
+      "name": "Wheel_RL",
+      "position": [
+        0.809402585029602,
+        0.3721328675746918,
+        1.3291118144989014
+      ],
+      "front": false,
+      "radius": 0.3718667713514947
+    }
+  ],
+  "vertices": 73074,
+  "scope": "Single car; rescaled, rematerialed, badge meshes omitted, wheel pivots separated; no source scripts executed",
+  "distance_vertices": 20412
+}

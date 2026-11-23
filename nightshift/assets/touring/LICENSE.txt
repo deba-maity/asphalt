@@ -1,0 +1,38 @@
+BMW 1 Series M In Cycles
+Original model by Mike Pan (mikepan).
+Source listing: https://blendswap.com/blend/4066
+Historical listing: http://www.blendswap.com/blends/view/22790
+Author: https://mikepan.com/
+
+Original license: Creative Commons Attribution-ShareAlike 3.0 Unported.
+https://creativecommons.org/licenses/by-sa/3.0/
+The complete license is included alongside this file as CC-BY-SA-3.0.txt.
+
+NIGHTSHIFT adaptation, 2026:
+- Evaluated and reduced mesh density for real-time rendering.
+- Rescaled to a 4.7 metre body; rebuilt eight inexpensive PBR material groups.
+- Removed separate badge, decorative stripe and plate meshes.
+- Separated wheel steering, rolling geometry and stationary brake calipers.
+- Corrected the original showcase wheel orientation using mirrored rear wheels.
+- Omitted the original studio, lights, cameras, source rig and scripts.
+
+touring.glb, touring-low.glb and their adapted model content are distributed under the same
+CC BY-SA 3.0 license. Preserve this attribution and license when redistributing
+the model or adaptations. The car's fictional game names and performance values
+do not change the original model attribution. No endorsement is implied.
+
+Reproducible source:
+https://download.blender.org/demo/test/BMW27_2.blend.zip
+SHA-256: 74f5dc6d718fc565e0ff50e355be7f8b1a58983cc9ae79775608d8905c269ee4
+Member: bmw27/bmw27_cpu.blend
+Use scripts/fetch-touring.py, then scripts/compile-touring.py in Blender with
+--background --factory-startup --disable-autoexec --python-exit-code 1.
+
+License evidence checked 2026-11-17:
+The author's BlendSwap listing identifies CC-BY-SA. The exact 3.0 version and
+original listing ID are recorded on page 3 of the 2015/2016 FAU dataset credits:
+https://data.fau.de/public/71/04/341740471/licenseinformation_v1.2.pdf
+No content from that dataset is used in NIGHTSHIFT.
+
+This notice applies to the identified model asset, not to Three.js, Vite,
+WebSocket libraries or unrelated game content, which retain their own terms.
