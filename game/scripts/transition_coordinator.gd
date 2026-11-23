@@ -130,7 +130,7 @@ func cancel() -> void:
 	committed = false
 	if state != "loading": reset()
 	if is_instance_valid(main.player): main.player.model.state = "idle"
-	if is_instance_valid(main.world): main.ui.play()
+	if is_instance_valid(main.world) and not main.closing: main.ui.play()
 
 func reset() -> void:
 	state = "idle"

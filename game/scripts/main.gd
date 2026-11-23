@@ -177,6 +177,7 @@ func restart_checkpoint() -> void:
 	ui.toast("Restored at "+Session.data.checkpoint.trim_prefix("cp_").replace("_"," "))
 
 func _notification(what: int) -> void:
+	if closing: return
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		if Session.running and is_instance_valid(world): world.save_current()
 		finish()
@@ -189,6 +190,7 @@ func finish(code: int = 0) -> void:
 	print("EXIT requested: ",code," mode=",ui.mode)
 	if Session.validation: print_stack()
 	closing = true
+	Sound.stop_playback()
 	if benchmark!=null and benchmark.recording: benchmark.stop()
 	get_tree().paused = false
 	Session.running = false

@@ -91,8 +91,12 @@ func play(id: String) -> void:
 func footstep(zone: String) -> void:
 	play("step_stone" if zone in ["zone_copper_stair","zone_dawn_approach","zone_dawn_court","zone_counting_shore"] else "step_earth")
 
-func _exit_tree() -> void:
+func stop_playback() -> void:
+	set_process(false)
 	for p in voices+tracks:
 		p.stop(); p.stream=null
 	if ambience!=null: ambience.stop(); ambience.stream=null
 	resources.clear()
+
+func _exit_tree() -> void:
+	stop_playback()
