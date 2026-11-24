@@ -602,7 +602,7 @@ export const modes = [
   {
     id: "escape",
     title: "Police Escape",
-    detail: "Outrun the heat. Reach extraction.",
+    detail: "Reach extraction. Hold a 90 m lead for six seconds to lose heat.",
   },
   {
     id: "sprint",

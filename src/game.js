@@ -1,5 +1,8 @@
 import { storage } from "./storage.js";
 import { PaceLap } from "./pace-lap.js";
+import { PursuitHeat, breakawayDistance, breakawaySeconds } from "./pursuit-heat.js";
+import { nearestPointOnPath } from "./road-projection.js";
+import { shortcutApproach } from "./shortcut-guide.js";
 import { RaceTiming } from "./race-timing.js";
 import { paceGhost } from "./pace-ghost.js";
 import { approachingCorner } from "./corner-notes.js";
@@ -75,6 +78,7 @@ export class Game {
     this.qualityTimer = 0;
     this.shadowMapsEnabled = false;
     this.touch = {};
+    this.guideShortcuts = storage.getItem("nightshift-guide-cuts") === "true";
     this.autoAccelerate = storage.getItem("nightshift-auto") !== "false";
     this.reducedMotion = storage.getItem("nightshift-reduced-motion") === "true" ||
       (storage.getItem("nightshift-reduced-motion") === null && matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -656,6 +660,7 @@ export class Game {
     this.player.progress = 0;
     this.lapTimes = [];
     this.raceTiming = competitive && !config.network ? new RaceTiming(this.world, config.mode.id, config.difficulty || "medium") : null;
+    if (this.raceTiming) this.world.markSectors(this.raceTiming.gates);
     this.lastLapAt = 0;
     this.goUntil = 0;
     this.pace = config.mode.id === "time" ? new PaceLap(config.map.id, this.world.route.length, config.vehicle) : null;
@@ -690,6 +695,7 @@ export class Game {
     this.time = 0;
 
     this.heat = 1;
+    this.pursuit = config.mode.id === "escape" ? new PursuitHeat(config.difficulty) : null;
     this.pursuitContact = false;
 
     this.paused = false;
@@ -834,6 +840,8 @@ export class Game {
       const world = this.world;
       const playerDistance = this.player.courseDistance ?? world.mainLocation(this.player).distance;
       a.patrolLane = i % 2 ? -3.3 : 3.3;
+      a.disabledFor = 0;
+      a.patrolSlot = i;
       a.regroupTime = 0;
       a.patrol = routeStateAt(world.sampleDistances, playerDistance - 46 - i * 12, a.patrolLane);
       advanceRoute(world.samples, a.patrol, 0);
@@ -880,6 +888,20 @@ export class Game {
     return Math.atan2(a.x - b.x, a.z - b.z);
   }
 
+  readGamepad() {
+    try {
+      const pads = Array.from(navigator.getGamepads?.() ?? []).filter(Boolean);
+      const active = pad => pad.buttons.some(button => button.pressed || button.value > .15) || pad.axes.some(axis => Math.abs(axis) > .24);
+      const previous = pads.find(pad => pad.index === this.padIndex);
+      const pad = previous && active(previous) ? previous : pads.find(active) ?? previous ?? pads[0];
+      if (pad) this.padIndex = pad.index;
+      return pad;
+    } catch {
+      // Some embedded players have no gamepad permission. Keyboard and touch still drive.
+      return null;
+    }
+  }
+
   updatePlayer(dt) {
     const p = this.player;
     const fromX = p.mesh.position.x, fromZ = p.mesh.position.z;
@@ -888,7 +910,7 @@ export class Game {
     // Releasing a touch pedal must not cancel a held physical keyboard key.
     for(const [key,pressed] of Object.entries(this.touch)) if(pressed) k[key]=pressed;
 
-    const pad = [...(navigator.getGamepads?.() || [])].find(Boolean);
+    const pad = this.readGamepad();
 
     let gas =
       k.KeyW ||
@@ -923,8 +945,9 @@ export class Game {
     const axis = pad && Math.abs(pad.axes[0] || 0) > .18
       ? (pad.axes[0] - Math.sign(pad.axes[0]) * .18) / .82 : 0;
     const keyboardSteer = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0);
+    const padSteer = Number(!!pad?.buttons[15]?.pressed) - Number(!!pad?.buttons[14]?.pressed);
     p.heading = p.mesh.rotation.y;
-    driveStep(p, { gas, brake, steer: keyboardSteer || axis, hand, boost }, p.spec, dt);
+    driveStep(p, { gas, brake, steer: keyboardSteer || padSteer || axis, hand, boost }, p.spec, dt);
     const steer = p.steerInput, drifting = p.drifting;
     boost = p.boosting;
     p.mesh.rotation.y = p.heading;
@@ -1035,11 +1058,18 @@ export class Game {
       0,
       -Math.cos(actor.mesh.rotation.y),
     );
-    const start = actor.mesh.position
-      .clone()
-      .addScaledVector(dir, type === "rocket" ? 3.4 : 2.8);
-
-    start.y = type === "rocket" ? 1.35 : 0.9;
+    if (actor.roadBranch) {
+      const road = actor.roadBranch;
+      const {index} = nearestPointOnPath(actor.mesh.position, road.points, false);
+      const a = road.points[index], b = road.points[index + 1];
+      const dx = b.x - a.x, dz = b.z - a.z;
+      const rise = road.heightProfile[index + 1] - road.heightProfile[index];
+      dir.y = rise * (dx * dir.x + dz * dir.z) / (dx * dx + dz * dz || 1);
+      dir.normalize();
+    }
+    const start = actor.mesh.position.clone();
+    start.y = (actor.surfaceY ?? start.y) + (type === "rocket" ? 1.35 : .9);
+    start.addScaledVector(dir, type === "rocket" ? 3.4 : 2.8);
 
     const shot = new THREE.Mesh(
       this.projectileGeo,
@@ -1099,12 +1129,15 @@ export class Game {
 
   hitProjectileActor(projectile) {
     for (const actor of this.actors) {
-      if (actor === projectile.owner || actor.remote) continue;
+      if (actor === projectile.owner || actor.remote || actor.disabledFor > 0) continue;
 
+      const bodyHeight = (actor.surfaceY ?? actor.mesh.position.y) + 1;
+      if (Math.abs(projectile.mesh.position.y - bodyHeight) > 1.65) continue;
       const limit = (actor.mesh.userData.radius || 2) + projectile.radius;
 
       if (actor.mesh.position.distanceTo(projectile.mesh.position) < limit) {
         actor.health = Math.max(0, actor.health - projectile.damage);
+        if (actor.role === "police" && actor.health === 0) actor.disabledFor = 6;
         actor.speed *= projectile.type === "rocket" ? -0.18 : 0.55;
 
         const away = actor.mesh.position.clone().sub(projectile.mesh.position);
@@ -1131,7 +1164,9 @@ export class Game {
 
       const limit = (obstacle.userData.radius || 2.4) + projectile.radius;
 
-      if (obstacle.position.distanceTo(projectile.mesh.position) < limit) {
+      const height = projectile.mesh.position.y;
+      if (height < obstacle.position.y - .35 || height > obstacle.userData.topY + .35) continue;
+      if (Math.hypot(obstacle.position.x - projectile.mesh.position.x, obstacle.position.z - projectile.mesh.position.z) < limit) {
         this.world.destroyDestructible(obstacle, projectile.damage);
         return true;
       }
@@ -1210,15 +1245,22 @@ export class Game {
     const playerDistance = player.courseDistance ?? world.mainLocation(player).distance;
     const gap = mod(playerDistance - patrolDistance + world.courseLength / 2, world.courseLength) - world.courseLength / 2;
     a.pursuitGap = gap;
-    const speedLimit = a.spec.maxSpeed / 5.7 * (.74 + (this.heat - 1) * .04);
+    if (a.disabledFor > 0) {
+      a.disabledFor = Math.max(0, a.disabledFor - dt);
+      if (a.disabledFor === 0) a.health = 100;
+    }
+    const pace = clamp(1 + (a.skill - .87) * .5, .9, 1.15);
+    const speedLimit = a.spec.maxSpeed / 5.7 * (.74 + (this.heat - 1) * .04) * pace;
     a.regroupTime = Math.max(0, a.regroupTime - dt);
     const regrouping = a.regroupTime > 0;
-    const targetSpeed = regrouping ? Math.min(speedLimit * .52, Math.max(0, player.speed - 8)) :
-      gap < -25 ? speedLimit * .52 : clamp(player.speed + gap * .68, 0, speedLimit);
+    let targetSpeed = clamp(player.speed + gap * .68, 0, speedLimit);
+    if (gap < -25) targetSpeed = speedLimit * .52;
+    if (regrouping) targetSpeed = Math.min(speedLimit * .52, Math.max(0, player.speed - 8));
+    if (a.disabledFor > 0) targetSpeed = 0;
     const previousSpeed = a.speed;
     a.speed += clamp(targetSpeed - a.speed, -(5 + a.spec.braking * .12) * dt, engineAcceleration(a.spec) * dt);
-    let targetLane = a.patrolLane;
-    if (!regrouping && Math.abs(gap) < 22 && !player.roadBranch && !player.cut) {
+    let targetLane = a.disabledFor > 0 ? Math.sign(a.patrolLane) * 9 : a.patrolLane;
+    if (a.disabledFor <= 0 && !regrouping && Math.abs(gap) < 22 && !player.roadBranch && !player.cut) {
       const dx = player.mesh.position.x - path.x, dz = player.mesh.position.z - path.z;
       targetLane = clamp(path.lane + dx * Math.cos(path.heading) - dz * Math.sin(path.heading), -7, 7);
     }
@@ -1228,7 +1270,7 @@ export class Game {
     a.mesh.position.set(path.x, world.roadSurfaceY, path.z);
     a.mesh.rotation.y = path.heading;
     this.alignActorToRoad(a);
-    if (Math.abs(player.surfaceY - a.surfaceY) < 1.5 && a.mesh.position.distanceToSquared(player.mesh.position) < 16) {
+    if (a.disabledFor <= 0 && Math.abs(player.surfaceY - a.surfaceY) < 1.5 && a.mesh.position.distanceToSquared(player.mesh.position) < 16) {
       this.pursuitContact = true;
       // A moving driver can pull clear after a sideswipe. At a standstill the unit holds contact.
       if (!regrouping && player.speed > 7) {
@@ -1299,6 +1341,7 @@ export class Game {
     for (const obstacle of this.world.destructibles || []) {
       if (!obstacle.userData.alive) continue;
 
+      if (p.surfaceY > obstacle.userData.topY + .25) continue;
       const d = p.mesh.position.distanceTo(obstacle.position);
       const limit =
         (p.mesh.userData.radius || 2) + (obstacle.userData.radius || 2.4);
@@ -1330,8 +1373,9 @@ export class Game {
     const world = this.world;
     const pos = p.mesh.position;
     const near = (point, radius) => Math.hypot(pos.x - point.x, pos.z - point.z) < radius;
-    const crossing = p.next === 0 ? world.finishFraction(fromX, fromZ, pos) : null;
-    let hit = p.next === 0 ? (crossing !== null ? 0 : -1) : near(world.route[p.next], 15.5) ? p.next : -1;
+    const timed = world.timingLines.has(p.next);
+    const crossing = timed ? world.timingFraction(p.next, fromX, fromZ, pos) : null;
+    let hit = (timed ? crossing !== null : near(world.route[p.next], 15.5)) ? p.next : -1;
     // A legal shortcut substitutes its own ordered gates between the two junctions.
     if (!p.cut) {
       for (const road of world.shortcutRoads) {
@@ -1384,6 +1428,7 @@ export class Game {
 
       this.showNextGate();
     }
+    this.updateShortcutGuide();
   }
 
   remotePosition(id, data) {
@@ -1486,6 +1531,7 @@ export class Game {
         lap: Math.min(this.lapGoal(), actor.lap + 1)
       })) : null,
       mode: this.config.mode.title,
+      pursuit: this.pursuit && { peak: this.pursuit.peak, breakaways: this.pursuit.breakaways, health: Math.round(this.player.health) },
       best: race?.best ?? trial?.best,
       delta: race?.delta ?? trial?.delta,
     });
@@ -1510,24 +1556,23 @@ export class Game {
     });
   }
 
-  updatePoliceHeat() {
-    if (this.config.mode.id !== "escape") {
-      return;
-    }
-
-    this.heat = Math.min(
-      5,
-      1 +
-        Math.floor(this.elapsed / 15) +
-        Math.floor((100 - this.player.health) / 30),
-    );
-
-    let cops = this.actors.filter((a) => a.role === "police").length;
-
-    while (cops < this.heat) {
-      this.spawnAI(cops, "police");
-
-      cops++;
+  updatePoliceHeat(dt = 0) {
+    if (!this.pursuit) return;
+    const units = this.actors.filter(actor => actor.role === "police");
+    const separated = units.length > 0 && !this.pursuitContact && units.every(unit => unit.pursuitGap > breakawayDistance);
+    this.pursuit.update(dt, separated, this.player.health);
+    this.heat = this.pursuit.level;
+    if (units.length > this.heat) {
+      // The abandoned unit is already well behind the driver when dispatch recalls it.
+      const leaving = units.reduce((back, unit) => unit.pursuitGap > back.pursuitGap ? unit : back);
+      this.actors.splice(this.actors.indexOf(leaving), 1);
+      disposeVehicle(leaving.mesh);
+    } else {
+      for (let slot = 0, count = units.length; count < this.heat; slot++) {
+        if (units.some(unit => unit.patrolSlot === slot)) continue;
+        this.spawnAI(slot, "police");
+        count++;
+      }
     }
   }
 
@@ -1537,6 +1582,7 @@ export class Game {
     const previous = mod(p.next - 1, this.world.route.length);
     p.cut = null;
     p.roadBranch = null;
+    p.guidedFork = null;
     p.roadHeight = this.world.roadSurfaceY;
     p.mesh.position.copy(this.world.gatePosition(previous));
     p.mesh.rotation.y = this.routeAngle(previous);
@@ -1657,7 +1703,7 @@ export class Game {
         this.callbacks.countdown?.("");
       }
 
-      this.updatePoliceHeat();
+      this.updatePoliceHeat(dt);
 
       this.updatePlayer(dt);
       if (this.pace && this.phase === "play") {
@@ -1793,10 +1839,25 @@ export class Game {
     return this.config.mode.id !== "cruise" && (this.config.mode.id !== "race" || this.player.lap >= 2);
   }
 
+  updateShortcutGuide() {
+    const player = this.player;
+    const previous = player.guidedFork;
+    const next = this.guideShortcuts && !player.cut ? shortcutApproach(this.world, player) : null;
+    player.guidedFork = next;
+    if (previous?.road !== next?.road || previous?.gate !== next?.gate || previous?.arriving !== next?.arriving) this.showNextGate();
+  }
+
   showNextGate() {
     const gate = this.player.next;
+    const fork = this.player.guidedFork;
+    if (fork && !fork.arriving && gate === (fork.entry + 1) % this.world.route.length) {
+      const point = fork.road.points[fork.gate].clone();
+      point.y = fork.road.heightProfile[fork.gate];
+      this.world.setNextMarker(this.world.authorSegmentToRouteIndex(fork.road.to), fork.road.label, point);
+      return;
+    }
     let label;
-    if (!gate) label = this.finalLap() ? "FINISH" : "LAP LINE";
+    if (!gate) label = this.config.mode.id === "escape" ? "EXTRACTION" : this.finalLap() ? "FINISH" : "LAP LINE";
     else if (this.raceTiming) {
       const sector = this.raceTiming.gates.indexOf(gate);
       if (sector >= 0) label = "S" + (sector + 1) + " · GATE " + gate;
@@ -1805,11 +1866,12 @@ export class Game {
   }
 
   routeCue() {
-    if (this.phase === "countdown" && ["race", "sprint"].includes(this.config.mode.id)) {
+    if (this.phase === "countdown") {
       const controls = this.touch.active
         ? (this.autoAccelerate ? "AUTO ACCELERATE ON" : "HOLD GAS TO LAUNCH")
         : "HOLD W, ↑ OR RT TO LAUNCH";
-      return { label: "STARTING GRID", detail: controls };
+      const launch = {escape: "REACH EXTRACTION", time: "TIME TRIAL", cruise: "FREE DRIVE"};
+      return { label: launch[this.config.mode.id] ?? "STARTING GRID", detail: controls };
     }
     const p = this.player;
     const route = this.world.route;
@@ -1818,11 +1880,13 @@ export class Game {
     const prev = route[(index - 1 + n) % n];
     const here = this.world.gatePosition(index);
     const next = route[(index + 1) % n];
-    const target = p.cut ? p.cut.road.points[p.cut.gate] : here;
+    const fork = !p.cut && p.guidedFork;
+    const entering = fork && !fork.arriving;
+    const target = p.cut ? p.cut.road.points[p.cut.gate] : entering ? fork.road.points[fork.gate] : here;
     const pos = p.mesh.position;
     let distanceToTarget = Math.round(Math.hypot(target.x - pos.x, target.z - pos.z));
     let ahead = target, courseDistance = 0;
-    if (!p.cut) {
+    if (!p.cut && !entering) {
       const world = this.world, stride = world.samples.length / n;
       const location = world.mainLocation(p);
       courseDistance = location.distance;
@@ -1836,6 +1900,17 @@ export class Game {
     if (distanceToTarget > 16 && facing < -0.55 * Math.hypot(dx, dz))
       return { label: "WRONG WAY", detail: "TURN BACK TOWARD THE GREEN GATE" };
     if (p.cut) return { label: p.cut.road.label, detail: distanceToTarget + "M TO THE NEXT MARKER" };
+    if (fork) {
+      const grip = 3.1 + p.spec.handling * .055;
+      const targetSpeed = Math.sqrt(20 * grip / Math.max(.25, fork.angle));
+      const slowdown = Math.max(0, (p.speed**2 - targetSpeed**2) / (2 * (5 + p.spec.braking * .12)));
+      const braking = fork.angle > .45 && p.speed > targetSpeed + 2 && fork.distance < slowdown + p.speed*.55;
+      const turn = (fork.arriving ? "FORK " : "TAKE ") + fork.side;
+      const instruction = fork.arriving ? Math.round(fork.distance) + "M" : fork.road.elevated ? "CLIMB THE RAMP" : "FOLLOW THE SHORTCUT";
+      return { label: (braking ? "BRAKE · " : "") + turn, braking, apex: fork.road.points[0],
+        detail: fork.road.label + " · " + instruction + (braking ? " · " + Math.round(targetSpeed*5.7) + " KM/H" : "") };
+    }
+    if (!index && this.config.mode.id === "escape") return { label: "EXTRACTION", detail: distanceToTarget + "M TO ESCAPE THE PURSUIT" };
     if (!index) return { label: this.finalLap() ? "FINISH LINE" : "LAP LINE", detail: distanceToTarget + "M TO THE CHECKERED LINE" };
     const corner = approachingCorner(this.world.corners, courseDistance, this.world.courseLength, p.speed, p.spec);
     if (corner) {
@@ -1866,12 +1941,15 @@ export class Game {
 
   pursuitNote() {
     if (this.pursuitContact) return "CONTACT";
+    if (this.pursuit.clearTime > 0) return "BREAKAWAY · " + Math.ceil(breakawaySeconds - this.pursuit.clearTime) + "S";
+    if (this.pursuit.notice > 0) return "LOST A UNIT";
     if (this.player.roadBranch) return "UNITS ON MAIN ROAD";
     let nearest;
     for (const car of this.actors) {
+      if (car.disabledFor > 0) continue;
       if (Number.isFinite(car.pursuitGap) && (nearest == null || Math.abs(car.pursuitGap) < Math.abs(nearest))) nearest = car.pursuitGap;
     }
-    if (nearest == null) return "";
+    if (nearest == null) return this.actors.some(unit => unit.disabledFor > 0) ? "UNITS DISABLED" : "";
     return Math.round(Math.abs(nearest)) + " M " + (nearest >= 0 ? "BEHIND" : "AHEAD");
   }
 

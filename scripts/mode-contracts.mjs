@@ -83,7 +83,7 @@ try {
         }
       }
       if(mode.id==='escape'){
-        g.elapsed=90;g.updatePoliceHeat();g.updatePoliceHeat();
+        g.updatePoliceHeat(90);g.updatePoliceHeat();
         const police=g.actors.filter(a=>a.police);
         check(police.length===5,'Pursuit has five bounded police actors at full heat');
         const probe={role:'race',mesh:{position:new Vector3()}};
@@ -105,9 +105,24 @@ try {
         g.pursuitContact=false;
         g.updateAI(cop,1/60);
         check(!g.pursuitContact,'A unit below a flyover cannot damage the player above it');
+        g.fireProjectile(hero, 'rocket');
+        const shot = g.projectiles.at(-1);
+        check(Math.abs(shot.mesh.position.y - hero.surfaceY - 1.35) < .001, 'The shot starts on the driver’s deck');
+        shot.mesh.position.set(cop.mesh.position.x, hero.surfaceY + 1.35, cop.mesh.position.z);
+        check(!g.hitProjectileActor(shot), 'A projectile on the flyover passes over a street patrol');
         hero.mesh.position.copy(cop.mesh.position); hero.surfaceY=cop.surfaceY;
         g.updateAI(cop,1/60);
         check(g.pursuitContact,'The same unit makes contact on the same deck');
+        for (let hit = 0; hit < 2; hit++) {
+          shot.mesh.position.set(cop.mesh.position.x, cop.surfaceY + 1, cop.mesh.position.z);
+          check(g.hitProjectileActor(shot), 'The same-deck shot reaches the patrol');
+        }
+        g.pursuitContact = false;
+        g.updateAI(cop, 1/60);
+        check(cop.disabledFor > 0 && !g.pursuitContact, 'A disabled patrol withdraws from contact');
+        for (const car of police) car.pursuitGap = 100 + 12 * car.patrolSlot;
+        g.updatePoliceHeat(6);
+        check(g.heat === 4 && g.pursuit.breakaways === 1 && police.at(-1).mesh.parent === null, 'Keeping a lead recalls the most distant unit');
         hero.mesh.position.copy(start); hero.surfaceY=height;
       }
       const p=g.player;
@@ -174,6 +189,21 @@ try {
           check(p.next === afterEntry && !p.cut, 'Jumping directly to a shortcut exit does not score');
           for (const point of road.points) { pos.copy(point); g.checkProgress(p); }
           check(!p.cut && p.next === (exit + 1) % world.route.length, 'Ordered route credited: ' + road.label);
+          const mid = road.points[4].clone().lerp(road.points[5], .5);
+          const probeActor = { mesh: {position: mid}, cut: {road, gate: 5} };
+          const groundProgress = world.lapFraction(probeActor);
+          mid.y += 6;
+          check(Math.abs(world.lapFraction(probeActor) - groundProgress) < 1e-10, 'Timing progress is independent of deck height');
+          if (road.elevated) {
+            const a = road.points[1], b = road.points[2];
+            probeActor.mesh.position = a.clone().lerp(b, .5);
+            probeActor.mesh.rotation = {y: Math.atan2(a.x - b.x, a.z - b.z)};
+            probeActor.surfaceY = (road.heightProfile[1] + road.heightProfile[2]) / 2;
+            probeActor.roadBranch = road;
+            g.fireProjectile(probeActor, 'bullet');
+            const bullet = g.projectiles.at(-1);
+            check(bullet.dir.y > 0 && bullet.mesh.position.y > probeActor.surfaceY + .9, 'An uphill shot follows the initial ramp slope');
+          }
           // Cast onto the actual rendered road triangles at both shoulders and the centre.
           const surfaces = world.group.children.filter((mesh) => mesh.material === world.roadMat);
           const ray = new Raycaster(new Vector3(), new Vector3(0, -1, 0), 0, 4);
@@ -226,7 +256,7 @@ try {
         for(let gate=0;gate<g.world.route.length;gate++){
           if (competitive) g.elapsed+=1;
           const target = g.world.gatePosition(p.next);
-          const forward = g.world.finishForward;
+          const forward = g.world.timingLines.get(p.next)?.forward ?? g.world.finishForward;
           p.mesh.position.copy(target);
           g.checkProgress(p, target.x - forward.x, target.z - forward.z);
           g.resolveRaceFinish();
@@ -237,6 +267,13 @@ try {
       ui.updateHUD(g.hudState());
       if(mode.id==='cruise')check(document.querySelector('#position').textContent==='FREE DRIVE' && g.hudState().wanted===0,'Free Drive has no race or pursuit prompt');
       if(competitive){
+        for (const gate of g.raceTiming.gates.slice(0,2)) {
+          const {point,forward} = g.world.timingLines.get(gate);
+          const before = point.clone().addScaledVector(forward,-1);
+          const past = point.clone().addScaledVector(forward,1);
+          check(Math.abs(g.world.timingFraction(gate,before.x,before.z,past)-.5) < 1e-8, 'Sector time interpolates the physical stripe');
+          check(g.world.timingFraction(gate,past.x,past.z,before) === null, 'Reversing over a timing stripe does not earn a split');
+        }
         check(document.querySelectorAll('.sector-sheet tbody tr').length===required,'A whole race has a timing row for every lap');
         check(document.querySelector('.result > span').textContent.includes('NEW BEST'),'Finishing establishes a solo reference time');
         ui.start();g.phase='play';const rival=g.actors[1];
@@ -271,6 +308,18 @@ try {
         speeds.push(g.player.speed);
       }
       check(speeds[0]>0 && speeds[1]>speeds[0]*1.5,'Analog trigger retains partial throttle');
+      const pad = index => ({index, axes:[0,0], buttons:Array.from({length:17},()=>({value:0,pressed:false}))});
+      const idle = pad(0), steering = pad(1);
+      Object.defineProperty(navigator,'getGamepads',{configurable:true,value:()=>[idle,steering]});
+      steering.buttons[14].pressed = true;
+      g.keys = {}; g.player.steerInput = 0; g.updatePlayer(1/60);
+      check(g.player.steerInput < 0 && g.readGamepad() === steering, 'The active controller can steer left on its D-pad');
+      steering.buttons[14].pressed = false; steering.buttons[15].pressed = true;
+      g.player.steerInput = 0; g.updatePlayer(1/60);
+      check(g.player.steerInput > 0, 'D-pad right steers in the opposite direction');
+      Object.defineProperty(navigator,'getGamepads',{configurable:true,value:()=>{throw new DOMException('Unavailable','SecurityError');}});
+      g.keys = {ArrowLeft:true}; g.player.steerInput = 0; g.updatePlayer(1/60);
+      check(g.player.steerInput < 0, 'Keyboard steering works when the browser restricts controller access');
     } finally {if(original)Object.defineProperty(navigator,'getGamepads',original);else delete navigator.getGamepads;}
     ui.exitToHome();return {cases:results,analog_trigger_speeds:speeds,scope:'Gate-placement progression fixtures and synthetic gamepad; not physical device acceptance'};
   });

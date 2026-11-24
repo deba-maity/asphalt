@@ -287,6 +287,7 @@ export class World {
     this.finishLine = this.route[0].clone().lerp(this.route[1], timingGateFraction);
     this.finishSamples = Math.ceil(timingGateFraction * this.samples.length / this.route.length);
     this.finishForward = this.route[1].clone().sub(this.route[0]).normalize();
+    this.timingLines = new Map([[0, {point: this.finishLine, forward: this.finishForward}]]);
     this.sampleDistances = [0];
     for (let i = 0; i < this.samples.length; i++) {
       const next = this.samples[(i + 1) % this.samples.length];
@@ -1364,6 +1365,7 @@ export class World {
       }
 
       this.group.add(barrier);
+      barrier.userData.topY = new THREE.Box3().setFromObject(barrier).max.y;
       this.destructibles.push(barrier);
     }
   }
@@ -5198,7 +5200,8 @@ export class World {
       const from = this.sampleDistances[this.authorSegmentToRouteIndex(road.from) * stride];
       const to = this.sampleDistances[this.authorSegmentToRouteIndex(road.to) * stride];
       const previous = road.points[gate - 1], target = road.points[gate];
-      const along = 1 - clamp(position.distanceTo(target) / (previous.distanceTo(target) || 1), 0, 1);
+      const dx = target.x - previous.x, dz = target.z - previous.z;
+      const along = clamp(((position.x - previous.x)*dx + (position.z - previous.z)*dz) / (dx*dx + dz*dz || 1), 0, 1);
       const fraction = (gate - 1 + along) / (road.points.length - 1);
       return (from + (to - from) * fraction - this.timingOffset) / this.courseLength;
     }
@@ -5227,8 +5230,30 @@ export class World {
     return { distance, sample };
   }
 
+  markSectors(gates) {
+    const paint = this.basic({color: 0x8cf5d8});
+    for (const gate of gates) {
+      if (this.timingLines.has(gate)) continue;
+      const i = gate * this.samples.length / this.route.length;
+      const before = this.samples[(i - 1 + this.samples.length) % this.samples.length];
+      const after = this.samples[(i + 1) % this.samples.length];
+      const forward = after.clone().sub(before).normalize();
+      const point = this.gatePosition(gate);
+      this.timingLines.set(gate, {point, forward});
+      const yaw = Math.atan2(forward.x, forward.z);
+      for (const offset of [-.4, .4]) {
+        const at = localPoint(point, yaw, 0, .20, offset);
+        mesh(this.group, box, paint, [at.x, at.y, at.z], [roadHalfWidth * 2, .025, .24], [0, yaw, 0]);
+      }
+    }
+  }
+
   finishFraction(fromX, fromZ, to) {
-    const line = this.finishLine, forward = this.finishForward;
+    return this.timingFraction(0, fromX, fromZ, to);
+  }
+
+  timingFraction(gate, fromX, fromZ, to) {
+    const {point: line, forward} = this.timingLines.get(gate);
     const before = (fromX - line.x) * forward.x + (fromZ - line.z) * forward.z;
     const after = (to.x - line.x) * forward.x + (to.z - line.z) * forward.z;
     if (!(before < 0 && after >= 0)) return null;

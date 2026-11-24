@@ -4,9 +4,9 @@ Racing, time trials and pursuit across four districts, on the `nightshift` branc
 
 [Play Nightshift in a browser](https://deba-maity.github.io/asphalt/nightshift/)
 
-Choose **Hit the Streets**, a mode, a district and a vehicle, then **Deploy**. Hold **W** or **Up** to accelerate and steer with **A/D** or **Left/Right**. Follow the green arrows through the numbered gates. The corner display calls bends earlier at higher speeds. An amber braking cue marks the turn on the minimap. Amber ramps are optional shortcuts. Cross the checkered stripe in the direction of travel to finish a lap. Sprint takes one lap and Race takes three. Solo races stay open after rivals finish. The results show your place, gap to the winner and three sector times for each lap. On a rematch, crossing a sector gate shows the time you gained or lost against your best completed run on that district, in the same mode and difficulty. Pause offers **Return to last gate** and **Restart run**.
+Choose **Hit the Streets**, a mode, a district and a vehicle, then **Deploy**. Hold **W** or **Up** to accelerate and steer with **A/D** or **Left/Right**. Follow the green arrows through the numbered gates. The corner display calls bends earlier at higher speeds. An amber braking cue marks the turn on the minimap. On the district screen, choose **Via shortcuts** to have the minimap and next marker lead you onto each optional cut. Staying on the main road restores the regular gate guidance. Cross the checkered stripe in the direction of travel to finish a lap. Sprint takes one lap and Race takes three. Solo races stay open after rivals finish. The results show your place, gap to the winner and three sector times for each lap. On a rematch, crossing a sector gate shows the time you gained or lost against your best completed run on that district, in the same mode and difficulty. Pause offers **Return to last gate** and **Restart run**.
 
-In **Police Escape**, follow the gates to extraction. The heat display shows the nearest unit ahead or behind you. Patrols follow the main road, so taking a shortcut or accelerating away after a sideswipe can open a gap. A stopped car under sustained contact can be busted.
+In **Police Escape**, follow the gates to extraction. The heat display shows the nearest unit ahead or behind you. Patrols follow the main road, so taking a shortcut or accelerating away after a sideswipe can open a gap. Hold a lead of 90 metres over every patrol for six seconds to lose one heat level. The breakaway countdown appears in the heat display. A stopped car under sustained contact can be busted.
 
 Complete a **Time Trial** to record a pace ghost for that district. On the next run, the violet outline follows your recorded line and the timer compares matching gates. The ghost and your best time live in the current browser. The ghost can be switched off in Settings.
 
@@ -60,7 +60,7 @@ This is still an independent prototype. The detailed car does not replace every 
 | F / R | Gun / rocket on armed vehicles |
 | Escape | Pause |
 
-Touch controls support simultaneous steering and pedals. Supported gamepad axes/triggers provide analog driving input. Physical gamepad acceptance has not been performed.
+Touch controls support simultaneous steering and pedals. Use the left stick or D-pad to steer with a controller, RT to accelerate, LT to brake and reverse, and RB for nitro. Physical gamepad acceptance has not been performed.
 
 Fresh settings start in **Battery saver**: 30 FPS, at most 600,000 internal pixels and 600 pixels high. Balanced allows 60 FPS / 1,152,000 pixels / 900 high; High fidelity allows 60 FPS / 2,073,600 pixels / 1080 high. These are upper limits; screen size and automatic resolution reduction can lower them. Existing preferences are preserved. Lower rendering work can reduce power demand, but no laptop temperature reduction is claimed.
 
