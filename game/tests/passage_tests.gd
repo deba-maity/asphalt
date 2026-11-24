@@ -32,11 +32,17 @@ func touch(index: int, point: Vector2, pressed: bool) -> void:
 	event.pressed = pressed
 	get_viewport().push_input(event, true)
 
+func begin_again() -> void:
+	if button_named("Begin journey again") != null:
+		button_named("Begin journey again").pressed.emit()
+		button_named("Revisit the opening").pressed.emit()
+	else: button_named("Begin journey").pressed.emit()
+
 func test_touch_lesson() -> void:
 	main.ui.show_menu()
 	touch(0, Vector2(1100, 300), true)
 	touch(0, Vector2(1100, 300), false)
-	button_named("Begin journey").pressed.emit()
+	begin_again()
 	await frames(4)
 	button_named("Accept the cost").pressed.emit()
 	await seconds(.35)
@@ -89,7 +95,7 @@ func test_touch_lesson() -> void:
 	await frames(2)
 	check(main.ui.mode == "pause" and controls.fingers.is_empty() and controls.stick == Vector2.ZERO, "Pausing clears every held finger")
 	main.ui.show_menu()
-	button_named("Begin journey").pressed.emit()
+	begin_again()
 	await frames(4)
 	button_named("Accept the cost").pressed.emit()
 	await frames(4)
@@ -100,13 +106,15 @@ func test_touch_lesson() -> void:
 
 func run() -> void:
 	if "--passage-hz=30" in OS.get_cmdline_user_args(): Engine.physics_ticks_per_second=30
+	Session.shore = ShoreProgress.new("user://passage_validation/counting_shore")
+	main.ui.show_menu()
 	var original_store=Session.store
 	var before_path=Session.store.directory+"progress.json"
 	campaign_before=FileAccess.get_file_as_string(before_path) if FileAccess.file_exists(before_path) else ""
 	var base=CombatModel.definitions().duplicate(true)
 	var attack_before=CombatModel.new(); PerformanceMotion.configure(attack_before,true)
 	check(not main.world.warden.visible and main.world.court_camera.current, "Title frames the quiet court")
-	button_named("Begin journey").pressed.emit()
+	begin_again()
 	await frames(4)
 	check(main.trial_stage==0 and main.world.passage.training(),"Begin journey opens the Counting Shore")
 	check(main.ui.mode=="trial_briefing" and get_tree().paused,"Story is readable before any combat runs")
@@ -118,6 +126,7 @@ func run() -> void:
 	button_named("Accept the cost").pressed.emit()
 	await frames(5)
 	check(main.ui.mode=="play" and not get_tree().paused and main.world.can_play(),"Accepting the story returns control to the player")
+	check(Session.shore.milestone == ShoreProgress.SHORE, "The journey begins saving after accepting the offer")
 	var arrival: TrialArrival = main.world.arrival
 	var trainee: Fighter = main.player
 	var echo: Fighter = main.world.warden
@@ -163,11 +172,11 @@ func run() -> void:
 	await frames(5)
 	check(main.world.arrival==null and main.world.warden.ai_enabled and main.trial_stage==0, "Explicit challenge begins the first echo")
 	check(main.player.model.stamina==100 and main.player.model.health==100, "Practice hands off with full health and stamina")
+	var court_id: int = main.world.get_instance_id()
+	var traveler_id: int = main.player.get_instance_id()
 	for stage in 4:
-		if stage>0:
-			check(main.trial_stage==stage and main.ui.mode=="trial_briefing","Continue leads to the next encounter in order: "+str(stage))
-			button_named("Step into").pressed.emit()
-			await frames(4)
+		check(main.trial_stage == stage and main.ui.mode == "play", "The next opponent appears directly in play: " + str(stage))
+		check(main.world.get_instance_id() == court_id and main.player.get_instance_id() == traveler_id, "The court and player stay installed across an encounter: " + str(stage))
 		var world: TrialWorld=main.world
 		var boss: Fighter=world.warden
 		boss.ai_enabled=false
@@ -195,10 +204,39 @@ func run() -> void:
 		check(world.won and world.duel.finished,"A defeated encounter resolves exactly once: "+str(stage))
 		world.result_delay=.001
 		await frames(4)
-		check(main.ui.mode=="trial_result","Victory presents an actionable result: "+str(stage))
-		check_layout("Result buttons fit at stage "+str(stage))
-		if stage<3: button_named("Continue").pressed.emit(); await frames(4)
-	check(button_named("Replay the passage")!=null,"Final victory offers a complete narrative replay")
+		check(main.ui.mode == "play" and world.can_play() and world.waystone != null, "Victory opens a walkable safe court: " + str(stage))
+		check(Session.shore.milestone == ShoreProgress.FIRST_ECHO + stage + 1, "The next checkpoint is saved immediately: " + str(stage))
+		check(world.north_gate.open == (stage == TrialPassage.WARDEN) and (world.north_gate.closed_barrier.collision_layer == 0) == world.north_gate.open, "Only the final victory opens a walkable north gate")
+		check(world.north_gate.seals[mini(stage,2)].material_override == world.north_gate.lit, "The gate records a defeated echo with a lit seal")
+		check(world.hero.target == null and world.enemies.is_empty() and not world.boss_panel.visible, "The defeated opponent leaves the HUD and target list")
+		world.hero.position = Vector3(-6, .08, 4)
+		world.interact()
+		await frames(2)
+		check(world.waystone != null and not world.crossing, "Using the waystone from across the court cannot advance")
+		if stage == TrialPassage.WARDEN:
+			world.hero.position = Vector3(0, .08, -9.4)
+			world.hero.use_test_direction = true
+			world.hero.test_direction = Vector3.FORWARD
+			await seconds(1.8)
+			if world.hero.position.z >= -12.7:
+				print("Gate approach stopped at ", world.hero.position, " state=", world.hero.model.state, " playing=", world.can_play())
+				for i in world.hero.get_slide_collision_count():
+					var contact: KinematicCollision3D = world.hero.get_slide_collision(i)
+					print("Gate approach collider ", contact.get_collider().get_path(), " at ", contact.get_position())
+			check(world.hero.position.z < -12.7, "The player can physically walk through the opened north gate")
+		else:
+			world.hero.position = world.waystone.position + Vector3(.4,.08,.4)
+			world.interact()
+			world.interact()
+		await frames(4)
+	check(main.ui.mode == "dawn" and button_named("Return to title") != null, "Walking through the north gate reaches the ending")
+	check_layout("Epilogue buttons fit within the viewport")
+	var persisted := ShoreProgress.new(Session.shore.directory)
+	persisted.restore()
+	check(persisted.milestone == ShoreProgress.DAWN and persisted.rehearsed, "A new save reader restores the finished journey and rehearsal")
+	main.ui.show_menu()
+	button_named("Revisit the ending").pressed.emit()
+	check(main.ui.mode == "dawn", "The ending remains available from the title")
 	check(CombatModel.definitions()==base,"Tutorial tuning leaves campaign combat definitions untouched")
 	# The opening tests above exercise progression. These use the actual animated
 	# sword sweep, so a slow lesson cannot silently lose or duplicate its damage.
@@ -248,6 +286,68 @@ func run() -> void:
 	check((FileAccess.get_file_as_string(before_path) if FileAccess.file_exists(before_path) else "")==campaign_before,"The complete passage and retries never overwrite campaign progress")
 	button_named("skip lessons").pressed.emit(); await frames(4)
 	check(main.trial_stage==3 and main.ui.mode=="play" and main.world.warden.model.max_health==340,"Direct Warden practice remains available")
+	check(Session.shore.milestone == ShoreProgress.DAWN and not main.journey, "Direct Warden practice preserves the completed journey")
 	await test_touch_lesson()
+	await test_checkpoint_resume()
 	print("PASSAGE: ",checks," checks, ",failures," failures")
 	main.finish(0 if failures==0 else 1)
+
+func test_checkpoint_resume() -> void:
+	main.ui.show_menu()
+	begin_again()
+	button_named("Accept the cost").pressed.emit()
+	await frames(4)
+	main.player.position = main.world.arrival.memorial.position
+	main.world.interact()
+	main.player.toggle_target()
+	await frames(3)
+	var saved := ShoreProgress.new(Session.shore.directory)
+	saved.restore()
+	check(saved.milestone == ShoreProgress.SHORE + TrialArrival.Step.STRIKE, "Remember the next uncompleted practice action")
+	Session.shore = saved
+	main.ui.show_menu()
+	button_named("skip lessons").pressed.emit()
+	await frames(4)
+	main.world.warden.model.health = 0
+	main.world._enemy_died(main.world.warden)
+	await frames(4)
+	check(Session.shore.milestone == saved.milestone and Session.shore.milestone == 3, "A direct Warden win cannot advance an unfinished lesson")
+	main.ui.show_menu()
+	button_named("Continue").pressed.emit()
+	await frames(4)
+	check(main.world.arrival.step == TrialArrival.Step.STRIKE and main.player.target == main.world.warden and main.world.warden.visible and not main.world.warden.ai_enabled, "Continue restores the safe echo in reach at the correct lesson")
+	main.ui.show_trial_guide()
+	button_named("Skip practice").pressed.emit()
+	await frames(4)
+	check(Session.shore.milestone == ShoreProgress.FIRST_ECHO and not Session.shore.rehearsed, "Skipping practice records the fight without granting rehearsal")
+	main.world.warden.model.health = 0
+	main.world._enemy_died(main.world.warden)
+	await frames(4)
+	main.ui.show_menu()
+	button_named("Continue").pressed.emit()
+	await frames(4)
+	check(main.trial_stage == 1 and main.journey and main.world.arrival == null, "Leaving immediately after victory resumes at the next echo")
+	main.player.model.health = 0
+	main.player.model.state = "dead"
+	main.world._hero_died(main.player)
+	await frames(3)
+	main.world.result_delay = .001
+	main.ui.show_trial_guide()
+	await frames(5)
+	main.ui.play()
+	await frames(5)
+	check(main.ui.mode == "trial_result", "Reading the guide during defeat cannot consume the retry screen")
+	button_named("Retry").pressed.emit()
+	await frames(4)
+	check(main.trial_stage == 1 and main.journey and Session.shore.milestone == ShoreProgress.FIRST_ECHO + 1, "Retry replaces only the current encounter")
+	main.ui.show_menu()
+	button_named("Begin journey again").pressed.emit()
+	button_named("Keep my checkpoint").pressed.emit()
+	check(button_named("Continue") != null and Session.shore.milestone == ShoreProgress.FIRST_ECHO + 1, "Cancelling a replay keeps the existing checkpoint")
+	var bad := FileAccess.open(Session.shore.directory + "progress.json", FileAccess.WRITE)
+	bad.store_string("{invalid")
+	bad.close()
+	var restored := ShoreProgress.new(Session.shore.directory)
+	restored.restore()
+	check(restored.milestone == ShoreProgress.FIRST_ECHO and not restored.last_error.is_empty(), "A damaged checkpoint recovers the previous verified backup")
+	check(not restored.accepts({"schema":1, "milestone":2.5, "rehearsed":false}) and not restored.accepts({"schema":1,"milestone":100,"rehearsed":true}), "Invalid checkpoint indices cannot index the lesson list")

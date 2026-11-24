@@ -10,6 +10,7 @@ var validation: bool = false
 var chapter: Dictionary = {}
 var replay: bool = false
 var original_store: SaveStore
+var shore: ShoreProgress
 
 func _ready() -> void:
 	validation = "--validate-play" in OS.get_cmdline_user_args() or "--validate-continue" in OS.get_cmdline_user_args() or "--validate-systems" in OS.get_cmdline_user_args()
@@ -22,6 +23,8 @@ func _ready() -> void:
 	if "--test-quit-transition" in OS.get_cmdline_user_args() or "--test-resume-transition" in OS.get_cmdline_user_args(): path="user://quit_transition_validation"
 	if "--test-endurance" in OS.get_cmdline_user_args(): path="user://endurance_validation"
 	store = SaveStore.new(path)
+	shore = ShoreProgress.new(path.path_join("counting_shore"))
+	shore.restore()
 	chapter = Campaign.definition(data.zone)
 	loaded = store.load_game()
 	save_warning = store.last_error

@@ -12,6 +12,8 @@ var story_active: bool = false
 var benchmark: BenchmarkRecorder
 var trial_stage: int=TrialPassage.WARDEN
 var budget: RuntimeBudget
+var journey := false
+var trained_on_shore := false
 
 func _ready() -> void:
 	ui = GameInterface.new()
@@ -164,7 +166,7 @@ func finish_story_death(token: int) -> void:
 
 func restart_checkpoint() -> void:
 	if trial_active:
-		start_trial(trial_stage,false)
+		start_trial(trial_stage, false, journey)
 		return
 	if transitions.state == "loading": return
 	transitions.reset()
@@ -210,22 +212,62 @@ func finish(code: int = 0) -> void:
 			browser.dispatchEvent(JavaScriptBridge.create_object("Event", "ashen-vow-quit"))
 	get_tree().quit(code)
 
+func continue_shore() -> void:
+	var mark := Session.shore.milestone
+	if mark == ShoreProgress.DAWN:
+		ui.show_dawn()
+	elif mark >= ShoreProgress.FIRST_ECHO:
+		trained_on_shore = Session.shore.rehearsed
+		start_trial(mark - ShoreProgress.FIRST_ECHO, false, true)
+		if trial_stage > 0: world.hero.target = world.warden
+		ui.toast("Checkpoint · " + Session.shore.label() + ". Health and draughts restored.", 4)
+	elif mark >= ShoreProgress.SHORE:
+		start_trial(0, false, true)
+		world.begin_arrival()
+		world.arrival.resume_lesson(mark - ShoreProgress.SHORE)
+		ui.play()
+	else: start_trial()
+
+func accept_shore() -> void:
+	Session.shore.remember(ShoreProgress.SHORE, false, true)
+	ui.play()
+	if not Session.shore.last_error.is_empty(): ui.toast(Session.shore.last_error, 6)
+
+func remember_lesson(step: int) -> void:
+	if not journey: return
+	Session.shore.remember(ShoreProgress.SHORE + step, step == TrialArrival.Step.READY)
+	if not Session.shore.last_error.is_empty(): ui.toast(Session.shore.last_error, 6)
+
+func remember_victory(stage: int) -> void:
+	if journey:
+		Session.shore.remember(ShoreProgress.FIRST_ECHO + stage + 1, trained_on_shore)
+
 func start_first_echo(court_id: int, trained: bool) -> void:
 	if not is_instance_valid(world) or world.get_instance_id() != court_id or ui.mode not in ["play", "journal"]: return
-	start_trial(0, false)
-	if trained:
-		world.passage.learn("rehearsal")
-		world.hero.target = world.warden
-	ui.announce("THE FIRST ECHO")
-	ui.toast("The echo lifts its blade. Let the first cut pass, then answer.", 4)
+	trained_on_shore = trained
+	if journey: Session.shore.remember(ShoreProgress.FIRST_ECHO, trained)
+	enter_next_echo(0)
 
-func start_trial(stage: int=0, briefing: bool=true) -> void:
+func enter_next_echo(stage: int) -> void:
+	trial_stage = stage
+	world.enter_encounter(stage, trained_on_shore)
+	ui.play()
+	ui.announce(world.passage.entry().name)
+	if stage == 0: ui.toast("The echo lifts its blade. Let the first cut pass, then answer.", 4)
+	else: ui.toast(world.passage.entry().voice, 5)
+
+func start_trial(stage: int=0, briefing: bool=true, keep_journey: bool=false) -> void:
 	transitions.cancel()
 	trial_active=true
 	trial_stage=clampi(stage,0,TrialPassage.WARDEN)
+	journey = keep_journey or (trial_stage == 0 and briefing)
+	if not keep_journey: trained_on_shore = false
 	Session.begin_trial()
 	load_world()
 	if trial_stage == 0 and briefing: world.begin_arrival()
+	elif trained_on_shore and trial_stage == 0:
+		world.passage.learn("rehearsal")
+		world.hero.target = world.warden
 	ui.play()
 	if briefing: ui.show_trial_briefing()
 	else: ui.announce(world.passage.entry().chapter)

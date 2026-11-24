@@ -34,10 +34,12 @@ func _visibility_changed() -> void:
 
 func lesson() -> int:
 	if ui.world is TrialWorld and ui.world.arrival != null: return ui.world.arrival.step
+	if ui.world is TrialWorld and ui.world.waystone != null: return 7
 	return -1
 
 func actions() -> Array:
 	var index := lesson()
+	if index == 7: return ["interact", "pause"]
 	return LESSON_BUTTONS[index] if index >= 0 and index < LESSON_BUTTONS.size() else FIGHT_BUTTONS
 
 func _process(_delta: float) -> void:
@@ -121,7 +123,9 @@ func _draw() -> void:
 		var center: Vector2 = spec[0]
 		var radius: float = spec[1]
 		var label: String = spec[2]
-		if id == "interact": label = "Listen" if lesson() == TrialArrival.Step.EMBER else "Begin"
+		if id == "interact":
+			label = "Listen" if lesson() == TrialArrival.Step.EMBER else "Begin"
+			if lesson() == 7: label = "Call" if ui.world.passage.training() else "Cross"
 		draw_circle(center, radius, Color(.4,.31,.17,.9) if id in fingers.values() else base)
 		draw_arc(center, radius, 0, TAU, 48, ink, 2, true)
 		draw_string(ThemeDB.fallback_font, center + Vector2(-radius, 7), label, HORIZONTAL_ALIGNMENT_CENTER, radius * 2, 19, ink)

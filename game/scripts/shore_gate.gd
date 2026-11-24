@@ -1,0 +1,55 @@
+class_name ShoreGate
+extends Node3D
+
+# The central section of the north wall opens onto the path after the duel.
+var leaves: Array[Node3D] = []
+var seals: Array[MeshInstance3D] = []
+var closed_barrier: StaticBody3D
+var lit: StandardMaterial3D
+var unlit: StandardMaterial3D
+var open := false
+
+func _ready() -> void:
+	var portal := preload("res://assets/court/large_castle_door/large_castle_door.gltf").instantiate() as Node3D
+	portal.scale = Vector3.ONE * 1.6
+	add_child(portal)
+	for side in ["left", "right"]:
+		leaves.append(portal.find_child("large_castle_door_" + side, true, false) as Node3D)
+	var bronze := SurfaceLibrary.material("steel", Color("9a7852"), 1.4)
+	unlit = SurfaceLibrary.material("stone", Color("443d38"), 1.2)
+	lit = StandardMaterial3D.new()
+	lit.albedo_color = Color("ffcf83")
+	lit.emission_enabled = true
+	lit.emission = Color("ff9949")
+	lit.emission_energy_multiplier = 1.3
+	var lintel := Figure.box(self,Vector3(1.72,.095,.075),Vector3(-.07,3.70,.19),Color.WHITE)
+	lintel.material_override = bronze
+	for i in 3:
+		var seal := Figure.box(self,Vector3(.14,.14,.07),Vector3((i - 1)*.46 - .07,3.70,.25),Color.WHITE)
+		seal.rotation.z = PI / 4
+		seal.material_override = unlit
+		seals.append(seal)
+	closed_barrier = StaticBody3D.new()
+	closed_barrier.collision_layer = 1
+	closed_barrier.collision_mask = 0
+	var boundary := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(3.1,4.2,.25)
+	boundary.position.y = 2.1
+	boundary.shape = box
+	closed_barrier.add_child(boundary)
+	add_child(closed_barrier)
+
+func mark(earned: int) -> void:
+	for i in seals.size():
+		seals[i].material_override = lit if i < earned else unlit
+
+func unseal() -> void:
+	if open: return
+	open = true
+	closed_barrier.collision_layer = 0
+	mark(seals.size())
+	for i in leaves.size():
+		var angle := deg_to_rad(88 if i == 0 else -88)
+		if Preferences.reduced_effects: leaves[i].rotation.y = angle
+		else: create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT).tween_property(leaves[i], "rotation:y", angle, 1.1)

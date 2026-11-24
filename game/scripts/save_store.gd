@@ -58,9 +58,12 @@ static func valid(d: Variant) -> bool:
 		if Campaign.chapter(id).is_empty(): return false
 	return true
 
+func accepts(data: Variant) -> bool:
+	return valid(data)
+
 func read_file(path: String) -> Variant:
 	var result = raw_file(path)
-	return result if valid(result) else null
+	return result if accepts(result) else null
 
 func raw_file(path: String) -> Variant:
 	if not FileAccess.file_exists(path):
@@ -114,7 +117,7 @@ func load_game() -> Dictionary:
 	return {}
 
 func write(data: Dictionary) -> bool:
-	if not valid(data):
+	if not accepts(data):
 		last_error = "Refused invalid progress data."
 		return false
 	var serialized=JSON.stringify(data,"\t")

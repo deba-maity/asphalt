@@ -174,6 +174,15 @@ func corridor_clear(space: PhysicsDirectSpaceState3D, origin: Vector3, direction
 		if not space.intersect_ray(ray).is_empty(): return false
 	return true
 
+func retry_tip() -> String:
+	if hits == 0 and attacks_started >= 3: return "Your swings missed. Lock on, step close enough to touch the echo’s shoulder, then try one light strike."
+	if hits == 0: return "Watch the weapon shoulder. Step aside as it falls, then strike once while the blade is low."
+	if world.warden.phase == 2: return "You reached the Warden’s last ember. His second cut comes sooner. Keep enough stamina to roll past the end of the chain."
+	if world.passage.stage >= 2 and breaks == 0: return "Heavy strikes after a finished combination build composure. When it breaks, move close for a riposte."
+	if world.passage.stage == 1 and evades == 0: return "The patient echo lifts its blade high for a cleave. Roll past it and save your guard for ordinary cuts."
+	if Session.data.heals > 0: return "You still had a draught. After an enemy combination, step back and drink while the weapon is lowered."
+	return "Let the next combination finish. Answer with one cut, then step back far enough to recover stamina."
+
 func summary() -> String:
 	var seconds=int(elapsed)
 	return "%d:%02d  |  Blade hits %d  |  Parries %d\nSafe evades %d  |  Composure breaks %d  |  Damage taken %d" % [seconds/60,seconds%60,hits,parries,evades,breaks,roundi(damage_taken)]

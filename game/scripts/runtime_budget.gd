@@ -9,7 +9,7 @@ var held_world: Node
 var previous_mode: ProcessMode=Node.PROCESS_MODE_INHERIT
 var effective_cap: int=60
 var idle: bool=false
-const IDLE_MODES=["menu","archive","credits_info","settings","pause","journal","trial_briefing","trial_result"]
+const IDLE_MODES=["menu","archive","credits_info","settings","pause","journal","trial_briefing","trial_result","shore_confirm","dawn"]
 
 func _ready() -> void:
 	process_mode=Node.PROCESS_MODE_ALWAYS

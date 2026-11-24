@@ -27,6 +27,11 @@ var idle_until: float=0
 var idle_clocks: Vector2
 var idle_checks: int=0
 var training_samples: int=0
+var passage_calls := 0
+var dawn_crossings := 0
+var checkpoint_resumes := 0
+var between_since := -1.0
+var previous_stage := 0
 
 func _ready() -> void:
 	process_mode=Node.PROCESS_MODE_ALWAYS
@@ -34,8 +39,7 @@ func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--endurance-seconds="): duration=float(arg.split("=")[1])
 	started=Time.get_ticks_msec()
-	main.start_trial(0,false)
-	main.player.use_test_direction=true
+	start_journey()
 	print("ENDURANCE START duration=",duration," seconds; headless real-time stress fixture")
 
 func _process(delta: float) -> void:
@@ -48,18 +52,21 @@ func _process(delta: float) -> void:
 		if elapsed<idle_until: return
 		idle_until=0; idle_checks+=1; main.budget.focused=true
 		main.ui.play(); main.budget.update_policy()
-	if elapsed>=next_pause:
+	if elapsed >= next_pause and main.ui.mode == "play" and not main.world.duel.finished and between_since < 0:
 		next_pause=elapsed+45; idle_until=elapsed+2
 		main.ui.show_pause(); main.budget.focused=matches%2==0; main.budget.update_policy()
 		idle_clocks=Vector2(hero.figure.cape.clock,boss.figure.cape.clock)
 		return
-	if elapsed-last_match>120 or hero.model.state=="dead" or boss.model.state=="dead":
-		Input.action_release("guard")
-		Input.action_release("sprint")
-		main.start_trial((matches+1)%4,false)
-		main.player.use_test_direction=true
-		last_match=elapsed; matches+=1
-		last_serials.clear()
+	if main.ui.mode == "dawn" or main.ui.mode == "trial_result" or main.world.duel.finished or between_since >= 0:
+		progress_passage(elapsed)
+		return
+	if elapsed - last_match > 120:
+		# Script the final blow after two minutes of live combat, then reach the
+		# next encounter with ordinary walking and interaction.
+		boss.model.health = 0
+		boss.model.state = "dead"
+		boss.slain.emit(boss)
+		between_since = elapsed
 		return
 	hero.model.health=maxf(hero.model.health,70)
 	boss.model.health=maxf(boss.model.health,boss.model.max_health*.3)
@@ -100,7 +107,7 @@ func _process(delta: float) -> void:
 		if baseline_nodes==0 and elapsed>=180:
 			baseline_nodes=nodes; baseline_memory=memory
 		if baseline_nodes>0 and (nodes>baseline_nodes+12 or memory>baseline_memory+64*1024*1024): failures+=1
-		var record={"seconds":elapsed,"matches":matches,"actions":actions,"nodes":nodes,"memory":memory,"failures":failures,"pose_samples":pose_samples,"phase_two_samples":phase_two_samples,"advancing_swings":advancing_swings,"idle_checks":idle_checks,"training_samples":training_samples}
+		var record={"seconds":elapsed,"matches":matches,"actions":actions,"nodes":nodes,"memory":memory,"failures":failures,"pose_samples":pose_samples,"phase_two_samples":phase_two_samples,"advancing_swings":advancing_swings,"idle_checks":idle_checks,"training_samples":training_samples,"passage_calls":passage_calls,"dawn_crossings":dawn_crossings,"checkpoint_resumes":checkpoint_resumes}
 		records.append(record)
 		print("ENDURANCE ",JSON.stringify(record))
 		write_report(elapsed,false)
@@ -111,6 +118,48 @@ func _process(delta: float) -> void:
 		print("RESULT: endurance complete seconds=",elapsed," matches=",matches," actions=",actions," failures=",failures)
 		set_process(false)
 		main.finish(1 if failures else 0)
+
+func start_journey() -> void:
+	Session.shore.remember(ShoreProgress.FIRST_ECHO, false, true)
+	main.start_trial(0, false, true)
+	main.player.use_test_direction = true
+
+func progress_passage(elapsed: float) -> void:
+	Input.action_release("guard")
+	Input.action_release("sprint")
+	if between_since < 0: between_since = elapsed
+	if main.ui.mode == "dawn":
+		dawn_crossings += 1
+		start_journey()
+	elif main.ui.mode == "trial_result":
+		main.restart_checkpoint()
+	elif main.trial_stage != previous_stage:
+		passage_calls += 1
+		if passage_calls % 4 == 2:
+			# A fresh reader exercises a real saved file between fights.
+			Session.shore.restore()
+			main.ui.show_menu()
+			main.continue_shore()
+			checkpoint_resumes += 1
+	elif elapsed - between_since > 22:
+		failures += 1
+		if failure_reasons.size() < 8: failure_reasons.append("Could not reach the next encounter from stage " + str(main.trial_stage))
+		start_journey()
+	else:
+		var court: TrialWorld = main.world
+		if court.waystone != null:
+			var travel := court.waystone.position - court.hero.position
+			travel.y = 0
+			court.hero.test_direction = travel.normalized()
+			if court.near_waystone(): court.interact()
+		return
+	main.player.use_test_direction = true
+	main.player.test_direction = Vector3.ZERO
+	previous_stage = main.trial_stage
+	between_since = -1.0
+	last_match = elapsed
+	matches += 1
+	last_serials.clear()
 
 func inspect_actor(actor: Fighter) -> void:
 	pose_samples+=1
@@ -134,4 +183,4 @@ func inspect_actor(actor: Fighter) -> void:
 
 func write_report(elapsed: float, complete: bool) -> void:
 	var file=FileAccess.open("user://endurance-report.json",FileAccess.WRITE)
-	file.store_string(JSON.stringify({"complete":complete,"seconds":elapsed,"requested_seconds":duration,"matches":matches,"actions":actions,"failures":failures,"failure_reasons":failure_reasons,"peak_memory":peak_memory,"pose_samples":pose_samples,"phase_two_samples":phase_two_samples,"advancing_swings":advancing_swings,"idle_checks":idle_checks,"training_samples":training_samples,"samples":records},"  "))
+	file.store_string(JSON.stringify({"complete":complete,"seconds":elapsed,"requested_seconds":duration,"matches":matches,"actions":actions,"failures":failures,"failure_reasons":failure_reasons,"peak_memory":peak_memory,"pose_samples":pose_samples,"phase_two_samples":phase_two_samples,"advancing_swings":advancing_swings,"idle_checks":idle_checks,"training_samples":training_samples,"passage_calls":passage_calls,"dawn_crossings":dawn_crossings,"checkpoint_resumes":checkpoint_resumes,"samples":records},"  "))

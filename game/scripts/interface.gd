@@ -219,19 +219,35 @@ func show_menu() -> void:
 	title.add_theme_font_override("font",serif)
 	text(c,"THE ASHEN TRIAL",21,GOLD)
 	text(c,"Cross the Counting Shore and carry their names home.",18)
-	var trial_button=button(c,"Begin journey · The Counting Shore",func(): main.start_trial())
+	var shore_label := "Begin journey · The Counting Shore"
+	if Session.shore.milestone == ShoreProgress.DAWN: shore_label = "Revisit the ending · Passage to dawn"
+	elif Session.shore.milestone: shore_label = "Continue · " + Session.shore.label()
+	var trial_button = button(c, shore_label, main.continue_shore)
 	button(c,"Warden duel · skip lessons",func(): main.start_trial(TrialPassage.WARDEN,false))
 	button(c,"Earlier campaign · prototype archive",show_archive)
 	button(c,"Controls & settings",func(): show_settings("menu"))
 	button(c,"Credits & licenses",show_asset_credits)
+	if Session.shore.milestone: button(c,"Begin journey again",confirm_shore)
 	button(c,"Quit",func(): main.finish())
 	text(c,str(ProjectSettings.get_setting("application/config/version","development"))+" · Offline single-player",14,Color("b7b5a9"))
 	trial_button.grab_focus()
-	if not Session.save_warning.is_empty():
-		var warning = text(overlay,Session.save_warning,17,GOLD)
+	var save_note := Session.shore.last_error if not Session.shore.last_error.is_empty() else Session.save_warning
+	if not save_note.is_empty():
+		var warning = text(overlay,save_note,17,GOLD)
 		warning.position = Vector2(620,560)
 		warning.size = Vector2(580,110)
 		warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+func confirm_shore() -> void:
+	mode = "shore_confirm"
+	clear_overlay()
+	shade()
+	var c = column(panel(overlay, Vector2(330, 175), Vector2(620, 325)), 13)
+	text(c, "Walk the shore again?", 30, GOLD)
+	var words = text(c, "Your checkpoint is " + Session.shore.label() + ". Accepting the keeper’s offer again starts a new journey at the ember.", 19)
+	words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button(c, "Keep my checkpoint", show_menu).grab_focus()
+	button(c, "Revisit the opening", func(): main.start_trial())
 
 func show_asset_credits() -> void:
 	mode="credits_info"
@@ -527,7 +543,7 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause") and not event.is_echo():
 		if mode == "play": show_pause()
 		elif mode in ["pause","journal"]: play()
-		elif mode in ["archive","credits_info"]: show_menu()
+		elif mode in ["archive","credits_info","shore_confirm","dawn"]: show_menu()
 		elif mode == "settings":
 			Preferences.save()
 			if get_tree().paused: show_pause()
@@ -635,24 +651,43 @@ func accept_rebind(code: int) -> void:
 	else: rebind_status.text=reason
 
 func show_trial_result(won: bool) -> void:
-	mode="trial_result"
-	get_tree().paused=false
-	hud.visible=false
+	mode = "trial_result"
+	get_tree().paused = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	hud.hide()
 	clear_overlay()
-	shade(.45)
-	var c=column(panel(overlay,Vector2(300,105),Vector2(680,510)),12)
-	var training=world.passage.training()
-	text(c,("ECHO OVERCOME" if training else "VOW KEPT") if won else "RISE THROUGH THE ASH",30,GOLD)
-	var ending=text(c,world.passage.entry().after if won else "The ash returns you to this encounter. Read the shoulders; leave room for one more breath.",20)
-	ending.custom_minimum_size.x=620; ending.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-	if world is TrialWorld and world.duel!=null: text(c,world.duel.summary(),17)
-	text(c,"Your story campaign progress is preserved.",16)
-	if won and training:
-		button(c,"Continue · health and draughts restored",func(): main.start_trial(main.trial_stage+1)).grab_focus()
-	else:
-		button(c,"Challenge the Warden again" if won else "Retry this encounter",func(): main.start_trial(main.trial_stage,false)).grab_focus()
-	if won and not training: button(c,"Replay the passage from the beginning",func(): main.start_trial())
-	button(c,"Return to title",show_menu)
+	shade(.55)
+	var c = column(panel(overlay, Vector2(300,105), Vector2(680,510)), 13)
+	text(c, "WARDEN OVERCOME" if won else "RISE THROUGH THE ASH", 30, GOLD)
+	text(c, world.passage.entry().name, 18, GOLD)
+	var words = text(c, "The Warden lowers his blade. You can face him again here or return to your journey from the title." if won else world.duel.retry_tip(), 20)
+	words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	text(c, world.duel.summary(), 17)
+	if main.journey: text(c, "Your next attempt starts here with full health and draughts.", 16)
+	button(c, "Challenge the Warden again" if won else "Retry this encounter", main.restart_checkpoint).grab_focus()
+	button(c, "Return to title", show_menu)
+
+func show_dawn() -> void:
+	mode = "dawn"
+	get_tree().paused = false
+	Session.running = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	hud.hide()
+	clear_overlay()
+	if world is TrialWorld:
+		world.hero.target = null
+		world.warden.hide()
+		world.frame_court()
+	shade(.27)
+	var c = column(panel(overlay, Vector2(58, 105), Vector2(545, 490)), 18)
+	text(c, "BEYOND THE COUNTING SHORE", 16, GOLD)
+	text(c, "Vow kept", 37)
+	var story = text(c, "Rayan opens his hand. The register is still there. He reads two names into the morning light: Mira. Isha.", 22)
+	story.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var price = text(c, "He remembers what Isha said on the stair. When he tries to hear her say it, there is only the wind from the road.", 19)
+	price.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button(c, "Return to title", show_menu).grab_focus()
+	button(c, "Practice the Warden duel", func(): main.start_trial(TrialPassage.WARDEN, false))
 
 func show_trial_briefing() -> void:
 	mode="trial_briefing"
@@ -669,7 +704,7 @@ func show_trial_briefing() -> void:
 		for line in ["The last thing Rayan remembers is Avel's blade on the Copper Stair. He wakes in an empty court. An ember burns where the road should be.", "The register that names Mira and Isha's killers is still among the living. Rayan has come to carry their names home.", "KEEPER   You may take her words back with you. The sound of Isha's voice stays here."]:
 			var words = text(story,line,18)
 			words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		button(story,"Accept the cost · approach the ember",play).grab_focus()
+		button(story,"Accept the cost · approach the ember",main.accept_shore).grab_focus()
 		button(story,"Return to title",show_menu)
 		return
 	shade(.78)
@@ -699,6 +734,12 @@ func show_trial_guide() -> void:
 			text(c,mark + str(TrialArrival.LESSONS[i][1]),18,GOLD if active else INK)
 		button(c,"Return to practice",play).grab_focus()
 		button(c,"Skip practice and face the first echo",world.arrival.begin_encounter)
+		return
+	if world.waystone != null:
+		text(c, "The north gate" if not world.passage.training() else "A moment at the ember", 30, GOLD)
+		var directions = text(c, "The north gate has opened. Follow the distance and bearing on your screen to cross into dawn." if not world.passage.training() else "Approach the lit stone ring in the court. Call the next echo when you are ready. Health and draughts refill for the encounter.", 20)
+		directions.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		button(c, "Return to the court", play).grab_focus()
 		return
 	text(c,world.passage.entry().chapter,30,GOLD)
 	text(c,"Return to expose Avel's betrayal and carry Mira and Isha's names into dawn.\nThree echoes prepare you. The Warden guards the road back.",19)

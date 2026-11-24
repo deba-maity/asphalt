@@ -89,10 +89,6 @@ static func dress(world: Node3D) -> void:
 		rocks.scale=Vector3.ONE*(.8+(i%3)*.3)
 		world.add_child(rocks)
 	source.free()
-	var portal=load("res://assets/court/large_castle_door/large_castle_door.gltf").instantiate()
-	portal.position=Vector3(0,0,-11.3)
-	portal.scale=Vector3.ONE*1.6
-	world.add_child(portal)
 	var ground=MeshInstance3D.new()
 	var plane=PlaneMesh.new(); plane.size=Vector2(90,90)
 	ground.mesh=plane; ground.position.y=-.08
