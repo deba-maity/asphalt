@@ -484,13 +484,24 @@ export class UI {
         this.game.audio.setEnabled(e.target.checked);
     });
     const held = new Map();
-    const release = (e) => {
-      const button = held.get(e.pointerId);
-      if (!button) return;
-      held.delete(e.pointerId);
-      if ([...held.values()].includes(button)) return;
-      button.classList.remove("held");
-      this.game.touch[button.dataset.drive] = false;
+    const steeringPointers = new Set();
+    const press = (pointerId, button) => {
+      const previous = held.get(pointerId);
+      if (previous === button) return;
+      held.delete(pointerId);
+      if (previous && ![...held.values()].includes(previous)) {
+        previous.classList.remove("held");
+        this.game.touch[previous.dataset.drive] = false;
+      }
+      if (button) {
+        held.set(pointerId, button);
+        button.classList.add("held");
+        this.game.touch[button.dataset.drive] = true;
+      }
+    };
+    const release = (event) => {
+      steeringPointers.delete(event.pointerId);
+      press(event.pointerId, null);
     };
     this.releaseDriving = () => {
       for (const button of held.values()) {
@@ -498,6 +509,7 @@ export class UI {
         this.game.touch[button.dataset.drive] = false;
       }
       held.clear();
+      steeringPointers.clear();
     };
     addEventListener("blur", this.releaseDriving);
     document.addEventListener("visibilitychange", () => {
@@ -508,10 +520,15 @@ export class UI {
       if (!button || !this.game.running || this.game.paused) return;
       e.preventDefault();
       button.setPointerCapture(e.pointerId);
-      held.set(e.pointerId, button);
-      button.classList.add("held");
+      if (e.pointerType === "touch" && button.closest(".touch-steering")) steeringPointers.add(e.pointerId);
       this.game.touch.active = true;
-      this.game.touch[button.dataset.drive] = true;
+      press(e.pointerId, button);
+    });
+    this.root.addEventListener("pointermove", (e) => {
+      if (!steeringPointers.has(e.pointerId)) return;
+      // Capture keeps the gesture alive when the thumb passes between arrows.
+      const underThumb = document.elementFromPoint(e.clientX, e.clientY);
+      press(e.pointerId, underThumb?.closest(".touch-steering [data-drive]") ?? null);
     });
     for (const type of ["pointerup", "pointercancel", "lostpointercapture"])
       this.root.addEventListener(type, release);

@@ -264,6 +264,21 @@ try {
   );
   await mobile.waitForFunction(() => window.__nightshift.game.player.mesh.rotation.y > 1.7,
     null, {timeout: 10000});
+  const right = await mobile.locator('[data-drive="KeyD"]').boundingBox();
+  const slide = (steering) => cdp.send("Input.dispatchTouchEvent", {
+    type: "touchMove", touchPoints: [steering, point(nitro, 2)],
+  });
+  // Browsers can coalesce touch moves until their next input frame.
+  const expectSteering = (leftHeld, rightHeld) => mobile.waitForFunction(([left, right]) => {
+    const { KeyA, KeyD, ShiftLeft } = window.__nightshift.game.touch;
+    return Boolean(KeyA) === left && Boolean(KeyD) === right && ShiftLeft;
+  }, [leftHeld, rightHeld], { timeout: 5000 });
+  await slide(point(right, 1));
+  await expectSteering(false, true);
+  await slide({ ...point(right, 1), y: right.y - right.height });
+  await expectSteering(false, false);
+  await slide(point(left, 1));
+  await expectSteering(true, false);
   await cdp.send("Input.dispatchTouchEvent", {
     type: "touchEnd",
     touchPoints: [],
