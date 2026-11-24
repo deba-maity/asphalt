@@ -7,7 +7,7 @@ import { RaceTiming } from "./race-timing.js";
 import { paceGhost } from "./pace-ghost.js";
 import { approachingCorner } from "./corner-notes.js";
 import * as THREE from "three";
-import { World } from "./world.js";
+import { World, roadHalfWidth } from "./world.js";
 import {
   createVehicle,
   animateVehicle,
@@ -25,6 +25,10 @@ import { SkidTrails } from "./skid-trails.js";
 import { advanceRoute, angleDelta, deflectVelocity, routeStateAt } from "./route-motion.js";
 
 const clamp = THREE.MathUtils.clamp;
+
+function vehicleContactDistance(first, second) {
+  return ((first.mesh.userData.radius || 2) + (second.mesh.userData.radius || 2)) * .72;
+}
 const mod = (a, n) => ((a % n) + n) % n;
 const gridRowSpacing = 8;
 
@@ -1262,7 +1266,7 @@ export class Game {
     let targetLane = a.disabledFor > 0 ? Math.sign(a.patrolLane) * 9 : a.patrolLane;
     if (a.disabledFor <= 0 && !regrouping && Math.abs(gap) < 22 && !player.roadBranch && !player.cut) {
       const dx = player.mesh.position.x - path.x, dz = player.mesh.position.z - path.z;
-      targetLane = clamp(path.lane + dx * Math.cos(path.heading) - dz * Math.sin(path.heading), -7, 7);
+      targetLane = clamp(path.lane + dx * Math.cos(path.heading) - dz * Math.sin(path.heading), -roadHalfWidth, roadHalfWidth);
     }
     path.lane = damp(path.lane, targetLane, 1.7, dt);
     const previousHeading = path.heading;
@@ -1270,7 +1274,8 @@ export class Game {
     a.mesh.position.set(path.x, world.roadSurfaceY, path.z);
     a.mesh.rotation.y = path.heading;
     this.alignActorToRoad(a);
-    if (a.disabledFor <= 0 && Math.abs(player.surfaceY - a.surfaceY) < 1.5 && a.mesh.position.distanceToSquared(player.mesh.position) < 16) {
+    const contactRange = Math.abs(player.speed) < 1 ? Math.max(4, vehicleContactDistance(player, a) + .15) : 4;
+    if (a.disabledFor <= 0 && Math.abs(player.surfaceY - a.surfaceY) < 1.5 && a.mesh.position.distanceToSquared(player.mesh.position) < contactRange * contactRange) {
       this.pursuitContact = true;
       // A moving driver can pull clear after a sideswipe. At a standstill the unit holds contact.
       if (!regrouping && player.speed > 7) {
@@ -1315,10 +1320,12 @@ export class Game {
 
       const d = p.mesh.position.distanceTo(a.mesh.position);
 
-      const limit =
-        (p.mesh.userData.radius || 2) + (a.mesh.userData.radius || 2);
-
-      if (d < limit * 0.72) {
+      if (d < vehicleContactDistance(p, a)) {
+        // Once a patrol pins a stationary car, hold it instead of pushing it down the circuit.
+        if (a.police && Math.abs(p.speed) < 1 && Math.abs(a.speed) < 4) {
+          a.speed = 0;
+          continue;
+        }
         hit = true;
 
         const away = p.mesh.position.clone().sub(a.mesh.position);

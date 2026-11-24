@@ -43,7 +43,7 @@ const seeded = (n) => {
 
 const clamp = THREE.MathUtils.clamp;
 const TAU = Math.PI * 2;
-const roadHalfWidth = 10.5;
+export const roadHalfWidth = 10.5;
 const shortcutHalfWidth = 8.2;
 const shoulderAllowance = 3;
 

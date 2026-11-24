@@ -303,6 +303,16 @@ try {
         check(g.phase === 'finished' && document.querySelector('.result h1').textContent === 'SECOND PLACE', 'Player earns second place at the stripe');
         check(document.querySelector('.classification .your-finish').textContent.includes('+3.'), 'Standings show the gap to the winner');
       }
+      if (mode.id === 'escape') {
+        ui.start();
+        g.phase = 'play';
+        const parked = g.player.mesh.position.clone();
+        for (let frame = 0; frame < 60 * 120 && g.phase === 'play'; frame++) g.simulate(1 / 60);
+        check(g.player.health === 0 && document.querySelector('.result h1')?.textContent === 'BUSTED',
+          map.id + ': patrols can complete an arrest against an idle player');
+        check(g.player.mesh.position.distanceTo(parked) < 15,
+          map.id + ': pinning the player must not shove the car down the route');
+      }
       results.push({map:map.id,mode:mode.id,finish:mode.id==='cruise'?'open-ended':required});
     }
     const speeds=[];
