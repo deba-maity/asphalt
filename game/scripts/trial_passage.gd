@@ -15,7 +15,7 @@ const ENCOUNTERS=[
 	"title":"A blade is not a shelter", "rest_hint":"The next echo raises its shoulder before an ordinary cut. Hold guard until the blade passes.",
 	"story":"The second echo carries the patience you lost on the road to revenge. It gives you time to read the shoulders before the blade moves.",
 	"voice":"KEEPER: You cannot carry their names if you spend every breath on anger.",
-	"lesson":"Hold {guard} to guard a normal cut, or use {dodge} to roll clear.\nA raised cleave cannot be blocked. Roll away, then answer during recovery.\nA perfect parry is useful, but never required.",
+	"lesson":"Hold {guard} through a normal cut. Use {dodge} to get clear of a raised cleave.\nAfter the blade passes, strike while the echo recovers.\nA perfect parry is useful, but never required.",
 	"after":"You leave room for another breath. The second echo lowers its blade."},
 	{"name":"THE RESOLUTE ECHO", "chapter":"03 / CHOOSE YOUR OPENING", "health":125.0, "damage":.5, "rate":.92, "speed":1.35, "rest":1.2,
 	"title":"Strength without haste", "rest_hint":"The next echo cuts twice. Let the second swing pass before answering with a heavy strike.",
@@ -89,18 +89,18 @@ func learn(action: String) -> void:
 
 func hint(world: TrialWorld) -> String:
 	if not training(): return "Read the shoulders. Answer after the final cut; keep stamina to escape."
-	if world.hero.model.health<55 and Session.data.heals>0: return "{heal} Drink a draught when safe. Being hit interrupts healing."
+	if world.hero.model.health<55 and Session.data.heals>0: return "Use {heal} for a draught when safe. Being hit interrupts healing."
 	if world.hero.model.stamina<28: return "Let stamina recover. Walking costs nothing; leave enough for one roll."
 	if stage==0:
 		if learned.has("rehearsal"):
 			if world.duel.hits == 0: return "Read the echo's shoulder. Hold {guard} through its cut and use {light} as it recovers."
 			return "A landed strike costs stamina. Walk between attacks and finish the echo at your own pace."
-		if world.hero.total_distance<2: return "{move_forward}/{move_left}/{move_back}/{move_right} Move · Mouse / right stick: look around"
-		if not learned.has("lock"): return "{lock_on} Lock onto the echo · Stay close enough for the blade to reach"
-		if world.duel.hits<2: return "{light} Strike · Press again near the end of a swing to chain it"
+		if world.hero.total_distance<2: return "Move with {move_forward}/{move_left}/{move_back}/{move_right} · Mouse / right stick: look around"
+		if not learned.has("lock"): return "Use {lock_on} to face the echo. Step within sword reach."
+		if world.duel.hits<2: return "Attack with {light}. Press again as the swing ends to chain it."
 		return "Good. Finish the echo at your own pace. Health refills for the next lesson."
 	if stage==1:
-		if not learned.has("guard") and not learned.has("dodge"): return "{guard} Guard a normal cut · {dodge} Roll clear of the raised cleave"
+		if not learned.has("guard") and not learned.has("dodge"): return "Hold {guard} for a normal cut. Use {dodge} for a raised cleave."
 		return "Wait for the echo's blade to stop. Then answer with {light} or {heavy}."
-	if world.duel.breaks>0: return "{heavy} Riposte while close to a staggered foe · {heal} Drink only when safe"
-	return "{heavy} Press the opening after a combination · Heavy hits build COMPOSURE"
+	if world.duel.breaks>0: return "Use {heavy} close to a staggered foe for a riposte. Use {heal} when safe."
+	return "Use {heavy} when the echo finishes its combo. Heavy hits build COMPOSURE."

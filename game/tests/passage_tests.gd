@@ -192,6 +192,14 @@ func run() -> void:
 		check(is_equal_approx(PerformanceMotion.clip_time(attack,attack.windup),PerformanceMotion.clip_time(original,original.windup)),"Slower lessons preserve authored blade-contact time: "+str(stage))
 		check(boss.model.config.attacks.trial_finish.hit_windows==attack_before.config.attacks.trial_finish.hit_windows,"Multi-cut clip windows are not double-scaled: "+str(stage))
 		if stage==1:
+			var advice := world.passage.hint(world)
+			var was_touch: bool = main.ui.touch_preferred
+			main.ui.touch_preferred = true
+			check(main.ui.play_prompt(advice) == "Hold Guard for a normal cut. Use Roll for a raised cleave.", "Touch advice names each defensive button once and explains when to use it")
+			main.ui.touch_preferred = false
+			var keyboard_advice := "Hold %s for a normal cut. Use %s for a raised cleave." % [Preferences.label_for("guard"), Preferences.label_for("dodge")]
+			check(main.ui.play_prompt(advice) == keyboard_advice, "Keyboard advice displays the current guard and dodge bindings")
+			main.ui.touch_preferred = was_touch
 			world.learn("dodge")
 			check("Wait for" in world.passage.hint(world),"A defensive action advances the contextual lesson")
 			world.hero.model.health=40
