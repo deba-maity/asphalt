@@ -151,7 +151,7 @@ func refresh_hud() -> void:
 		ui.status.text = "Safe practice · No damage"
 		ui.chapter_label.text = "READ THE BLADE"
 		ui.objective_text.text = sparring.OBJECTIVES[sparring.phase]
-		ui.tutorial.text = ui.play_prompt(sparring.HINTS[sparring.phase])
+		ui.tutorial.text = ui.play_prompt(sparring.hint())
 		ui.interact_text.text = "" if ui.touch_preferred else ui.play_prompt("{interact} · Begin encounter")
 	elif step == Step.READY:
 		ui.interact_text.text = "Tap Begin to challenge the echo" if ui.touch_preferred else ui.play_prompt("{interact} · Challenge the first echo")

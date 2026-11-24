@@ -76,6 +76,15 @@ func test_touch_sparring() -> void:
 		if drill.phase != drill.Phase.GUARD: break
 	touch(3, TrialTouch.BUTTONS.guard[0], false)
 	check(drill.phase == drill.Phase.EVADE, "Holding the touch guard through a frontal blade contact earns the guard")
+	var held_pose := -1.0
+	for frame in range(Engine.physics_ticks_per_second * 16):
+		await get_tree().physics_frame
+		if drill.coaching_hold > 0 and drill.coaching_hold < .77:
+			held_pose = mentor.model.elapsed
+			break
+	check(held_pose > 0 and drill.attempts_without_progress >= 2 and drill.cue() == "ROLL NOW", "After two missed cleaves the mentor shows the roll at the raised blade")
+	await seconds(.25)
+	check(absf(mentor.model.elapsed - held_pose) < .002 and drill.phase == drill.Phase.EVADE, "The mentor holds the visible cue without awarding a dodge")
 	var attempted := false
 	for frame in range(Engine.physics_ticks_per_second * 15):
 		await get_tree().physics_frame

@@ -23,15 +23,23 @@ var timely_roll := false
 var struck := false
 var opening := false
 var rest := 1.0
+var attempts_without_progress := 0
+var coaching_hold := 0.0
 
 func _init(court: TrialWorld) -> void:
 	world = court
+
+func hint() -> String:
+	if attempts_without_progress >= 2:
+		if phase == Phase.EVADE: return "The echo holds its blade. Use {dodge} when ROLL NOW appears."
+		if phase == Phase.ANSWER: return "Use {dodge} on ROLL NOW, then step in and use {light} on OPENING."
+	return HINTS[phase]
 
 func active_end(mentor: Fighter) -> float:
 	return float(mentor.model.attack.windup) + float(mentor.model.attack.active)
 
 func learn(action: String) -> void:
-	if phase != Phase.EVADE or action != "dodge" or not swinging: return
+	if phase not in [Phase.EVADE, Phase.ANSWER] or action != "dodge" or not swinging: return
 	if TrialDuel.near_incoming_cut(world.hero, world.warden): timely_roll = true
 
 func contact(defender: Fighter, attacker: Fighter) -> void:
@@ -64,6 +72,12 @@ func drive(mentor: Fighter, delta: float) -> void:
 	if phase == Phase.COMPLETE or not world.can_play(): return
 	var hero := world.hero
 	if mentor.model.state == "attack":
+		if coaching_hold > 0 and not timely_roll:
+			var windup := float(mentor.model.attack.windup)
+			var held_pose := windup - .18
+			if mentor.model.elapsed >= held_pose and mentor.model.elapsed < windup:
+				mentor.model.elapsed = held_pose
+				coaching_hold = maxf(0, coaching_hold - delta)
 		if mentor.model.elapsed < float(mentor.model.attack.get("tracking", .12)): mentor.face(hero.global_position)
 		if phase == Phase.ANSWER and not struck and mentor.model.elapsed > active_end(mentor): opening = true
 		return
@@ -73,10 +87,16 @@ func drive(mentor: Fighter, delta: float) -> void:
 		if phase == Phase.GUARD and guarded:
 			phase = Phase.EVADE
 			world.ui.toast("You held the cut. Read the raised blade next.", 3)
-		elif phase == Phase.EVADE and timely_roll and not struck:
-			phase = Phase.ANSWER
-			world.ui.toast("Clear of the cleave. Land a light strike after the next one.", 3)
-		elif phase == Phase.ANSWER: opening = not struck
+		elif phase == Phase.EVADE:
+			if timely_roll and not struck:
+				phase = Phase.ANSWER
+				attempts_without_progress = 0
+				world.ui.toast("Clear of the cleave. Land a light strike after the next one.", 3)
+			else: attempts_without_progress += 1
+		elif phase == Phase.ANSWER:
+			attempts_without_progress += 1
+			opening = not struck
+			if opening: rest = 1.6
 	rest = maxf(0, rest - delta)
 	if not mentor.model.can_begin(): return
 	var offset := hero.global_position - mentor.global_position
@@ -88,6 +108,7 @@ func drive(mentor: Fighter, delta: float) -> void:
 		return
 	if mentor.try_attack("light" if phase == Phase.GUARD else "heavy"):
 		swinging = true
+		coaching_hold = .85 if attempts_without_progress >= 2 else 0.0
 		guarded = false
 		timely_roll = false
 		struck = false
