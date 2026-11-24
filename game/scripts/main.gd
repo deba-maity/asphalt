@@ -164,6 +164,18 @@ func finish_story_death(token: int) -> void:
 	get_tree().paused=false
 	travel("zone_counting_shore","story_death")
 
+func practice_after_defeat() -> void:
+	if not trial_active or ui.mode != "trial_result" or world.won: return
+	start_trial(trial_stage, false, journey)
+	world.begin_arrival()
+	world.arrival.from_retry = true
+	world.arrival.resume_lesson(TrialArrival.Step.READY)
+	world.arrival.begin_sparring()
+
+func finish_retry_practice(court_id: int) -> void:
+	if not is_instance_valid(world) or world.get_instance_id() != court_id or ui.mode not in ["play", "journal"]: return
+	restart_checkpoint()
+
 func restart_checkpoint() -> void:
 	if trial_active:
 		if journey and Session.shore.milestone == ShoreProgress.OPEN_GATE: continue_shore()
@@ -224,7 +236,6 @@ func continue_shore() -> void:
 	elif mark >= ShoreProgress.FIRST_ECHO:
 		trained_on_shore = Session.shore.rehearsed
 		start_trial(mark - ShoreProgress.FIRST_ECHO, false, true)
-		if trial_stage > 0: world.hero.target = world.warden
 		ui.toast("Checkpoint · " + Session.shore.label() + ". Health and draughts restored.", 4)
 	elif mark >= ShoreProgress.SHORE:
 		start_trial(0, false, true)
@@ -270,8 +281,8 @@ func start_trial(stage: int=0, briefing: bool=true, keep_journey: bool=false) ->
 	Session.begin_trial()
 	load_world()
 	if trial_stage == 0 and briefing: world.begin_arrival()
-	elif trained_on_shore and trial_stage == 0:
-		world.passage.learn("rehearsal")
+	elif trained_on_shore or trial_stage > 0:
+		if trial_stage == 0: world.passage.learn("rehearsal")
 		world.hero.target = world.warden
 	ui.play()
 	if briefing: ui.show_trial_briefing()

@@ -1,15 +1,17 @@
 class_name TrialArrival
 extends Node3D
 
+const Sparring = preload("res://scripts/echo_sparring.gd")
+
 enum Step { EMBER, LOCK, STRIKE, GUARD, DODGE, READY, LEAVING }
 
 const LESSONS = [
-	["The Counting Shore", "Walk to the ember in the stone ring.", "{move_forward}/{move_left}/{move_back}/{move_right} or left stick to walk. Mouse or right stick to look."],
-	["Find your footing", "Focus on the waiting echo.", "{lock_on} or RB to lock on. Stay within sight of the echo."],
-	["Find your reach", "Step close and land a light strike.", "{light} or X to strike. If your blade misses, take another step."],
-	["Raise your guard", "Hold guard until your stance settles.", "Hold {guard} or LB. Release to recover stamina."],
-	["Make room", "Roll clear of the echo.", "Use {dodge} or B. Hold a movement direction to choose where to roll."],
-	["The first echo", "The echo waits for your answer.", "You can keep practicing. Begin the encounter when you are ready."]
+	["The Counting Shore", "Walk to the ember in the stone ring.", "{move} to walk. {look} to look around."],
+	["Find your footing", "Focus on the waiting echo.", "{lock_on} to lock on. Stay within sight of the echo."],
+	["Find your reach", "Step close and land a light strike.", "{light} to strike. If your blade misses, take another step."],
+	["Raise your guard", "Hold guard until your stance settles.", "Hold {guard}. Release to recover stamina."],
+	["Make room", "Roll clear of the echo.", "Use {dodge}. Hold a movement direction to choose where to roll."],
+	["The first echo", "The echo waits for your answer.", "Use {heavy} for a timing lesson, or begin the encounter when ready."]
 ]
 
 const TOUCH_HINTS := [
@@ -18,11 +20,14 @@ const TOUCH_HINTS := [
 	"Move within sword's reach, then tap Strike.",
 	"Hold Guard until your stance settles.",
 	"Tap Roll. Hold the left pad to roll in that direction.",
-	"Tap Begin when you are ready for the first encounter."
+	"Tap Spar for a timing lesson, or Begin to face the first echo."
 ]
 
 var world: TrialWorld
 var step: Step = Step.EMBER
+var sparring: Sparring
+var from_retry := false
+var nameplate: Label3D
 var memorial: ShoreEmber
 var guard_time: float = 0
 
@@ -56,15 +61,15 @@ func reveal_echo() -> void:
 	world.warden.collision_layer = 4
 	world.warden.hurtbox.collision_layer = 16
 	world.enemies.append(world.warden)
-	var nameplate := Label3D.new()
+	nameplate = Label3D.new()
 	nameplate.text = "PRACTICE ECHO"
 	nameplate.font_size = 30
 	nameplate.pixel_size = .003
 	nameplate.outline_size = 7
 	nameplate.modulate = Color("c0e5d6")
 	nameplate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	nameplate.position = world.warden.position + Vector3.UP * 2.45
-	add_child(nameplate)
+	nameplate.position = Vector3.UP * 2.45
+	world.warden.add_child(nameplate)
 	memorial.hide()
 
 func resume_lesson(saved_step: int) -> void:
@@ -75,11 +80,25 @@ func resume_lesson(saved_step: int) -> void:
 		if step > Step.LOCK: world.hero.target = world.warden
 	refresh_hud()
 
+func begin_sparring() -> void:
+	if step != Step.READY or sparring != null: return
+	sparring = Sparring.new(world)
+	world.hero.clear_intent()
+	world.hero.target = world.warden
+	world.hero.model.stamina = 100
+	nameplate.text = "SPARRING ECHO"
+	world.ui.announce("READ THE BLADE")
+	world.ui.toast("The echo pulls its blows. You can leave practice at any time.", 3)
+	refresh_hud()
+
 func checkpoint() -> void:
 	world.ui.main.remember_lesson(step)
 	refresh_hud()
 
 func learn(action: String) -> void:
+	if sparring != null:
+		sparring.learn(action)
+		return
 	if step == Step.LOCK and action == "lock" and world.hero.target == world.warden:
 		step = Step.STRIKE
 	elif step == Step.DODGE and action == "dodge":
@@ -89,6 +108,9 @@ func learn(action: String) -> void:
 	checkpoint()
 
 func contact(defender: Fighter, attacker: Fighter) -> void:
+	if sparring != null:
+		sparring.contact(defender, attacker)
+		return
 	if defender != world.warden or attacker != world.hero or not defender.visible: return
 	world.foley.event("hit", defender.global_position, .6)
 	defender.model.state = "hit"
@@ -118,20 +140,26 @@ func refresh_hud() -> void:
 		ui.objective_text.text += "\n" + ShoreEmber.bearing(world.hero, memorial.global_position)
 	elif step in [Step.LOCK, Step.STRIKE]:
 		ui.objective_text.text += "\n" + ShoreEmber.bearing(world.hero, world.warden.global_position)
-	ui.tutorial.text = TOUCH_HINTS[step] if ui.touch_preferred else Preferences.prompt(lesson[2])
+	ui.tutorial.text = TOUCH_HINTS[step] if ui.touch_preferred else ui.play_prompt(lesson[2])
 	ui.tutorial.show()
 	ui.tutorial.modulate.a = 1
-	ui.help_caption.text = "Menu · Trial guide and settings" if ui.touch_preferred else Preferences.prompt("{journal} Trial guide · {pause} Pause")
+	ui.help_caption.text = "Menu · Trial guide and settings" if ui.touch_preferred else ui.play_prompt("{journal} Trial guide · {pause} Pause")
 	ui.status.text = "%d HP · %d draughts" % [world.hero.model.health, Session.data.heals]
 	ui.interact_text.text = ""
 	if step == Step.EMBER and near_ember():
-		ui.interact_text.text = "Tap Listen at the ember" if ui.touch_preferred else Preferences.prompt("{interact} / A · Listen to the ember")
+		ui.interact_text.text = "Tap Listen at the ember" if ui.touch_preferred else ui.play_prompt("{interact} · Listen to the ember")
+	elif sparring != null:
+		ui.chapter_label.text = "READ THE BLADE"
+		ui.objective_text.text = sparring.OBJECTIVES[sparring.phase]
+		ui.tutorial.text = ui.play_prompt(sparring.HINTS[sparring.phase])
+		ui.interact_text.text = "Tap Begin to leave practice" if ui.touch_preferred else ui.play_prompt("{interact} · Begin encounter")
 	elif step == Step.READY:
-		ui.interact_text.text = "Tap Begin to challenge the echo" if ui.touch_preferred else Preferences.prompt("{interact} / A · Challenge the first echo")
+		ui.interact_text.text = "Tap Begin to challenge the echo" if ui.touch_preferred else ui.play_prompt("{interact} · Challenge the first echo")
 
 func begin_encounter() -> void:
 	if step == Step.LEAVING: return
 	var trained := step == Step.READY
 	step = Step.LEAVING
 	world.ui.interact_text.text = ""
-	world.ui.main.call_deferred("start_first_echo", world.get_instance_id(), trained)
+	if from_retry: world.ui.main.call_deferred("finish_retry_practice", world.get_instance_id())
+	else: world.ui.main.call_deferred("start_first_echo", world.get_instance_id(), trained)

@@ -18,8 +18,11 @@ var recovery: float=0
 var was_attacking: bool=false
 var pattern_finished: bool=false
 var hits: int=0
+var guards: int=0
 var parries: int=0
 var evades: int=0
+var pending_evade: int=-1
+var credited_evade: int=-1
 var breaks: int=0
 var ripostes: int=0
 var damage_taken: float=0
@@ -32,6 +35,10 @@ func _init(owner_world: Node) -> void:
 func tick(delta: float) -> void:
 	if finished or not world.can_play(): return
 	elapsed+=delta
+	if pending_evade >= 0:
+		var swing: CombatModel = world.warden.model
+		if swing.state != "attack" or swing.swing_serial != pending_evade: pending_evade = -1
+		elif swing.elapsed > float(swing.attack.windup) + float(swing.attack.active) + .05: credit_evade(swing.swing_serial)
 	riposte_window=maxf(0,riposte_window-delta)
 	break_cooldown=maxf(0,break_cooldown-delta)
 	composure_delay=maxf(0,composure_delay-delta)
@@ -40,6 +47,24 @@ func tick(delta: float) -> void:
 
 func can_riposte() -> bool:
 	return not finished and riposte_window>0 and world.warden.model.state=="hit" and world.hero.global_position.distance_to(world.warden.global_position)<=2.5
+
+static func near_incoming_cut(hero: Fighter, foe: Fighter) -> bool:
+	if foe.model.state != "attack" or not foe.model.attack.get("dodgeable", true): return false
+	var offset := hero.global_position - foe.global_position
+	offset.y = 0
+	if offset.length() > float(foe.model.attack.reach) or (-foe.global_basis.z).dot(offset.normalized()) <= .2 or not foe.clear_sight(hero): return false
+	var start := float(foe.model.attack.windup)
+	return foe.model.elapsed >= start - .30 and foe.model.elapsed <= start + float(foe.model.attack.active)
+
+func dodge_started() -> void:
+	if not finished and near_incoming_cut(world.hero, world.warden):
+		pending_evade = world.warden.model.swing_serial
+
+func credit_evade(swing: int) -> void:
+	if credited_evade != swing:
+		evades += 1
+		credited_evade = swing
+	pending_evade = -1
 
 func attack_started(actor: Fighter, id: String) -> void:
 	if finished or not actor.player: return
@@ -53,11 +78,13 @@ func contact(attacker: Fighter, defender: Fighter, result: String, rules: Dictio
 	# Count that last contact even though can_play() now correctly returns false.
 	if finished or world.ui.mode!="play": return
 	if defender.player:
+		if result in ["parry", "guard", "hit", "dead"]: pending_evade = -1
+		if result == "guard": guards += 1
 		if result=="parry":
 			parries+=1
 			pressure(38)
 		elif result=="ignored" and defender.model.invulnerable() and rules.get("dodgeable",true):
-			evades+=1
+			credit_evade(attacker.model.swing_serial)
 		if health_lost>0:
 			damage_taken+=health_lost
 			riposte_window=0
@@ -112,6 +139,10 @@ func drive_warden(actor: Fighter, delta: float) -> void:
 	var distance: float=diff.length()
 	if distance>.05: actor.face(hero.global_position)
 	if distance>float(actor.definition.notice): return
+	# The patient echo approaches behind its guard for its first cut. A player
+	# can wait for the swing, flank it, or use a heavy blow to pressure the guard.
+	if world.passage.stage == 1 and actor.model.swing_serial == 0:
+		actor.model.guard(true, false)
 	var forward: Vector3=diff.normalized()
 	if not actor.clear_sight(hero):
 		move_tactically(actor,forward,float(actor.definition.speed))
@@ -185,4 +216,4 @@ func retry_tip() -> String:
 
 func summary() -> String:
 	var seconds=int(elapsed)
-	return "%d:%02d  |  Blade hits %d  |  Parries %d\nSafe evades %d  |  Composure breaks %d  |  Damage taken %d" % [seconds/60,seconds%60,hits,parries,evades,breaks,roundi(damage_taken)]
+	return "%d:%02d  |  Blade hits %d  |  Damage taken %d\nGuards %d  |  Parries %d  |  Evades %d  |  Breaks %d" % [seconds/60,seconds%60,hits,roundi(damage_taken),guards,parries,evades,breaks]

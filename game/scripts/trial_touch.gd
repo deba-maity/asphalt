@@ -4,6 +4,8 @@ extends Node2D
 # Positions use the same 1280 x 720 canvas as the trial HUD.
 const PAD := Vector2(148, 545)
 const PAD_LIMIT := 64.0
+const WAYSTONE := 7
+const SPARRING := 8
 const BUTTONS := {
 	"light": [Vector2(1187, 499), 48.0, "Strike"],
 	"dodge": [Vector2(1103, 592), 47.0, "Roll"],
@@ -11,13 +13,15 @@ const BUTTONS := {
 	"heavy": [Vector2(1100, 426), 40.0, "Heavy"],
 	"lock_on": [Vector2(1190, 379), 39.0, "Lock"],
 	"heal": [Vector2(993, 413), 36.0, "Heal"],
+	"spar": [Vector2(993, 413), 40.0, "Spar"],
+	"begin": [Vector2(814, 592), 42.0, "Begin"],
 	"interact": [Vector2(1103, 508), 54.0, "Use"],
 	"pause": [Vector2(640, 48), 35.0, "Menu"]
 }
 const FIGHT_BUTTONS := ["light", "dodge", "guard", "heavy", "lock_on", "heal", "pause"]
 const LESSON_BUTTONS := [
 	["interact", "pause"], ["lock_on", "pause"], ["light", "lock_on", "pause"],
-	["guard", "pause"], ["dodge", "pause"], ["interact", "pause"]
+	["guard", "pause"], ["dodge", "pause"], ["interact", "spar", "pause"]
 ]
 
 var ui: GameInterface
@@ -33,13 +37,18 @@ func _visibility_changed() -> void:
 	if not is_visible_in_tree(): release_all()
 
 func lesson() -> int:
-	if ui.world is TrialWorld and ui.world.arrival != null: return ui.world.arrival.step
-	if ui.world is TrialWorld and ui.world.waystone != null: return 7
+	if ui.world is TrialWorld and ui.world.arrival != null:
+		if ui.world.arrival.sparring != null: return SPARRING + ui.world.arrival.sparring.phase
+		return ui.world.arrival.step
+	if ui.world is TrialWorld and ui.world.waystone != null: return WAYSTONE
 	return -1
 
 func actions() -> Array:
 	var index := lesson()
-	if index == 7: return ["interact", "pause"]
+	if index >= SPARRING:
+		if ui.world.arrival.sparring.phase == TrialArrival.Sparring.Phase.COMPLETE: return ["begin", "pause"]
+		return ["guard", "dodge", "light", "lock_on", "begin", "pause"]
+	if index == WAYSTONE: return ["interact", "pause"]
 	return LESSON_BUTTONS[index] if index >= 0 and index < LESSON_BUTTONS.size() else FIGHT_BUTTONS
 
 func _process(_delta: float) -> void:
@@ -51,6 +60,7 @@ func _process(_delta: float) -> void:
 
 func clear_stick() -> void:
 	stick = Vector2.ZERO
+	Input.action_release("sprint")
 	for id in ["move_left", "move_right", "move_forward", "move_back"]: Input.action_release(id)
 
 func release_all() -> void:
@@ -60,6 +70,9 @@ func release_all() -> void:
 	queue_redraw()
 
 func move_pad(point: Vector2) -> void:
+	var reach := point.distance_to(PAD)
+	if lesson() == -1 and reach >= 85: Input.action_press("sprint")
+	elif reach < 73 or lesson() != -1: Input.action_release("sprint")
 	stick = ((point - PAD) / PAD_LIMIT).limit_length(1)
 	for pair in [["move_left", -stick.x], ["move_right", stick.x], ["move_forward", -stick.y], ["move_back", stick.y]]:
 		if pair[1] > .1: Input.action_press(pair[0], pair[1])
@@ -68,7 +81,8 @@ func move_pad(point: Vector2) -> void:
 func press(action: String) -> void:
 	match action:
 		"pause": ui.show_pause()
-		"interact": ui.world.interact()
+		"interact", "begin": ui.world.interact()
+		"spar": ui.world.arrival.begin_sparring()
 		"lock_on": ui.world.hero.toggle_target()
 		"guard":
 			Input.action_press("guard")
@@ -118,6 +132,8 @@ func _draw() -> void:
 	draw_circle(PAD, 82, base)
 	draw_arc(PAD, 82, 0, TAU, 48, ink, 2, true)
 	draw_circle(PAD + stick * PAD_LIMIT, 26, Color(.78, .65, .44, .9))
+	if "move" in fingers.values() and Input.is_action_pressed("sprint"):
+		draw_string(ThemeDB.fallback_font, PAD + Vector2(-62, 7), "Sprint", HORIZONTAL_ALIGNMENT_CENTER, 124, 19, ink)
 	for id: String in actions():
 		var spec: Array = BUTTONS[id]
 		var center: Vector2 = spec[0]
@@ -125,7 +141,7 @@ func _draw() -> void:
 		var label: String = spec[2]
 		if id == "interact":
 			label = "Listen" if lesson() == TrialArrival.Step.EMBER else "Begin"
-			if lesson() == 7: label = "Call" if ui.world.passage.training() else "Cross"
+			if lesson() == WAYSTONE: label = "Call" if ui.world.passage.training() else "Cross"
 		draw_circle(center, radius, Color(.4,.31,.17,.9) if id in fingers.values() else base)
 		draw_arc(center, radius, 0, TAU, 48, ink, 2, true)
 		draw_string(ThemeDB.fallback_font, center + Vector2(-radius, 7), label, HORIZONTAL_ALIGNMENT_CENTER, radius * 2, 19, ink)

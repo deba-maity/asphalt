@@ -80,7 +80,7 @@ func _ready() -> void:
 	composure_bar.add_theme_stylebox_override("fill",ui.bar_style(Color("d2b57b")))
 	composure_bar.add_theme_stylebox_override("background",ui.bar_style(Color("303333")))
 	column.add_child(composure_bar)
-	ui.help_caption.text=Preferences.prompt("{journal} Trial guide · {pause} Pause")
+	ui.help_caption.text=ui.play_prompt("{journal} Trial guide · {pause} Pause")
 
 func spawn_opponent(at: Vector3) -> void:
 	warden=Fighter.new()
@@ -246,6 +246,7 @@ func _process(delta: float) -> void:
 		return
 	if arrival != null and ui.mode == "play":
 		ui.update_hud(hero, {})
+		if arrival.sparring != null: ui.threat_text.text = arrival.sparring.cue()
 		hud_text_time -= delta
 		if hud_text_time <= 0:
 			hud_text_time = .12
@@ -279,8 +280,9 @@ func _process(delta: float) -> void:
 			if hero.model.posture>=30: ui.status.text+="\nGuard strain %d%%" % hero.model.posture
 		composure_bar.value=duel.composure
 		composure_label.text="OPEN - RIPOSTE" if duel.riposte_window>0 else "COMPOSURE"
+		if passage.stage == 1 and warden.model.state == "guard": ui.threat_text.text = "GUARD RAISED · FLANK OR WAIT"
 		if duel.riposte_window>0:
-			ui.threat_text.text=Preferences.prompt("{heavy} RIPOSTE" if duel.can_riposte() else "COMPOSURE BROKEN - close the distance")
+			ui.threat_text.text=ui.play_prompt("{heavy} RIPOSTE" if duel.can_riposte() else "COMPOSURE BROKEN - close the distance")
 		var next_health=warden.model.health/warden.model.max_health*100
 		if next_health<boss_bar.value: echo_delay=.45
 		boss_bar.value=next_health
@@ -359,7 +361,7 @@ func refresh_waystone() -> void:
 	ui.tutorial.show()
 	ui.tutorial.modulate.a = 1
 	var action := "Step into dawn" if final_gate else "Call " + next_name
-	ui.interact_text.text = ("Tap " + ("Cross" if final_gate else "Call") if ui.touch_preferred else Preferences.prompt("{interact} / A · " + action)) if near_waystone() else ""
+	ui.interact_text.text = ("Tap " + ("Cross" if final_gate else "Call") if ui.touch_preferred else ui.play_prompt("{interact} · " + action)) if near_waystone() else ""
 	ui.status.text = "Passage remembered" if final_gate else ("Next encounter saved" if ui.main.journey else "Practice court")
 	if ui.main.journey and not Session.shore.last_error.is_empty(): ui.status.text = Session.shore.last_error
 

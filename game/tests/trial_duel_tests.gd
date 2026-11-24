@@ -16,9 +16,43 @@ func check(value: bool, label: String) -> void:
 func seconds(value: float) -> void:
 	for i in int(ceil(value*Engine.physics_ticks_per_second)): await get_tree().physics_frame
 
+func test_defensive_counts() -> void:
+	main.start_trial(TrialPassage.WARDEN, false)
+	var world: TrialWorld = main.world
+	var hero := world.hero
+	var boss := world.warden
+	boss.ai_enabled = false
+	hero.use_test_direction = true
+	hero.position = Vector3(0, .05, 0)
+	boss.position = Vector3(0, .05, -1.55)
+	boss.face(hero.position)
+	await seconds(.5)
+	Input.action_press("guard")
+	await seconds(.5)
+	boss.try_attack("light")
+	await seconds(2)
+	Input.action_release("guard")
+	check(world.duel.guards == 1 and world.duel.parries == 0 and hero.model.health == hero.model.max_health, "An ordinary held guard records the actual blocked blade")
+	hero.position = Vector3(0, .05, 0)
+	boss.position = Vector3(0, .05, -1.55)
+	boss.face(hero.position)
+	await seconds(.5)
+	boss.try_attack("heavy")
+	while boss.model.state == "attack" and boss.model.elapsed < float(boss.model.attack.windup) - .18:
+		await get_tree().physics_frame
+	hero.test_direction = Vector3.RIGHT
+	hero.try_dodge()
+	hero.test_direction = Vector3.ZERO
+	await seconds(2.2)
+	check(world.duel.evades == 1 and hero.model.health == hero.model.max_health, "Clearing a raised blade with a side roll earns one evade")
+	hero.try_dodge()
+	await seconds(1)
+	check(world.duel.evades == 1, "Rolling with no incoming cut earns no extra evades")
+
 func run() -> void:
 	if "--duel-hz=30" in OS.get_cmdline_user_args(): Engine.physics_ticks_per_second=30
 	var campaign=Session.loaded.duplicate(true)
+	await test_defensive_counts()
 	main.start_trial(TrialPassage.WARDEN,false)
 	var world: TrialWorld=main.world
 	var hero: Fighter=world.hero

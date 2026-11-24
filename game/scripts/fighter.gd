@@ -253,7 +253,7 @@ func try_attack(id: String) -> bool:
 		id=["light","trial_second","trial_finish"][proposed_combo]
 	var ok = model.start_attack(id)
 	if ok:
-		if use_performance and world is TrialWorld: world.duel.attack_started(self,id)
+		if use_performance and world is TrialWorld and world.arrival == null: world.duel.attack_started(self,id)
 		if use_performance and player: combo_index=proposed_combo if id in ["light","trial_second","trial_finish"] else -1
 		if is_instance_valid(target):
 			face(target.global_position)
@@ -289,6 +289,7 @@ func try_dodge() -> bool:
 		dodge_vector = -global_basis.z
 	select_evade_clip()
 	if player:
+		if use_performance and world is TrialWorld and world.arrival == null: world.duel.dodge_started()
 		world.learn("dodge")
 	cue_sound("dodge" if use_performance else "swing")
 	return true
@@ -500,7 +501,8 @@ func update_enemy(delta: float) -> void:
 	velocity.x = 0
 	velocity.z = 0
 	if use_performance and world is TrialWorld and world.duel!=null:
-		world.duel.drive_warden(self,delta)
+		if world.arrival != null and world.arrival.sparring != null: world.arrival.sparring.drive(self, delta)
+		else: world.duel.drive_warden(self,delta)
 		return
 	if model.state in ["dead","talk"] or not ai_enabled or not world.can_play():
 		return

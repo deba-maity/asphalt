@@ -38,6 +38,74 @@ func begin_again() -> void:
 		button_named("Revisit the opening").pressed.emit()
 	else: button_named("Begin journey").pressed.emit()
 
+func tap_at(point: Vector2) -> void:
+	touch(4, point, true)
+	touch(4, point, false)
+
+func test_prompt_switching() -> void:
+	var pad := InputEventJoypadMotion.new()
+	pad.axis = JOY_AXIS_LEFT_X
+	pad.axis_value = .14
+	get_viewport().push_input(pad, true)
+	check(main.ui.touch_preferred, "Small controller drift keeps the active touch controls")
+	pad.axis_value = .8
+	get_viewport().push_input(pad, true)
+	check(main.ui.controller_preferred and not main.ui.touch_controls.visible and main.ui.play_prompt("{guard} / {dodge}") == "LB / B", "Using the controller shows its guard and dodge buttons")
+	var key := InputEventKey.new()
+	key.physical_keycode = KEY_T
+	key.pressed = true
+	get_viewport().push_input(key, true)
+	check(not main.ui.controller_preferred and main.ui.play_prompt("{guard}") == Preferences.label_for("guard"), "A physical key restores the player's rebound keyboard prompts")
+	tap_at(Vector2(630, 315))
+	check(main.ui.touch_preferred and main.ui.play_prompt("{guard} / {dodge}") == "Guard / Roll", "A real tap restores touch prompts and controls")
+
+func test_touch_sparring() -> void:
+	var court: TrialWorld = main.world
+	var hero := court.hero
+	var mentor := court.warden
+	var saved := Session.shore.milestone
+	tap_at(TrialTouch.BUTTONS.spar[0])
+	var drill := court.arrival.sparring
+	check(drill != null and hero.target == mentor, "Spar opens a safe drill with a locked, moving opponent")
+	if drill == null: return
+	await seconds(4.5)
+	check(mentor.model.swing_serial > 0 and drill.phase == drill.Phase.GUARD and hero.model.health == hero.model.max_health, "Taking a real practice cut unharmed does not earn a guard")
+	touch(3, TrialTouch.BUTTONS.guard[0], true)
+	for frame in range(Engine.physics_ticks_per_second * 9):
+		await get_tree().physics_frame
+		if drill.phase != drill.Phase.GUARD: break
+	touch(3, TrialTouch.BUTTONS.guard[0], false)
+	check(drill.phase == drill.Phase.EVADE, "Holding the touch guard through a frontal blade contact earns the guard")
+	var attempted := false
+	for frame in range(Engine.physics_ticks_per_second * 15):
+		await get_tree().physics_frame
+		if not drill.swinging: attempted = false
+		if drill.phase != drill.Phase.EVADE: break
+		if not attempted and drill.swinging and mentor.model.state == "attack" and mentor.model.elapsed >= float(mentor.model.attack.windup) - .18:
+			attempted = true
+			tap_at(TrialTouch.BUTTONS.dodge[0])
+	check(drill.phase == drill.Phase.ANSWER, "A timed touch roll clears the actual raised blade")
+	main.ui.show_trial_guide()
+	check(button_named("Return to sparring") != null and get_tree().paused, "The guide pauses sparring and offers the same encounter")
+	button_named("Return to sparring").pressed.emit()
+	hero.use_test_direction = true
+	for frame in range(Engine.physics_ticks_per_second * 22):
+		await get_tree().physics_frame
+		if drill.phase != drill.Phase.ANSWER: break
+		var toward := mentor.position - hero.position
+		toward.y = 0
+		hero.test_direction = toward.normalized() if toward.length() > 1.4 else Vector3.ZERO
+		if drill.cue() == "ROLL NOW" and hero.model.can_begin():
+			hero.test_direction = Vector3(-toward.z, 0, toward.x).normalized()
+			tap_at(TrialTouch.BUTTONS.dodge[0])
+		if drill.opening and toward.length() < 1.8 and hero.model.can_begin():
+			tap_at(TrialTouch.BUTTONS.light[0])
+	hero.use_test_direction = false
+	check(drill.phase == drill.Phase.COMPLETE and mentor.model.health == mentor.model.max_health, "A real counterstrike during recovery completes the drill without hurting the echo")
+	check(Session.shore.milestone == saved and court.duel.attacks_started == 0, "Practice keeps the saved lesson and battle statistics intact")
+	check(main.ui.touch_controls.actions() == ["begin", "pause"], "Touch offers an exit after the timing drill")
+	test_prompt_switching()
+
 func test_touch_lesson() -> void:
 	main.ui.show_menu()
 	touch(0, Vector2(1100, 300), true)
@@ -85,16 +153,19 @@ func test_touch_lesson() -> void:
 	touch(3, roll, false)
 	await seconds(.8)
 	check(main.world.arrival.step == TrialArrival.Step.READY, "Touch Roll completes practice")
-	touch(2, use, true)
-	touch(2, use, false)
+	await test_touch_sparring()
+	tap_at(TrialTouch.BUTTONS.begin[0])
 	await frames(6)
 	check(main.world.arrival == null and main.world.passage.learned.has("rehearsal"), "Touch Begin starts a fresh fight and remembers the rehearsal")
 	await seconds(.3)
 	touch(1, forward, true)
-	check(controls.stick.length() > .9, "Touch movement is active before opening the menu")
+	check(controls.stick.length() > .9 and not Input.is_action_pressed("sprint"), "Touch movement inside the rim walks")
+	touch(1, forward, false)
+	touch(1, TrialTouch.PAD + Vector2.UP * 93, true)
+	check(Input.is_action_pressed("sprint"), "Reaching past the movement rim sprints with the same thumb")
 	touch(3, TrialTouch.BUTTONS.pause[0], true)
 	await frames(2)
-	check(main.ui.mode == "pause" and controls.fingers.is_empty() and controls.stick == Vector2.ZERO, "Pausing clears every held finger")
+	check(main.ui.mode == "pause" and controls.fingers.is_empty() and controls.stick == Vector2.ZERO and not Input.is_action_pressed("sprint"), "Pausing clears the held movement, sprint and every finger")
 	main.ui.show_menu()
 	begin_again()
 	await frames(4)
@@ -365,8 +436,14 @@ func test_checkpoint_resume() -> void:
 	main.ui.play()
 	await frames(5)
 	check(main.ui.mode == "trial_result", "Reading the guide during defeat cannot consume the retry screen")
-	button_named("Retry").pressed.emit()
+	check(button_named("Retry") != null, "A direct retry stays available after defeat")
+	button_named("Practice guard and dodge").pressed.emit()
 	await frames(4)
+	check(main.world.arrival.from_retry and main.world.arrival.sparring != null and Session.shore.milestone == ShoreProgress.FIRST_ECHO + 1, "Defeat practice stays on the current echo without overwriting the checkpoint")
+	main.ui.show_trial_guide()
+	button_named("Begin encounter").pressed.emit()
+	await frames(5)
+	check(main.world.arrival == null and main.world.hero.target == main.world.warden and main.world.hero.model.health == main.world.hero.model.max_health, "Leaving defeat practice restores the same opponent and full health")
 	check(main.trial_stage == 1 and main.journey and Session.shore.milestone == ShoreProgress.FIRST_ECHO + 1, "Retry replaces only the current encounter")
 	main.ui.show_menu()
 	button_named("Begin journey again").pressed.emit()

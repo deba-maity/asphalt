@@ -43,6 +43,7 @@ var objective_panel: PanelContainer
 var objective_details: VBoxContainer
 var touch_controls: TrialTouch
 var touch_preferred: bool = false
+var controller_preferred := false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -71,16 +72,44 @@ func style(color: Color, border: Color = Color.TRANSPARENT) -> StyleBoxFlat:
 	return s
 
 func play_prompt(value: String) -> String:
-	if touch_preferred and is_instance_valid(main) and main.trial_active:
-		value = value.replace("{move_forward}/{move_left}/{move_back}/{move_right}", "Left pad")
-		value = value.replace("Mouse / right stick: look around", "Swipe to look around")
+	if not is_instance_valid(main) or not main.trial_active: return Preferences.prompt(value)
+	var keys := "{move_forward}/{move_left}/{move_back}/{move_right}"
+	value = value.replace(keys, "{move}")
+	if touch_preferred:
+		value = value.replace("{move}", "Left pad").replace("{look}", "Swipe")
+		value = value.replace("{sprint}", "Push past the pad rim").replace("{journal}", "Menu")
 		for action: String in TrialTouch.BUTTONS:
 			value = value.replace("{" + action + "}", TrialTouch.BUTTONS[action][2])
+	elif controller_preferred:
+		value = value.replace("{move}", "Left stick").replace("{look}", "Right stick")
+		for action: String in Preferences.PAD_LABELS:
+			value = value.replace("{" + action + "}", Preferences.PAD_LABELS[action])
+	else: value = value.replace("{move}", keys).replace("{look}", "Mouse")
 	return Preferences.prompt(value)
+
+func update_input_source(event: InputEvent) -> void:
+	if not is_instance_valid(main) or event.device == InputEvent.DEVICE_ID_EMULATION: return
+	var touch: bool = event is InputEventScreenTouch and event.pressed
+	var pad: bool = (event is InputEventJoypadButton and event.pressed) or (event is InputEventJoypadMotion and absf(event.axis_value) > .4)
+	var keyboard: bool = (event is InputEventKey and event.pressed and not event.echo) or (event is InputEventMouseButton and event.pressed)
+	if not touch and not pad and not keyboard: return
+	if touch_preferred == touch and controller_preferred == pad: return
+	touch_preferred = touch
+	controller_preferred = pad
+	if not main.trial_active: return
+	touch_controls.visible = touch
+	help_caption.visible = not touch
+	help_caption.text = play_prompt("{journal} Trial guide · {pause} Pause")
+	if mode == "play":
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if touch else Input.MOUSE_MODE_CAPTURED
+		if world is TrialWorld and world.arrival != null: world.arrival.refresh_hud()
+	for item in overlay.find_children("*", "Control", true, false):
+		if item.has_meta("prompt_template"): item.text = play_prompt(item.get_meta("prompt_template"))
 
 func text(parent: Node, value: String, size: int = 20, color: Color = INK) -> Label:
 	var l = Label.new()
 	l.text = play_prompt(value)
+	if "{" in value: l.set_meta("prompt_template", value)
 	l.add_theme_font_size_override("font_size",size)
 	l.add_theme_color_override("font_color",color)
 	l.theme = theme
@@ -89,7 +118,8 @@ func text(parent: Node, value: String, size: int = 20, color: Color = INK) -> La
 
 func button(parent: Node, value: String, callback: Callable) -> Button:
 	var b = Button.new()
-	b.text = Preferences.prompt(value)
+	b.text = play_prompt(value)
+	if "{" in value: b.set_meta("prompt_template", value)
 	b.theme = theme
 	b.custom_minimum_size = Vector2(0,45)
 	b.pressed.connect(callback)
@@ -217,7 +247,7 @@ func trial_layout(enabled: bool) -> void:
 		caption.add_theme_constant_override("outline_size", 4 if enabled else 0)
 		caption.add_theme_color_override("font_outline_color",Color("171c1b"))
 	help_caption.visible = not enabled or not touch_preferred
-	help_caption.text = Preferences.prompt("{journal} Trial guide · {pause} Pause" if enabled else "{journal} Journal · {pause} Pause")
+	help_caption.text = play_prompt("{journal} Trial guide · {pause} Pause" if enabled else "{journal} Journal · {pause} Pause")
 
 func show_menu() -> void:
 	Session.running=false
@@ -317,7 +347,7 @@ func play() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if touch_preferred and world is TrialWorld else Input.MOUSE_MODE_CAPTURED
 	if world is TrialWorld:
 		world.hero.camera.make_current()
-		help_caption.text=Preferences.prompt("{journal} Trial guide · {pause} Pause")
+		help_caption.text=play_prompt("{journal} Trial guide · {pause} Pause")
 		if world.arrival != null: world.arrival.refresh_hud()
 	else: refresh_tutorial()
 
@@ -506,7 +536,7 @@ func refresh_tutorial() -> void:
 			tutorial.text = tip[1]
 			break
 	tutorial.text=Preferences.prompt(tutorial.text)
-	help_caption.text=Preferences.prompt("{journal} Journal · {pause} Pause")
+	help_caption.text=play_prompt("{journal} Trial guide · {pause} Pause" if world is TrialWorld else "{journal} Journal · {pause} Pause")
 
 func update_hud(actor: Fighter, nearby: Dictionary) -> void:
 	threat_text.text=""
@@ -516,7 +546,7 @@ func update_hud(actor: Fighter, nearby: Dictionary) -> void:
 			var attack=enemy.model.attack
 			threat_text.text=attack.get("telegraph","EVADE · cannot guard" if not attack.get("blockable",true) else "Incoming · guard / parry / dodge")
 			break
-	if actor.model.counter_window>0: threat_text.text="OPENING COUNTER · "+Preferences.label_for("heavy")
+	if actor.model.counter_window>0: threat_text.text=play_prompt("OPENING COUNTER · {heavy}")
 	health.value = actor.model.health/actor.model.max_health*100
 	stamina.value = actor.model.stamina
 	if not main.trial_active:
@@ -550,12 +580,7 @@ func _process(delta: float) -> void:
 	announce_label.modulate.a = minf(1,announce_timer)
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch and event.pressed and event.device != InputEvent.DEVICE_ID_EMULATION and not touch_preferred:
-		touch_preferred = true
-		if main.trial_active:
-			help_caption.hide()
-			touch_controls.show()
-			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	update_input_source(event)
 	if not rebinding.is_empty():
 		if event is InputEventKey and event.pressed and not event.echo:
 			if event.keycode==KEY_ESCAPE: rebinding=""; show_settings(rebind_back,"Controls")
@@ -582,6 +607,9 @@ func _input(event: InputEvent) -> void:
 	elif event.is_action_pressed("journal") and mode in ["play","journal"]:
 		if mode == "play": show_journal()
 		else: play()
+		get_viewport().set_input_as_handled()
+	elif mode == "play" and event.is_action_pressed("heavy") and not event.is_echo() and world is TrialWorld and world.arrival != null and world.arrival.step == TrialArrival.Step.READY and world.arrival.sparring == null:
+		if Preferences.gameplay_input_ready(): world.arrival.begin_sparring()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("interact"):
 		if mode=="play" and not Preferences.gameplay_input_ready(): get_viewport().set_input_as_handled(); return
@@ -688,6 +716,7 @@ func show_trial_result(won: bool) -> void:
 	text(c, world.duel.summary(), 17)
 	if main.journey: text(c, "Your next attempt starts here with full health and draughts.", 16)
 	button(c, "Challenge the Warden again" if won else "Retry this encounter", main.restart_checkpoint).grab_focus()
+	if not won: button(c, "Practice guard and dodge", main.practice_after_defeat)
 	button(c, "Return to title", show_menu)
 
 func show_dawn() -> void:
@@ -750,6 +779,15 @@ func show_trial_guide() -> void:
 	shade()
 	var c=column(panel(overlay,Vector2(230,90),Vector2(820,530)),16)
 	if world.arrival != null:
+		if world.arrival.sparring != null:
+			var drill = world.arrival.sparring
+			text(c, "Read the blade", 30, GOLD)
+			for i in range(drill.OBJECTIVES.size() - 1):
+				text(c, ("✓  " if i < drill.phase else "") + str(drill.OBJECTIVES[i]), 19, GOLD if i == drill.phase else INK)
+			text(c, "The echo pulls its blows. Health and draughts refill for the encounter.", 18)
+			button(c, "Return to sparring", play).grab_focus()
+			button(c, "Begin encounter", world.arrival.begin_encounter)
+			return
 		text(c,"Practice on the Counting Shore",30,GOLD)
 		for i in range(TrialArrival.LESSONS.size()):
 			var active = i == world.arrival.step
@@ -767,5 +805,5 @@ func show_trial_guide() -> void:
 	text(c,world.passage.entry().chapter,30,GOLD)
 	text(c,"Return to expose Avel's betrayal and carry Mira and Isha's names into dawn.\nThree echoes prepare you. The Warden guards the road back.",19)
 	text(c,"Chain light attacks as each swing finishes; the finisher cuts twice.\nParries and heavy hits break the Warden's composure.\nClose in and use {heavy} during the break for a riposte.\nHis raised cleave cannot be blocked: evade or parry.\nPatterns end in a breathing beat. Use it to recover stamina.\nA draught heals when you drink; taking a hit interrupts it.",18)
-	text(c,Preferences.trial_help_text(),16)
+	text(c, Preferences.TRIAL_CONTROLS, 16)
 	button(c,"Return to the duel",play).grab_focus()

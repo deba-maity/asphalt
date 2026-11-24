@@ -95,7 +95,7 @@ func hint(world: TrialWorld) -> String:
 		if learned.has("rehearsal"):
 			if world.duel.hits == 0: return "Read the echo's shoulder. Hold {guard} through its cut and use {light} as it recovers."
 			return "A landed strike costs stamina. Walk between attacks and finish the echo at your own pace."
-		if world.hero.total_distance<2: return "Move with {move_forward}/{move_left}/{move_back}/{move_right} · Mouse / right stick: look around"
+		if world.hero.total_distance<2: return "{move} to walk · {look} to look around"
 		if not learned.has("lock"): return "Use {lock_on} to face the echo. Step within sword reach."
 		if world.duel.hits<2: return "Attack with {light}. Press again as the swing ends to chain it."
 		return "Good. Finish the echo at your own pace. Health refills for the next lesson."

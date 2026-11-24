@@ -4,6 +4,9 @@ signal changed
 signal input_reset
 const BINDINGS={"move_forward":KEY_W,"move_back":KEY_S,"move_left":KEY_A,"move_right":KEY_D,"sprint":KEY_SHIFT,"dodge":KEY_SPACE,"guard":KEY_CTRL,"lock_on":KEY_Q,"interact":KEY_E,"heal":KEY_R,"journal":KEY_TAB,"pause":KEY_ESCAPE,"ashstep":KEY_F,"light":-MOUSE_BUTTON_LEFT,"heavy":-MOUSE_BUTTON_RIGHT}
 const BUTTONS={"light":JOY_BUTTON_X,"heavy":JOY_BUTTON_Y,"dodge":JOY_BUTTON_B,"guard":JOY_BUTTON_LEFT_SHOULDER,"lock_on":JOY_BUTTON_RIGHT_SHOULDER,"interact":JOY_BUTTON_A,"pause":JOY_BUTTON_START,"heal":JOY_BUTTON_DPAD_UP,"journal":JOY_BUTTON_BACK,"sprint":JOY_BUTTON_LEFT_STICK}
+const PAD_LABELS := {"light":"X", "heavy":"Y", "dodge":"B", "guard":"LB", "lock_on":"RB", "interact":"A", "pause":"Start", "heal":"D-pad up", "journal":"Back", "sprint":"L3", "ashstep":"LT"}
+const TRIAL_CONTROLS := "{move} to walk · {look} to look around\n{sprint} to sprint · {light} to strike · {heavy} for a heavy strike or riposte\nMove forward, sprint and use {heavy} for an advancing cut.\n{guard} to guard or parry · {dodge} to roll · {lock_on} to lock on\n{heal} for a draught · {journal} for the guide · {pause} to pause"
+
 var sensitivity: float=.003
 var invert: bool=false
 var volume: float=.55
@@ -105,7 +108,7 @@ func release_input() -> void:
 	input_reset.emit()
 
 func trial_help_text() -> String:
-	return prompt("{move_forward}/{move_left}/{move_back}/{move_right} Move | Mouse orbit | {sprint} Sprint\n{light} Light | {heavy} Heavy / riposte | {guard} Guard / parry\nForward + {sprint} + {heavy}: advancing cut\n{dodge} Evade | {lock_on} Lock | {heal} Draught | {journal} Guide | {pause} Pause\nController: sticks move/orbit | X/Y attacks | LB guard | B evade\nRB lock | D-pad up draught | Stick click sprint | Back guide | Start pause")
+	return prompt(TRIAL_CONTROLS.replace("{move}", "{move_forward}/{move_left}/{move_back}/{move_right}").replace("{look}", "Mouse"))
 
 func quarantine() -> void:
 	release_input()
