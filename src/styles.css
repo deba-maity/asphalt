@@ -4336,6 +4336,7 @@ html.reduced-motion *, html.reduced-motion *::before, html.reduced-motion *::aft
 .result h1 { font-size: clamp(36px, 6vw, 94px); line-height: .94; margin: .1em 0; }
 .result > span { margin-bottom: .35rem; }
 .timing-stack { display: grid; justify-items: end; }
+#drive-state.braking-cue, #drive-state.braking-cue + #drive-detail { color: #ffd489; }
 #pace-note, .map-best { font: 600 10px "DM Mono", monospace; color: #d7c0ff; letter-spacing: .04em; }
 #pace-note { background: #101825ed; padding: 2px 5px; white-space: nowrap; }
 #pace-note[data-ahead="true"] { color: #a4ffd5; }

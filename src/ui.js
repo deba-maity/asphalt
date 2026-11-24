@@ -73,7 +73,8 @@ export class UI {
     this.color = this.vehicle.color;
     this.networked = false;
     this.playerName = "Driver";
-    this.difficulty = "medium";
+    const savedDifficulty = storage.getItem("nightshift-difficulty");
+    this.difficulty = ["easy", "medium", "hard"].includes(savedDifficulty) ? savedDifficulty : "medium";
     this.vehicleFilter = "all";
     this.root.innerHTML = `<main id="menu-layer"></main><section id="hud" hidden><div class="hud-vignette"></div><div class="hud-top"><div class="wordmark small">NIGHTSHIFT<span>//</span></div><div class="objective-stack"><span id="objective">RACE // 3 LAPS</span><i class="route-progress"><b id="route-progress"></b></i></div><div class="race-tools"><div class="timing-stack"><div id="timer">00:00.00</div><span id="pace-note" hidden></span></div><button class="pause-button" data-action="pause" aria-label="Pause race">Ⅱ</button></div></div><div id="countdown"></div><div id="event-feed"><b id="drive-state">HOLD THE LINE</b><span id="drive-detail">CHECKPOINT LINKED</span></div><div class="hud-bottom"><div class="mini-wrap"><canvas id="minimap" width="170" height="170"></canvas><span>ROUTE LINK</span><b>MAP</b></div><div class="readouts"><div class="speed-pod"><small>SPEED</small><strong id="speed">000</strong><em>KM/H</em></div><div class="meter"><label>NITRO CORE <b id="nitro-text">100</b></label><i><b id="nitro"></b></i><label class="armor">INTEGRITY <b id="health-text">100</b></label><i class="health"><b id="health"></b></i></div></div><div class="race-state"><b id="position">LAP 1 / 3</b><span id="checkpoint">CHECKPOINT 1</span><div id="wanted"></div></div></div><div class="touch-controls" aria-label="Driving controls"><div class="touch-steering"><button data-drive="KeyA" aria-label="Steer left">❮</button><button data-drive="KeyD" aria-label="Steer right">❯</button></div><div class="touch-weapons"><button data-drive="KeyF" aria-label="Fire gun">FIRE</button><button data-drive="KeyR" aria-label="Launch rocket">ROCKET</button></div><div class="touch-pedals"><button class="touch-nitro" data-drive="ShiftLeft" aria-label="Use nitro">N₂O</button><button data-drive="Space" aria-label="Drift">DRIFT</button><button data-drive="KeyS" aria-label="Brake and reverse">BRAKE</button><button class="touch-gas" data-drive="KeyW" aria-label="Accelerate">GAS</button></div></div></section><div id="toast"></div>`;
     this.layer = this.root.querySelector("#menu-layer");
@@ -137,8 +138,9 @@ export class UI {
       this.syncSetup();
       this.showVehicle(this.inGarage);
     }
-    if (action === "difficulty") {
+    if (action === "difficulty" && ["easy", "medium", "hard"].includes(data.id)) {
       this.difficulty = data.id;
+      storage.setItem("nightshift-difficulty", data.id);
       this.showSettings();
     }
     if (action === "start" || (action === "restart-solo" && this.game.paused && !this.networked)) this.start();
@@ -557,8 +559,9 @@ export class UI {
           : this.mode.id === "cruise" ? "FREE DRIVE" : "TIME TRIAL";
     this.root.querySelector("#checkpoint").textContent =
       `CHECKPOINT ${s.next} / ${s.total}`;
-    this.root.querySelector("#drive-state").textContent =
-      s.cue?.label || "HOLD THE LINE";
+    const instruction = this.root.querySelector("#drive-state");
+    instruction.textContent = s.cue?.label || "HOLD THE LINE";
+    instruction.classList.toggle("braking-cue", Boolean(s.cue?.braking));
     this.root.querySelector("#drive-detail").textContent =
       s.cue?.detail || `CHECKPOINT ${s.next} / ${s.total}`;
     this.root.querySelector("#objective").textContent = pursuit
@@ -634,6 +637,11 @@ export class UI {
     ctx.fillStyle = "#fff"; ctx.fillRect(ox + start.x * scale - 2, oy + start.z * scale - 2, 4, 4);
     ctx.beginPath(); ctx.arc(ox + target.x * scale, oy + target.z * scale, 4, 0, Math.PI * 2);
     ctx.fillStyle = "#fff"; ctx.fill(); ctx.strokeStyle = "#43e5ae"; ctx.lineWidth = 1.5; ctx.stroke();
+    if (s.cue?.braking && s.cue.apex) {
+      const bend = s.cue.apex;
+      ctx.beginPath(); ctx.arc(ox + bend.x * scale, oy + bend.z * scale, 6, 0, Math.PI * 2);
+      ctx.strokeStyle = "#ffbd62"; ctx.lineWidth = 2; ctx.stroke();
+    }
     if (s.ghost) {
       const x = ox + s.ghost.x * scale, y = oy + s.ghost.z * scale;
       ctx.strokeStyle = "#d3b3ff"; ctx.lineWidth = 2;

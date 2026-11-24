@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import { sampleHybridClosedRoute, shortcutPoints, timingGateFraction } from "./course-shape.js";
+import { courseSpan, trimSpan, offsetStation, spanGeometry, bridgeRuns, bridgeRailOffset } from "./course-structures.js";
+import { courseCorners } from "./corner-notes.js";
 import { gatesPerSegment } from "./data.js";
 import { batchWorld } from "./rendering.js";
 import { advanceRoute, deflectVelocity } from "./route-motion.js";
@@ -309,6 +311,7 @@ export class World {
       this.sampleDistances.push(this.sampleDistances[i] + this.samples[i].distanceTo(next));
     }
     this.courseLength = this.sampleDistances.at(-1);
+    this.corners = courseCorners(this.samples, this.sampleDistances, this.controlRoute.length);
     this.timingOffset = this.route[0].distanceTo(this.finishLine);
     this.shortcutRoads = [];
     this.destructibles = [];
@@ -801,9 +804,9 @@ export class World {
 
       this.buildFlyover(5, 6);
 
-      this.buildUnderpass(this.route[9], this.route[10]);
+      this.buildUnderpass(9 / gatesPerSegment, 10 / gatesPerSegment);
 
-      this.buildBridgeRails(this.route[13], this.route[14]);
+      this.buildBridgeRails(13 / gatesPerSegment, 14 / gatesPerSegment);
     }
 
     this.buildMapSetPieces();
@@ -2104,14 +2107,9 @@ export class World {
     const entries = plans[this.map.id] || [];
 
     for (const [type, ai, bi] of entries) {
-      const a = this.controlRoute[ai % this.controlRoute.length];
-      const b = this.controlRoute[bi % this.controlRoute.length];
-
-      if (!a || !b) continue;
-
       if (type === "flyover") this.buildFlyover(ai, bi);
-      else if (type === "underpass") this.buildUnderpass(a, b);
-      else this.buildBridgeRails(a, b);
+      else if (type === "underpass") this.buildUnderpass(ai, bi);
+      else this.buildBridgeRails(ai, bi);
     }
   }
 
@@ -2144,130 +2142,57 @@ export class World {
     }
   }
 
-  buildUnderpass(a, b) {
-    const mid = a.clone().lerp(b, 0.5);
+  addCourseSlab(name, span, left, right, bottom, top, material) {
+    const geometry = this.trackGeometry(spanGeometry(span, left, right, bottom, top));
+    const piece = new THREE.Mesh(geometry, material);
+    piece.name = name;
+    piece.receiveShadow = true;
+    this.group.add(piece);
+  }
 
-    const len = a.distanceTo(b);
+  buildUnderpass(from, to) {
+    const section = courseSpan(this.samples, this.controlRoute.length, from, to);
+    const length = section[section.length - 1].length;
+    const half = Math.min(38, length * .35);
+    const covered = trimSpan(section, length / 2 - half, length / 2 + half);
+    if (covered.length < 2) return;
 
-    const angle = Math.atan2(b.x - a.x, b.z - a.z);
-
-    const wallMat = this.material({
-      color: 0x20262c,
-      roughness: 0.76,
-      metalness: 0.18,
-    });
-
-    const lampMat = this.basic({
-      color: 0x94eaff,
-    });
-
-    const side = new THREE.Vector3(Math.cos(angle), 0, -Math.sin(angle));
-
-    for (const sign of [-1, 1]) {
-      const p = mid.clone().addScaledVector(side, sign * 11.5);
-
-      mesh(
-        this.group,
-        box,
-        wallMat,
-        [p.x, 6, p.z],
-        [3.4, 12, len * 0.7],
-        [0, angle, 0],
-      );
-    }
-
-    mesh(
-      this.group,
-      box,
-      wallMat,
-      [mid.x, 11.7, mid.z],
-      [23, 0.8, len * 0.7],
-      [0, angle, 0],
-    );
-
-    for (let i = -2; i <= 2; i++) {
-      const p = mid
-        .clone()
-        .addScaledVector(
-          new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle)),
-          i * 6.5,
-        );
-
-      mesh(
-        this.group,
-        box,
-        lampMat,
-        [p.x, 11.35, p.z],
-        [4, 0.08, 0.32],
-        [0, angle, 0],
-      );
+    const wall = this.material({color: 0x20262c, roughness: .76, metalness: .18});
+    const lamps = this.basic({color: 0x94eaff});
+    const edge = roadHalfWidth + 1.25;
+    this.addCourseSlab("Underpass wall", covered, -edge - 1, -edge, 0, 10.8, wall);
+    this.addCourseSlab("Underpass wall", covered, edge, edge + 1, 0, 10.8, wall);
+    this.addCourseSlab("Underpass roof", covered, -edge - 1, edge + 1, 10.8, 11.5, wall);
+    const start = covered[0].length, end = covered[covered.length - 1].length;
+    const lights = Math.max(1, Math.round((end - start) / 11));
+    for (let i = 0; i < lights; i++) {
+      const at = start + (i + .5) * (end - start) / lights;
+      const [station] = trimSpan(covered, at, at);
+      const bulb = offsetStation(station, 0, 10.74);
+      const yaw = Math.atan2(-station.normal.z, station.normal.x);
+      mesh(this.group, box, lamps, bulb.toArray(), [6.8, .10, .32], [0, yaw, 0]);
     }
   }
 
-  buildBridgeRails(a, b) {
-    const mid = a.clone().lerp(b, 0.5);
-
-    const len = a.distanceTo(b);
-
-    const angle = Math.atan2(b.x - a.x, b.z - a.z);
-
-    const railMat = this.material({
-      color: 0x4f5a60,
-      roughness: 0.42,
-      metalness: 0.84,
-    });
-
-    const accent = this.basic({
-      color: 0x55dfff,
-    });
-
-    const side = new THREE.Vector3(-Math.cos(angle), 0, Math.sin(angle));
-
-    for (const sign of [-1, 1]) {
-      const p = mid.clone().addScaledVector(side, sign * 10.9);
-
-      mesh(
-        this.group,
-        box,
-        railMat,
-        [p.x, 1.1, p.z],
-        [len * 0.96, 0.18, 0.22],
-        [0, angle, 0],
-      );
-
-      for (let i = -3; i <= 3; i++) {
-        const post = p
-          .clone()
-          .addScaledVector(
-            new THREE.Vector3(Math.cos(angle), 0, -Math.sin(angle)),
-            i * Math.max(4, len / 8),
-          );
-
-        mesh(
-          this.group,
-          box,
-          railMat,
-          [post.x, 0.6, post.z],
-          [0.2, 1.2, 0.2],
-          [0, angle, 0],
-        );
+  buildBridgeRails(from, to) {
+    const section = courseSpan(this.samples, this.controlRoute.length, from, to);
+    const mouths = (this.map.shortcuts ?? []).flatMap(({from, to}) => [this.controlRoute[from], this.controlRoute[to]]);
+    const rail = this.material({color: 0x4f5a60, roughness: .42, metalness: .84});
+    const accent = this.basic({color: 0x55dfff});
+    for (const span of bridgeRuns(section, mouths)) {
+      for (const sign of [-1, 1]) {
+        const offset = sign * bridgeRailOffset;
+        this.addCourseSlab("Bridge guardrail", span, offset - .12, offset + .12, .96, 1.16, rail);
+        this.addCourseSlab("Bridge reflectors", span, offset - .07, offset + .07, 1.16, 1.21, accent);
+        let nextSupport = 0;
+        for (let i = 0; i < span.length; i++) {
+          const station = span[i];
+          if (station.length < nextSupport && i < span.length - 1) continue;
+          const post = offsetStation(station, offset, .53);
+          mesh(this.group, box, rail, post.toArray(), [.22, 1.06, .22]);
+          nextSupport = station.length + 7.5;
+        }
       }
-
-      const lightP = p
-        .clone()
-        .addScaledVector(
-          new THREE.Vector3(Math.cos(angle), 0, -Math.sin(angle)),
-          -len * 0.3,
-        );
-
-      mesh(
-        this.group,
-        box,
-        accent,
-        [lightP.x, 1.25, lightP.z],
-        [len * 0.24, 0.06, 0.1],
-        [0, angle, 0],
-      );
     }
   }
 

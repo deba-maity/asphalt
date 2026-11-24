@@ -40,7 +40,7 @@ try {
           points.push(...world.samples.slice(i * samplesPerJunction, (i + 1) * samplesPerJunction));
         }
       }
-      let nearest = 0, ticks = 0, stalled = 0, lastGate;
+      let nearest = 0, ticks = 0, stalled = 0, lastGate, cornerCalls = 0, brakeCalls = 0;
       for (; ticks < 36000 * goal && game.phase === 'play'; ticks++) {
         const pos = player.mesh.position;
         let best = Infinity, found = nearest;
@@ -62,6 +62,11 @@ try {
         const speed = Math.abs(error) > .45 ? 9 : trailing ? 12 : fast ? 47 : 23;
         game.keys = { KeyW: player.speed < speed, KeyS: player.speed > speed + 1, KeyA: error > .035, KeyD: error < -.035, ShiftLeft: fast && Math.abs(error) < .10 && player.speed > 24 };
         game.simulate(1 / 60);
+        if (ticks % 45 === 0 && game.phase === 'play') {
+          const cue = game.routeCue();
+          if (cue.apex) cornerCalls++;
+          if (cue.braking) brakeCalls++;
+        }
         stalled = player.next === lastGate ? stalled + 1 : 0;
         lastGate = player.next;
         if (stalled > 90 * 60) {
@@ -86,7 +91,8 @@ try {
         const finished = field.filter(a => a.finishedAt != null && a.finishedAt < player.finishedAt).length;
         if (place !== finished + 1 || (trailing && place <= 1)) throw Error('Incorrect earned place: ' + map.id + ' ' + place);
       }
-      laps.push({ map: map.id, place, rivals: field.map((a) => [a.lap, a.next]), mode: modeId, laps: player.lap, seconds: Math.round(ticks / 60), gatesPerLap: world.route.length });
+      if (!cornerCalls) throw Error(map.id + ' completed without any advance corner guidance');
+      laps.push({ map: map.id, cornerCalls, brakeCalls, place, rivals: field.map((a) => [a.lap, a.next]), mode: modeId, laps: player.lap, seconds: Math.round(ticks / 60), gatesPerLap: world.route.length });
       if (modeId === 'time') {
         ui.start();
         const replay = game.pace.reference;

@@ -18,6 +18,13 @@ try{
   await page.goto(url.href);
   await page.getByRole('button',{name:'HIT THE STREETS'}).waitFor();
   assert.equal(await page.evaluate(()=>typeof window.__nightshift),'undefined','Development control hooks are absent from production');
+  await page.getByRole('button',{name:/settings/i}).click();
+  await page.locator('[data-action="difficulty"][data-id="easy"]').click();
+  await page.reload();
+  await page.getByRole('button',{name:/settings/i}).click();
+  assert.equal(await page.locator('[data-action="difficulty"].active').getAttribute('data-id'),'easy');
+  await page.locator('[data-action="difficulty"][data-id="medium"]').click();
+  await page.reload();
   await page.getByRole('button',{name:'HIT THE STREETS'}).click();
   await page.locator('[data-action="choose-mode"]').first().click();
   await page.locator('[data-action="choose-map"]').first().click();

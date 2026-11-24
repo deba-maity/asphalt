@@ -51,6 +51,26 @@ try {
       if(mode.id==='sprint')check(document.querySelector('#position').textContent.includes('LAP 1 / 1'),'Sprint shows one lap');
       if (mode.id === 'time') {
         const world = g.world, pos = p.mesh.position, start = pos.clone();
+        world.group.updateMatrixWorld(true);
+        const rails = world.group.children.filter(o => o.name === 'Bridge guardrail');
+        const roofs = world.group.children.filter(o => o.name === 'Underpass roof');
+        const seenRoofs = new Set();
+        check(rails.length >= 2 && roofs.length, map.id + ' has rendered roadside structures');
+        for (let i = 0; i < world.samples.length; i++) {
+          const at = world.samples[i], next = world.samples[(i+1) % world.samples.length];
+          const across = new Vector3(next.z-at.z,0,at.x-next.x).normalize();
+          const ceiling = new Raycaster(new Vector3(at.x,1,at.z),new Vector3(0,1,0),.1,15);
+          for (const hit of ceiling.intersectObjects(roofs,false)) {
+            check(Math.abs(hit.point.y-10.8)<.01,'Visible underside has driving clearance');
+            seenRoofs.add(hit.object);
+          }
+          for (const offset of [-5.3,0,5.3]) {
+            const lane = at.clone().addScaledVector(across,offset); lane.y=3;
+            const ray = new Raycaster(lane,new Vector3(0,-1,0),0,2.5);
+            check(!ray.intersectObjects(rails,false).length,map.id+' guardrail crosses active lane at '+i+', offset '+offset);
+          }
+        }
+        check(seenRoofs.size === roofs.length,map.id+' underpasses cover the actual road');
         for (const path of [world.samples, ...world.shortcutRoads.map(s => s.points)]) {
           for (const point of path) {
             pos.copy(point);

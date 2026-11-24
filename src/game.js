@@ -1,6 +1,7 @@
 import { storage } from "./storage.js";
 import { PaceLap } from "./pace-lap.js";
 import { paceGhost } from "./pace-ghost.js";
+import { approachingCorner } from "./corner-notes.js";
 import * as THREE from "three";
 import { World } from "./world.js";
 import {
@@ -1760,10 +1761,11 @@ export class Game {
     const target = p.cut ? p.cut.road.points[p.cut.gate] : here;
     const pos = p.mesh.position;
     let distanceToTarget = Math.round(Math.hypot(target.x - pos.x, target.z - pos.z));
-    let ahead = target;
+    let ahead = target, courseDistance = 0;
     if (!p.cut) {
       const world = this.world, stride = world.samples.length / n;
       const location = world.mainLocation(p);
+      courseDistance = location.distance;
       const end = index ? world.sampleDistances[index * stride] : world.courseLength + world.timingOffset;
       distanceToTarget = Math.max(distanceToTarget, Math.round(end - location.distance));
       const last = index ? index * stride : world.samples.length + world.finishSamples;
@@ -1775,6 +1777,11 @@ export class Game {
       return { label: "WRONG WAY", detail: "TURN BACK TOWARD THE GREEN GATE" };
     if (p.cut) return { label: p.cut.road.label, detail: distanceToTarget + "M TO THE NEXT MARKER" };
     if (!index) return { label: this.finalLap() ? "FINISH LINE" : "LAP LINE", detail: distanceToTarget + "M TO THE CHECKERED LINE" };
+    const corner = approachingCorner(this.world.corners, courseDistance, this.world.courseLength, p.speed, p.spec);
+    if (corner) {
+      const distance = Math.round(corner.distance);
+      return {label: corner.bend.label, braking: corner.braking, apex: corner.bend.point, detail: (corner.braking ? "BRAKE · " : "") + distance + "M TO BEND · GATE " + index};
+    }
     const incoming = here.clone().sub(prev).normalize();
     const outgoing = next.clone().sub(here).normalize();
     const cross = incoming.x * outgoing.z - incoming.z * outgoing.x;
