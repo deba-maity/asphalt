@@ -218,7 +218,7 @@ func run() -> void:
 	boss.reset_physics_interpolation()
 	await seconds(.05)
 	main.ui.update_hud(hero,{})
-	check(not main.ui.lock_label.visible,"Targets behind the camera do not project a false on-screen lock marker")
+	check(not main.ui.lock_marker.visible,"Targets behind the camera do not project a false on-screen lock marker")
 	hero.trial_camera.set_process(true)
 	boss.position=Vector3(0,.05,-1.55); boss.reset_physics_interpolation()
 	main.start_trial(TrialPassage.WARDEN,false)

@@ -119,12 +119,13 @@ func test_touch_lesson() -> void:
 	var controls: TrialTouch = main.ui.touch_controls
 	check(not main.ui.help_caption.visible, "Touch removes the duplicate footer menu hint")
 	check(main.ui.touch_preferred and controls.is_visible_in_tree(), "Touch input enables the trial pad")
+	check("interact" not in controls.actions(), "Touch offers walking until the ember can be used")
 	var forward := TrialTouch.PAD + Vector2.UP * 63
 	touch(1, forward, true)
 	await seconds(1.0)
 	touch(1, forward, false)
 	await seconds(.3)
-	check(main.world.arrival.near_ember(), "The touch pad walks to the memorial")
+	check(main.world.arrival.near_ember() and "interact" in controls.actions(), "The touch pad reaches the memorial and reveals Listen")
 	var use: Vector2 = TrialTouch.BUTTONS.interact[0]
 	touch(2, use, true)
 	touch(2, use, false)
@@ -209,10 +210,10 @@ func run() -> void:
 	var echo: Fighter = main.world.warden
 	check(not echo.visible and not echo.ai_enabled and main.world.enemies.is_empty(), "Arrival has no visible or targetable enemy")
 	check(trainee.camera.current and not main.world.boss_panel.visible, "Entering the shore restores the player camera and hides the boss bar")
-	check(main.ui.destination_label.visible and "EMBER" in main.ui.destination_label.text, "The quiet arrival marks the ember in the court")
+	check(main.ui.destination_label.visible and main.ui.destination_label.text == "EMBER" and main.ui.destination_diamond.visible, "The quiet arrival marks the ember in the court")
 	var behind_left := trainee.camera.global_position + trainee.camera.global_basis.z * 4 - trainee.camera.global_basis.x * 2
 	main.ui.track_destination(trainee.camera, behind_left, "EMBER")
-	check(main.ui.destination_label.text.begins_with("←") and main.ui.destination_label.position.x >= 0, "A destination behind the left shoulder points back into view")
+	check(main.ui.destination_arrow.visible and Vector2.RIGHT.rotated(main.ui.destination_arrow.rotation).x < -.99 and main.ui.destination_label.position.x >= 0, "A destination behind the left shoulder points back into view")
 	main.world.interact()
 	check(arrival.step==TrialArrival.Step.EMBER, "The ember must be approached")
 	trainee.use_test_direction=true
@@ -343,6 +344,7 @@ func run() -> void:
 	main.ui.show_menu()
 	button_named("Revisit the ending").pressed.emit()
 	check(main.ui.mode == "dawn", "The ending remains available from the title")
+	await test_earned_duels()
 	check(CombatModel.definitions()==base,"Tutorial tuning leaves campaign combat definitions untouched")
 	# The opening tests above exercise progression. These use the actual animated
 	# sword sweep, so a slow lesson cannot silently lose or duplicate its damage.
@@ -397,6 +399,43 @@ func run() -> void:
 	await test_checkpoint_resume()
 	print("PASSAGE: ",checks," checks, ",failures," failures")
 	main.finish(0 if failures==0 else 1)
+
+func test_earned_duels() -> void:
+	button_named("Revisit a duel").pressed.emit()
+	check(main.ui.mode == "duel_replays" and button_named("The Cinder Warden") != null, "The ending offers all four duels")
+	check_layout("Replay choices fit in the viewport")
+	button_named("The First Echo").pressed.emit()
+	await frames(4)
+	check(main.duel_replay and not main.journey and main.trial_stage == 0 and main.player.target == main.world.warden, "An echo replay starts in the chosen fight")
+	main.world.warden.model.health = 0
+	main.world._enemy_died(main.world.warden)
+	await frames(4)
+	main.world.result_delay = .001
+	await frames(4)
+	check(main.ui.mode == "trial_result" and main.world.waystone == null, "Winning one replay returns its result without starting the next encounter")
+	button_named("Fight this duel again").pressed.emit()
+	await frames(4)
+	check(main.duel_replay and main.trial_stage == 0 and main.world.warden.model.health == main.world.warden.model.max_health, "A rematch reloads that opponent at full health")
+	main.player.model.health = 0
+	main.player.model.state = "dead"
+	main.world._hero_died(main.player)
+	await frames(4)
+	main.world.result_delay = .001
+	await frames(4)
+	button_named("Practice guard and dodge").pressed.emit()
+	await frames(4)
+	main.world.arrival.begin_encounter()
+	await frames(4)
+	check(main.duel_replay and main.trial_stage == 0 and main.world.arrival == null, "Leaving a remedial drill restores the chosen replay")
+	main.world.warden.model.health = 0
+	main.world._enemy_died(main.world.warden)
+	await frames(4)
+	main.world.result_delay = .001
+	await frames(4)
+	button_named("Choose another duel").pressed.emit()
+	button_named("The Resolute Echo").pressed.emit()
+	await frames(4)
+	check(main.trial_stage == 2 and main.duel_replay and Session.shore.milestone == ShoreProgress.DAWN, "Choosing a different replay preserves the ending")
 
 func test_checkpoint_resume() -> void:
 	main.ui.show_menu()

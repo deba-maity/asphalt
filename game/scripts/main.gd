@@ -13,6 +13,7 @@ var benchmark: BenchmarkRecorder
 var trial_stage: int=TrialPassage.WARDEN
 var budget: RuntimeBudget
 var journey := false
+var duel_replay := false
 var trained_on_shore := false
 
 func _ready() -> void:
@@ -166,7 +167,7 @@ func finish_story_death(token: int) -> void:
 
 func practice_after_defeat() -> void:
 	if not trial_active or ui.mode != "trial_result" or world.won: return
-	start_trial(trial_stage, false, journey)
+	start_trial(trial_stage, false, journey, duel_replay)
 	world.begin_arrival()
 	world.arrival.from_retry = true
 	world.arrival.resume_lesson(TrialArrival.Step.READY)
@@ -179,7 +180,7 @@ func finish_retry_practice(court_id: int) -> void:
 func restart_checkpoint() -> void:
 	if trial_active:
 		if journey and Session.shore.milestone == ShoreProgress.OPEN_GATE: continue_shore()
-		else: start_trial(trial_stage, false, journey)
+		else: start_trial(trial_stage, false, journey, duel_replay)
 		return
 	if transitions.state == "loading": return
 	transitions.reset()
@@ -272,8 +273,13 @@ func enter_next_echo(stage: int) -> void:
 	if stage == 0: ui.toast("The echo lifts its blade. Let the first cut pass, then answer.", 4)
 	else: ui.toast(world.passage.entry().voice, 5)
 
-func start_trial(stage: int=0, briefing: bool=true, keep_journey: bool=false) -> void:
+func start_duel_replay(stage: int) -> void:
+	if Session.shore.milestone == ShoreProgress.DAWN and stage >= 0 and stage <= TrialPassage.WARDEN:
+		start_trial(stage, false, false, true)
+
+func start_trial(stage: int=0, briefing: bool=true, keep_journey: bool=false, replay: bool=false) -> void:
 	transitions.cancel()
+	duel_replay = replay
 	trial_active=true
 	trial_stage=clampi(stage,0,TrialPassage.WARDEN)
 	journey = keep_journey or (trial_stage == 0 and briefing)
@@ -281,7 +287,7 @@ func start_trial(stage: int=0, briefing: bool=true, keep_journey: bool=false) ->
 	Session.begin_trial()
 	load_world()
 	if trial_stage == 0 and briefing: world.begin_arrival()
-	elif trained_on_shore or trial_stage > 0:
+	elif trained_on_shore or trial_stage > 0 or duel_replay:
 		if trial_stage == 0: world.passage.learn("rehearsal")
 		world.hero.target = world.warden
 	ui.play()

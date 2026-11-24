@@ -266,7 +266,7 @@ func _process(delta: float) -> void:
 	if result_delay >= 0 and ui.mode == "play":
 		result_delay -= delta
 		if result_delay < 0:
-			if won and (passage.training() or ui.main.journey): light_waystone()
+			if won and not ui.main.duel_replay and (passage.training() or ui.main.journey): light_waystone()
 			else: ui.show_trial_result(won)
 			return
 	if ui.mode=="play":
@@ -285,6 +285,7 @@ func _process(delta: float) -> void:
 			hud_text_time=.1
 			ui.chapter_label.text=passage.entry().chapter
 			ui.objective_text.text="Defeat the echo to continue.\nHealth refills after this encounter." if passage.training() else "Defeat the Cinder Warden.\nEarn passage back to the living."
+			if ui.main.duel_replay: ui.objective_text.text = "Win this practice duel.\nYour journey is saved at dawn."
 			ui.tutorial.text=ui.play_prompt(passage.hint(self))
 			if ui.touch_preferred: ui.help_caption.text = "Menu · Trial guide and settings"
 			ui.status.text="%d HP · %d draughts" % [hero.model.health,Session.data.heals]

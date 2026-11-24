@@ -28,6 +28,7 @@ var ui: GameInterface
 var fingers: Dictionary = {}
 var stick := Vector2.ZERO
 var last_step: int = -2
+var interaction_in_reach := false
 
 func _ready() -> void:
 	Preferences.input_reset.connect(release_all)
@@ -43,8 +44,14 @@ func lesson() -> int:
 	if ui.world is TrialWorld and ui.world.waystone != null: return WAYSTONE
 	return -1
 
+func can_interact(index: int) -> bool:
+	if index == TrialArrival.Step.EMBER: return ui.world.arrival.near_ember()
+	if index == WAYSTONE: return ui.world.near_waystone()
+	return true
+
 func actions() -> Array:
 	var index := lesson()
+	if not can_interact(index): return ["pause"]
 	if index >= SPARRING:
 		if ui.world.arrival.sparring.phase == TrialArrival.Sparring.Phase.COMPLETE: return ["begin", "pause"]
 		return ["guard", "dodge", "light", "lock_on", "begin", "pause"]
@@ -54,8 +61,10 @@ func actions() -> Array:
 func _process(_delta: float) -> void:
 	if not is_visible_in_tree(): return
 	var index := lesson()
-	if index != last_step:
+	var in_reach := can_interact(index)
+	if index != last_step or in_reach != interaction_in_reach:
 		last_step = index
+		interaction_in_reach = in_reach
 		queue_redraw()
 
 func clear_stick() -> void:

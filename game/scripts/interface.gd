@@ -30,7 +30,9 @@ var speaker_id: String = ""
 var practice_cue: Label
 var practice_cue_style: StyleBoxFlat
 var destination_label: Label
-var lock_label: Label
+var destination_diamond: Line2D
+var destination_arrow: Line2D
+var lock_marker: Line2D
 var tutorial_timer: float = 0
 var theme: Theme
 var chapter_label: Label
@@ -228,13 +230,37 @@ func build_hud() -> void:
 	destination_label.add_theme_color_override("font_outline_color", Color("201913"))
 	destination_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	destination_label.hide()
-	lock_label = text(hud,"◇",34,GOLD)
-	lock_label.visible = false
+	var diamond := PackedVector2Array([Vector2(0,-9), Vector2(8,0), Vector2(0,9), Vector2(-8,0), Vector2(0,-9)])
+	destination_diamond = marker_line(destination_label, diamond)
+	destination_diamond.scale = Vector2.ONE * .75
+	destination_diamond.position = Vector2(destination_label.size.x * .5, destination_label.size.y + 4)
+	destination_arrow = marker_line(destination_label, PackedVector2Array([Vector2(-5,-7), Vector2(3,0), Vector2(-5,7)]))
+	destination_arrow.hide()
+	lock_marker = marker_line(hud, diamond)
+	lock_marker.hide()
 	touch_controls = TrialTouch.new()
 	touch_controls.ui = self
 	touch_controls.hide()
 	hud.add_child(touch_controls)
 	hud.visible = false
+
+func marker_line(parent: CanvasItem, points: PackedVector2Array) -> Line2D:
+	# A font-independent outline stays legible against steel, pale stone and sky.
+	var outline := Line2D.new()
+	outline.points = points
+	outline.width = 6
+	outline.default_color = Color("251b13")
+	outline.joint_mode = Line2D.LINE_JOINT_ROUND
+	outline.antialiased = true
+	parent.add_child(outline)
+	var ink := Line2D.new()
+	ink.points = points
+	ink.width = 2.5
+	ink.default_color = Color("ffe4a0")
+	ink.joint_mode = Line2D.LINE_JOINT_ROUND
+	ink.antialiased = true
+	outline.add_child(ink)
+	return outline
 
 func trial_layout(enabled: bool) -> void:
 	practice_cue.hide()
@@ -575,17 +601,21 @@ func track_destination(camera: Camera3D, point: Vector3, title: String) -> void:
 	var behind := camera.is_position_behind(point)
 	var at := center
 	if not behind: at = camera.unproject_position(point)
-	if not behind and safe.has_point(at):
-		destination_label.text = "◇ " + title
-	else:
+	var on_screen := not behind and safe.has_point(at)
+	destination_label.text = title
+	destination_diamond.visible = on_screen
+	destination_arrow.visible = not on_screen
+	if not on_screen:
 		var right := camera.to_local(point).x >= 0
 		if behind or at.x < safe.position.x or at.x > safe.end.x:
 			at = Vector2(safe.end.x if right else safe.position.x, center.y)
-			destination_label.text = title + " →" if right else "← " + title
+			destination_arrow.rotation = 0.0 if right else PI
+			destination_arrow.position = Vector2(destination_label.size.x - 6 if right else 6.0, destination_label.size.y * .5)
 		else:
 			var above := at.y < safe.position.y
 			at.y = safe.position.y if above else safe.end.y
-			destination_label.text = ("↑ " if above else "↓ ") + title
+			destination_arrow.rotation = -PI * .5 if above else PI * .5
+			destination_arrow.position = Vector2(destination_label.size.x * .5, -5.0 if above else destination_label.size.y + 5)
 	destination_label.position = at - destination_label.size * .5
 	destination_label.show()
 
@@ -629,14 +659,14 @@ func update_hud(actor: Fighter, nearby: Dictionary) -> void:
 		if absf(angle)>2.4: arrow="↓"
 		objective_text.text = objective.text+"\n"+arrow+"  %dm" % distance
 		interact_text.text = Preferences.label_for("interact")+" · "+nearby.name if not nearby.is_empty() else ""
-	lock_label.visible = is_instance_valid(actor.target)
-	if lock_label.visible:
-		var point = actor.target.get_global_transform_interpolated().origin+Vector3(0,1.25,0)
-		lock_label.visible=not actor.camera.is_position_behind(point)
-		if lock_label.visible:
-			var projected=actor.camera.unproject_position(point)
-			lock_label.visible=get_viewport().get_visible_rect().grow(-20).has_point(projected)
-			lock_label.position=projected-Vector2(15,24)
+	lock_marker.visible = is_instance_valid(actor.target)
+	if lock_marker.visible:
+		var point = actor.target.get_global_transform_interpolated().origin + Vector3(0,1.25,0)
+		lock_marker.visible = not actor.camera.is_position_behind(point)
+		if lock_marker.visible:
+			var projected = actor.camera.unproject_position(point)
+			lock_marker.visible = get_viewport().get_visible_rect().grow(-20).has_point(projected)
+			lock_marker.position = projected
 
 func _process(delta: float) -> void:
 	toast_timer = maxf(0,toast_timer-delta)
@@ -656,6 +686,7 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause") and not event.is_echo():
 		if mode == "play": show_pause()
 		elif mode in ["pause","journal"]: play()
+		elif mode == "duel_replays": show_dawn()
 		elif mode in ["archive","credits_info","shore_confirm","dawn"]: show_menu()
 		elif mode == "settings":
 			Preferences.save()
@@ -774,14 +805,17 @@ func show_trial_result(won: bool) -> void:
 	clear_overlay()
 	shade(.55)
 	var c = column(panel(overlay, Vector2(300,105), Vector2(680,510)), 13)
-	text(c, "WARDEN OVERCOME" if won else "RISE THROUGH THE ASH", 30, GOLD)
+	var victory_title := "ECHO OVERCOME" if world.passage.training() else "WARDEN OVERCOME"
+	text(c, victory_title if won else "RISE THROUGH THE ASH", 30, GOLD)
 	text(c, world.passage.entry().name, 18, GOLD)
-	var words = text(c, "The Warden lowers his blade. You can face him again here or return to your journey from the title." if won else world.duel.retry_tip(), 20)
+	var victory_text: String = world.passage.entry().after if world.passage.training() else "The Warden lowers his blade."
+	var words = text(c, victory_text if won else world.duel.retry_tip(), 20)
 	words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text(c, world.duel.summary(), 17)
 	if main.journey: text(c, "Your next attempt starts here with full health and draughts.", 16)
-	button(c, "Challenge the Warden again" if won else "Retry this encounter", main.restart_checkpoint).grab_focus()
+	button(c, "Fight this duel again" if won else "Retry this encounter", main.restart_checkpoint).grab_focus()
 	if not won: button(c, "Practice guard and dodge", main.practice_after_defeat)
+	if main.duel_replay: button(c, "Choose another duel", show_duel_replays)
 	button(c, "Return to title", show_menu)
 
 func show_dawn() -> void:
@@ -804,7 +838,26 @@ func show_dawn() -> void:
 	var price = text(c, "He remembers what Isha said on the stair. When he tries to hear her say it, there is only the wind from the road.", 19)
 	price.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	button(c, "Return to title", show_menu).grab_focus()
-	button(c, "Practice the Warden duel", func(): main.start_trial(TrialPassage.WARDEN, false))
+	button(c, "Revisit a duel", show_duel_replays)
+
+func show_duel_replays() -> void:
+	if Session.shore.milestone != ShoreProgress.DAWN: return
+	mode = "duel_replays"
+	Session.running = false
+	hud.hide()
+	clear_overlay()
+	shade(.55)
+	var c = column(panel(overlay, Vector2(295, 92), Vector2(690, 535)), 13)
+	text(c, "THE COUNTING SHORE", 16, GOLD)
+	text(c, "Revisit a duel", 32)
+	var note = text(c, "Choose an opponent. Each duel begins with full health and draughts. Your journey is saved at dawn.", 19)
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var skills := ["Find your reach", "Guard and dodge", "Read the two-cut chain", "Face both phases"]
+	for stage in TrialPassage.ENCOUNTERS.size():
+		var name_text: String = TrialPassage.ENCOUNTERS[stage].name.capitalize()
+		var choice = button(c, name_text + " · " + skills[stage], main.start_duel_replay.bind(stage))
+		if stage == 0: choice.grab_focus()
+	button(c, "Return to dawn", show_dawn)
 
 func show_trial_briefing() -> void:
 	mode="trial_briefing"
