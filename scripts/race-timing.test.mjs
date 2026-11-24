@@ -25,7 +25,7 @@ test("all legal routes pass both sector marks in the same order", () => {
     assert.equal(finish, 0);
     for (const gate of [first, second]) {
       for (const cut of map.shortcuts) {
-        assert(gate <= cut.from * gatesPerSegment || gate > cut.to * gatesPerSegment, map.id + " " + cut.label);
+        assert(gate < cut.from * gatesPerSegment || gate > cut.to * gatesPerSegment, map.id + " " + cut.label);
       }
     }
   }
@@ -50,6 +50,24 @@ test("a complete circuit stores all nine cumulative stamps and compares matching
   assert.equal(rematch.latest.delta,-1);
   assert.equal(rematch.finish(),null);
   assert.deepEqual(raceRecord(world.map.id,"race","medium"),stamps.map(t => t*1000));
+});
+
+test("moving a sector off the Container Cut junction preserves the old lap and compares equivalent splits", () => {
+  const world = circuit({...maps.find(map => map.id === "dock"), id:"dock-legacy"});
+  const old = [10000,21000,36000];
+  storage.setItem("nightshift-race-v1-dock-legacy-sprint-medium", JSON.stringify(old));
+  const timing = new RaceTiming(world, "sprint", "medium");
+  assert(sectorGates(world, true).includes(22));
+  assert(!timing.gates.includes(22));
+  assert.equal(timing.best, 36000);
+  assert.equal(timing.reference, null);
+  for (const [i, t] of [13,26,40].entries()) timing.gate(timing.gates[i], t);
+  assert.equal(timing.latest.delta, null);
+  assert.equal(timing.finish().best, 36);
+  const again = new RaceTiming(world, "sprint", "medium");
+  again.gate(again.gates[0], 12);
+  assert.equal(again.latest.delta, -1);
+  assert.deepEqual(raceRecord("dock-legacy", "sprint", "medium"), old);
 });
 
 test("invalid and slower sprint records leave a usable class best", () => {

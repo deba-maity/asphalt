@@ -2,7 +2,7 @@ import { storage } from "./storage.js";
 
 // Place timing gates near thirds of the driven distance. A legal shortcut
 // must pass the same timing points as a car following the main circuit.
-export function sectorGates(world) {
+export function sectorGates(world, includeEntries = false) {
   const count = world.route.length;
   const stride = world.samples.length / count;
   const eligible = [];
@@ -11,7 +11,8 @@ export function sectorGates(world) {
       const from = world.authorSegmentToRouteIndex(road.from);
       const to = world.authorSegmentToRouteIndex(road.to);
       const offset = (gate - from + count) % count;
-      return offset > 0 && offset <= (to - from + count) % count;
+      // At a fork, cars can turn across the stripe sideways without crossing its timing plane.
+      return (offset > 0 || !includeEntries) && offset <= (to - from + count) % count;
     });
     if (!bypassed) eligible.push(gate);
   }
@@ -32,8 +33,12 @@ function recordKey(district, mode, difficulty) {
 
 export function raceRecord(district, mode, difficulty) {
   if (mode !== "race" && mode !== "sprint") return null;
+  return readSplits(recordKey(district, mode, difficulty), mode);
+}
+
+function readSplits(key, mode) {
   try {
-    const splits = JSON.parse(storage.getItem(recordKey(district, mode, difficulty)));
+    const splits = JSON.parse(storage.getItem(key));
     if (!Array.isArray(splits) || splits.length !== (mode === "race" ? 9 : 3)) return null;
     return splits.every((stamp, i) => Number.isSafeInteger(stamp) && stamp > (splits[i - 1] ?? 0)) ? splits : null;
   } catch { return null; }
@@ -45,7 +50,13 @@ export class RaceTiming {
     this.mode = mode;
     this.difficulty = difficulty;
     this.gates = sectorGates(world);
-    this.reference = raceRecord(this.district, mode, difficulty);
+    const overall = raceRecord(this.district, mode, difficulty);
+    this.best = overall?.at(-1) ?? null;
+    this.sectorKey = recordKey(this.district, mode, difficulty) + "-sectors-" + this.gates.join(".");
+    this.reference = readSplits(this.sectorKey, mode);
+    if (!this.reference && overall && sectorGates(world, true).join(".") === this.gates.join(".")) {
+      this.reference = overall;
+    }
     this.splits = [];
     this.latest = null;
   }
@@ -70,7 +81,10 @@ export class RaceTiming {
     const previous = record?.at(-1);
     const total = this.splits.at(-1);
     const improved = previous == null || total < previous;
-    if (improved) storage.setItem(recordKey(this.district, this.mode, this.difficulty), JSON.stringify(this.splits));
+    const savedSectors = readSplits(this.sectorKey, this.mode) ?? this.reference;
+    const encoded = JSON.stringify(this.splits);
+    if (!savedSectors || total < savedSectors.at(-1)) storage.setItem(this.sectorKey, encoded);
+    if (improved) storage.setItem(recordKey(this.district, this.mode, this.difficulty), encoded);
     const sectors = this.splits.map((stamp, i) => (stamp - (this.splits[i - 1] ?? 0)) / 1000);
     const rows = [];
     for (let i = 0; i < sectors.length; i += 3) rows.push(sectors.slice(i, i + 3));

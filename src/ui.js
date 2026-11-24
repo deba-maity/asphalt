@@ -643,11 +643,11 @@ export class UI {
     if (s.raceTiming) {
       const sector = s.raceTiming.latest;
       const recent = sector && s.time - sector.at < 5;
-      pace.hidden = !recent && !s.raceTiming.reference;
+      pace.hidden = !recent && s.raceTiming.best == null;
       pace.dataset.ahead = recent && sector.delta != null ? String(sector.delta < 0) : "";
       pace.textContent = recent
         ? "S" + sector.sector + " " + time(sector.duration) + (sector.delta == null ? "" : " · " + signedSeconds(sector.delta))
-        : s.raceTiming.reference ? "BEST " + time(s.raceTiming.reference.at(-1) / 1000) : "";
+        : s.raceTiming.best != null ? "BEST " + time(s.raceTiming.best / 1000) : "";
     }
     if (this.lapTarget) {
       pace.hidden = false;
