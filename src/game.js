@@ -136,6 +136,7 @@ export class Game {
       this.applyRenderScale();
 
       this.renderer.setSize(innerWidth, innerHeight);
+      if (this.running && this.paused) this.renderScene();
     };
 
     addEventListener("resize", this.resize);
@@ -759,8 +760,9 @@ export class Game {
     if (!this.renderer) return;
 
     const profile = QUALITY[this.qualityMode];
-    this.renderer.setPixelRatio(pixelRatioFor(innerWidth, innerHeight,
-      devicePixelRatio || 1, this.renderScale, profile.pixels, profile.height));
+    const ratio = pixelRatioFor(innerWidth, innerHeight, devicePixelRatio || 1,
+      this.renderScale, profile.pixels, profile.height);
+    if (ratio !== this.renderer.getPixelRatio()) this.renderer.setPixelRatio(ratio);
   }
 
   applyQuality(mode) {
@@ -798,7 +800,6 @@ export class Game {
       this.renderScale > this.minRenderScale
     ) {
       this.renderScale = Math.max(this.minRenderScale, this.renderScale - 0.06);
-      this.applyRenderScale();
     }
   }
 
@@ -1538,6 +1539,8 @@ export class Game {
   }
 
   renderScene() {
+    // Resizing clears WebGL's drawing buffer. Paint the road in the same frame.
+    this.applyRenderScale();
     this.renderer.render(this.scene, this.camera);
   }
 

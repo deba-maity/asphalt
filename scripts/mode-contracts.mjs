@@ -21,7 +21,35 @@ try {
     const {Raycaster, Vector3}=await import('/node_modules/three/build/three.module.js');
     const {game:g,ui}=window.__nightshift;const results=[];
     const check=(condition,label)=>{if(!condition)throw Error(label);};
+    const renderFrame=g.frame.bind(g);
     g.clearPreview();g.mountPreview=()=>{};g.frame=()=>{};g.audio.setEnabled(false);
+    // A scale reduction on slow hardware must leave the finished WebGL image on screen.
+    ui.map=maps[0]; ui.mode=modes[0]; ui.start();
+    g.phase='play'; g.applyQuality('battery');
+    const gl=g.renderer.getContext();
+    const initialWidth=gl.drawingBufferWidth;
+    const initialScale=g.renderScale;
+    function checkRaceImage(message) {
+      const sample=new Uint8Array(4*4*4);
+      gl.readPixels(Math.floor(gl.drawingBufferWidth/2), Math.floor(gl.drawingBufferHeight/2),
+        4,4,gl.RGBA,gl.UNSIGNED_BYTE,sample);
+      check(sample.some((value,index)=>index%4!==3 && value>0),message);
+    }
+    function drawAndCheck(stamp) {
+      renderFrame(stamp);
+      cancelAnimationFrame(g.animationFrame);
+      checkRaceImage('An adaptive render-scale change cleared the finished race image');
+    }
+    g.qualityTimer=3; g.frameCost=100;
+    const stamp=performance.now();
+    drawAndCheck(stamp);
+    check(g.renderScale<initialScale,'The slow frame requests a lower resolution');
+    drawAndCheck(stamp+100);
+    check(gl.drawingBufferWidth<initialWidth,'The next race frame uses the smaller drawing buffer');
+    g.togglePause();
+    g.resize();
+    checkRaceImage('The paused race stays visible when the viewport resizes');
+    ui.exitToHome();
     for(const map of maps)for(const mode of modes){
       ui.map=map;ui.mode=mode;ui.start();g.phase='play';g.elapsed=30;
       const competitive=['race','sprint'].includes(mode.id),required=mode.id==='race'?3:1;
