@@ -48,6 +48,22 @@ try{
   assert((await fetch(new URL('assets/touring/LICENSE.txt', url))).ok);
   assert.deepEqual(failed,[]);assert.deepEqual(errors,[]);await page.close();
   await verifyControllerMenu(browser, url.href);
+  const invited = await browser.newPage({viewport:{width:844,height:390},hasTouch:true,isMobile:true});
+  const inviteAddress = new URL(url);
+  inviteAddress.hash = 'lap=coast.bike0.10238';
+  await invited.goto(inviteAddress.href);
+  await invited.getByRole('heading', {name:'Beat 01:42.38'}).waitFor();
+  assert.match(await invited.locator('.lap-invite').innerText(), /Volt Arrow/);
+  await invited.locator('[data-action="take-challenge"]').tap();
+  await invited.waitForFunction(()=>document.querySelector('#pace-note')?.textContent==='TARGET 01:42.38');
+  await invited.getByRole('button', {name:'Pause race'}).tap();
+  await invited.getByRole('button', {name:'QUIT TO MENU'}).tap();
+  await invited.locator('[data-action="modes"]').waitFor();
+  assert.equal(new URL(invited.url()).hash, '');
+  inviteAddress.hash = 'lap=unknown.car0.700';
+  await invited.goto(inviteAddress.href);
+  await invited.locator('[data-action="modes"]').waitFor();
+  await invited.close();
   const blocked=await browser.newPage({viewport:{width:960,height:600}});
   await blocked.addInitScript(()=>Object.defineProperty(window,'localStorage',{get(){throw new DOMException('Storage is disabled','SecurityError');}}));
   await blocked.addInitScript(()=>Object.defineProperty(navigator,'getGamepads',{value(){throw new DOMException('Disabled','SecurityError');}}));
@@ -74,5 +90,5 @@ try{
     failure.getByRole('button', {name: 'RETRY'}).click()
   ]);
   await failure.waitFor();
-  console.log('PRODUCTION PASS: bundled assets, menu/race/pause/return, credits, controller menu and pause, fleet filters, private debug hooks, blocked browser APIs and unavailable WebGL');
+  console.log('PRODUCTION PASS: bundled assets, menu/race/pause/return, credits, controller menu and pause, fleet filters, shared lap launch and return, private debug hooks, blocked browser APIs and unavailable WebGL');
 }finally{await browser?.close();server?.kill();}

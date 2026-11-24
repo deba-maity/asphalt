@@ -1,3 +1,4 @@
+import { lapChallengeLink, readLapChallenge } from "./lap-challenge.js";
 import { shortcutMarkerIndex } from "./shortcut-guide.js";
 import { bindMenuGamepad } from "./menu-gamepad.js";
 import { storage } from "./storage.js";
@@ -76,11 +77,13 @@ export class UI {
     this.color = this.vehicle.color;
     this.networked = false;
     this.playerName = "Driver";
+    this.pagesHosted = location.hostname.endsWith(".github.io");
+    this.lapTarget = null;
     this.mapBack = "modes";
     const savedDifficulty = storage.getItem("nightshift-difficulty");
     this.difficulty = ["easy", "medium", "hard"].includes(savedDifficulty) ? savedDifficulty : "medium";
     this.vehicleFilter = "all";
-    this.root.innerHTML = `<main id="menu-layer"></main><section id="hud" hidden><div class="hud-vignette"></div><div class="hud-top"><div class="wordmark small">NIGHTSHIFT<span>//</span></div><div class="objective-stack"><span id="objective">RACE // 3 LAPS</span><i class="route-progress"><b id="route-progress"></b></i></div><div class="race-tools"><div class="timing-stack"><div id="timer">00:00.00</div><span id="pace-note" hidden></span></div><button class="pause-button" data-action="pause" aria-label="Pause race">Ⅱ</button></div></div><div id="countdown"></div><div id="event-feed"><b id="drive-state">HOLD THE LINE</b><span id="drive-detail">CHECKPOINT LINKED</span></div><div class="hud-bottom"><div class="mini-wrap"><canvas id="minimap" width="170" height="170"></canvas><span>ROUTE LINK</span><b>MAP</b></div><div class="readouts"><div class="speed-pod"><small>SPEED</small><strong id="speed">000</strong><em>KM/H</em></div><div class="meter"><label>NITRO CORE <b id="nitro-text">100</b></label><i><b id="nitro"></b></i><label class="armor">INTEGRITY <b id="health-text">100</b></label><i class="health"><b id="health"></b></i></div></div><div class="race-state"><b id="position">LAP 1 / 3</b><span id="checkpoint">CHECKPOINT 1</span><div id="wanted"></div></div></div><div class="touch-controls" aria-label="Driving controls"><div class="touch-steering"><button data-drive="KeyA" aria-label="Steer left">❮</button><button data-drive="KeyD" aria-label="Steer right">❯</button></div><div class="touch-weapons"><button data-drive="KeyF" aria-label="Fire gun">FIRE</button><button data-drive="KeyR" aria-label="Launch rocket">ROCKET</button></div><div class="touch-pedals"><button class="touch-nitro" data-drive="ShiftLeft" aria-label="Use nitro">N₂O</button><button data-drive="Space" aria-label="Drift">DRIFT</button><button data-drive="KeyS" aria-label="Brake and reverse">BRAKE</button><button class="touch-gas" data-drive="KeyW" aria-label="Accelerate">GAS</button></div></div></section><div id="toast"></div>`;
+    this.root.innerHTML = `<main id="menu-layer"></main><section id="hud" hidden><div class="hud-vignette"></div><div class="hud-top"><div class="wordmark small">NIGHTSHIFT<span>//</span></div><div class="objective-stack"><span id="objective">RACE // 3 LAPS</span><i class="route-progress"><b id="route-progress"></b></i></div><div class="race-tools"><div class="timing-stack"><div id="timer">00:00.00</div><span id="pace-note" hidden></span></div><button class="pause-button" data-action="pause" aria-label="Pause race">Ⅱ</button></div></div><div id="countdown"></div><div id="event-feed"><b id="drive-state">HOLD THE LINE</b><span id="drive-detail">CHECKPOINT LINKED</span></div><div class="hud-bottom"><div class="mini-wrap"><canvas id="minimap" width="170" height="170"></canvas><span>ROUTE LINK</span><b>MAP</b></div><div class="readouts"><div class="speed-pod"><small>SPEED</small><strong id="speed">000</strong><em>KM/H</em></div><div class="meter"><label>NITRO CORE <b id="nitro-text">100</b></label><i><b id="nitro"></b></i><label class="armor">INTEGRITY <b id="health-text">100</b></label><i class="health"><b id="health"></b></i></div></div><div class="race-state"><b id="position">LAP 1 / 3</b><span id="checkpoint">CHECKPOINT 1</span><div id="wanted"></div></div></div><div class="touch-controls" aria-label="Driving controls"><div class="touch-steering"><button data-drive="KeyA" aria-label="Steer left">❮</button><button data-drive="KeyD" aria-label="Steer right">❯</button></div><div class="touch-weapons"><button data-drive="KeyF" aria-label="Fire gun">FIRE</button><button data-drive="KeyR" aria-label="Launch rocket">ROCKET</button></div><div class="touch-pedals"><button class="touch-nitro" data-drive="ShiftLeft" aria-label="Use nitro">N₂O</button><button data-drive="Space" aria-label="Drift">DRIFT</button><button data-drive="KeyS" aria-label="Brake and reverse">BRAKE</button><button class="touch-gas" data-drive="KeyW" aria-label="Accelerate">GAS</button></div></div></section><div id="toast" role="status" aria-live="polite"></div>`;
     this.layer = this.root.querySelector("#menu-layer");
     this.hud = this.root.querySelector("#hud");
     this.mini = this.root.querySelector("#minimap");
@@ -88,7 +91,12 @@ export class UI {
     this.bindDriving();
     this.homeObserver = new MutationObserver(() => this.installHomeVehicle());
     this.homeObserver.observe(this.layer, { childList: true });
-    this.showHome();
+    this.openEntry();
+    window.addEventListener("hashchange", () => {
+      if (this.game.running) {
+        if (readLapChallenge(location.hash)) this.toast("New challenge ready when you return to the menu");
+      } else this.openEntry();
+    });
     bindMenuGamepad(this.root, this.game);
   }
 
@@ -118,6 +126,18 @@ export class UI {
 
   action(action, data) {
     if (action === "pause") this.game.togglePause();
+    if (action === "take-challenge") {
+      const invite = readLapChallenge(location.hash);
+      if (!invite) { this.exitToHome(); return; }
+      this.lapTarget = invite;
+      this.mode = modes.find(mode => mode.id === "time");
+      this.map = invite.map;
+      this.vehicle = invite.vehicle;
+      this.color = invite.vehicle.color;
+      this.networked = false;
+      this.start();
+    }
+    if (action === "copy-lap") this.copyChallenge();
     if (action === "quality") {
       this.game.applyQuality(data.id);
       this.showSettings();
@@ -180,13 +200,40 @@ export class UI {
     this.layer.innerHTML = `<section class="screen panel-screen"><button class="back" data-action="${backAction}">← BACK</button><div class="panel-head"><p>${kicker}</p><h1>${title}</h1></div>${body}</section>`;
   }
 
+  openEntry() {
+    const invite = readLapChallenge(location.hash);
+    if (!invite) { this.showHome(); return; }
+    this.network.close();
+    this.networked = false;
+    this.game.clearPreview();
+    this.hud.hidden = true;
+    this.shell("TIME TRIAL", "Beat " + time(invite.ticks / 100),
+      `<div class="lap-invite"><h2>${esc(invite.map.name)}</h2><p>One lap in the ${esc(invite.vehicle.name)}. Cross the finish line before the target time.</p><button class="primary" data-action="take-challenge">RACE THIS LAP <i>→</i></button></div>`);
+  }
+
+  async copyChallenge() {
+    const field = this.layer.querySelector("#lap-link");
+    if (!field) return;
+    try {
+      await navigator.clipboard.writeText(field.value);
+      if (field.isConnected) this.toast("Challenge link copied");
+    } catch {
+      if (!field.isConnected) return;
+      field.hidden = false;
+      field.focus();
+      field.select();
+      this.toast("Copy the selected challenge link");
+    }
+  }
+
   showHome() {
+    this.lapTarget = null;
     this.network.close();
     this.networked=false;
     this.game.clearPreview();
     this.root.querySelector(".pause-overlay")?.remove();
     this.hud.hidden = true;
-    this.layer.innerHTML = `<section class="home screen"><div class="home-topline"><a class="studio-mark" href="#" aria-label="Nightshift home">N<span>//</span></a><span>THE STREETS ARE YOURS</span><button data-action="settings" aria-label="Open settings">⚙ <span>SETTINGS</span></button></div><div class="home-car"><div class="silhouette"></div></div><div class="home-copy"><p class="eyebrow"><i></i> AFTER HOURS. NO LIMITS.</p><h1 class="wordmark">NIGHT<br>SHIFT<span>//</span></h1><p class="tagline">Chase the horizon.<br><b>Lose the pursuit.</b></p><div class="menu-actions"><button class="primary" data-action="modes">HIT THE STREETS <i>↗</i></button><div class="home-secondary"><button data-action="garage">GARAGE <small>${vehicles.length} RIDES</small></button><button data-action="lobby">CREW UP <small>LOCAL / LAN</small></button></div></div></div><div class="hero-copy"><span>IN YOUR GARAGE / 01</span><strong>${esc(this.vehicle.name)}</strong><small>${esc(this.vehicle.type).toUpperCase()} <b>↗</b></small></div><div class="home-data"><span><b>04</b> DISTINCT DISTRICTS</span><span><b>${vehicles.length}</b> WAYS TO ESCAPE</span><span class="power-label"><i></i> ${QUALITY_LABELS[this.game.qualityMode]}</span></div><span class="home-coordinate">40°43′ N &nbsp; 73°59′ W &nbsp; // &nbsp; MIDNIGHT RUN</span></section>`;
+    this.layer.innerHTML = `<section class="home screen"><div class="home-topline"><a class="studio-mark" href="#" aria-label="Nightshift home">N<span>//</span></a><span>THE STREETS ARE YOURS</span><button data-action="settings" aria-label="Open settings">⚙ <span>SETTINGS</span></button></div><div class="home-car"><div class="silhouette"></div></div><div class="home-copy"><p class="eyebrow"><i></i> AFTER HOURS. NO LIMITS.</p><h1 class="wordmark">NIGHT<br>SHIFT<span>//</span></h1><p class="tagline">Chase the horizon.<br><b>Lose the pursuit.</b></p><div class="menu-actions"><button class="primary" data-action="modes">HIT THE STREETS <i>↗</i></button><div class="home-secondary"><button data-action="garage">GARAGE <small>${vehicles.length} RIDES</small></button><button data-action="lobby">${this.pagesHosted ? "RACE A FRIEND <small>TIME TRIAL</small>" : "CREW UP <small>LOCAL / LAN</small>"}</button></div></div></div><div class="hero-copy"><span>IN YOUR GARAGE / 01</span><strong>${esc(this.vehicle.name)}</strong><small>${esc(this.vehicle.type).toUpperCase()} <b>↗</b></small></div><div class="home-data"><span><b>04</b> DISTINCT DISTRICTS</span><span><b>${vehicles.length}</b> WAYS TO ESCAPE</span><span class="power-label"><i></i> ${QUALITY_LABELS[this.game.qualityMode]}</span></div><span class="home-coordinate">40°43′ N &nbsp; 73°59′ W &nbsp; // &nbsp; MIDNIGHT RUN</span></section>`;
   }
 
   showModes() {
@@ -319,6 +366,11 @@ export class UI {
 
   showLobby() {
     this.game.clearPreview();
+    if (this.pagesHosted) {
+      this.shell("TIME TRIAL", "Race a friend",
+        '<div class="lap-invite"><p>Finish one lap and copy the challenge link from your result. Your friend can open it to race the same district and vehicle.</p><button class="primary" data-action="choose-mode" data-id="time">SET A LAP TIME <i>→</i></button></div>');
+      return;
+    }
     this.shell(
       "LOCAL NETWORK // UP TO 4 DRIVERS",
       "Start a crew",
@@ -432,6 +484,12 @@ export class UI {
     if (this.networked) this.game.setRemotePlayers(this.network.players);
   }
   exitToHome() {
+    const leavingInvite = this.layer.querySelector('[data-action="take-challenge"]') || this.lapTarget?.hash === location.hash;
+    if (leavingInvite) {
+      try { history.replaceState(history.state, "", location.pathname + location.search); }
+      catch { /* The menu still works in embeds that restrict browser history. */ }
+    }
+    this.lapTarget = null;
     this.routeMap = null;
     this.releaseDriving?.();
     this.game.stop();
@@ -439,7 +497,8 @@ export class UI {
     this.network.close();
     this.networked = false;
     document.exitFullscreen?.().catch(() => {});
-    this.showHome();
+    if (leavingInvite) this.showHome();
+    else this.openEntry();
   }
   showSettings() {
     this.game.clearPreview();
@@ -590,6 +649,15 @@ export class UI {
         ? "S" + sector.sector + " " + time(sector.duration) + (sector.delta == null ? "" : " · " + signedSeconds(sector.delta))
         : s.raceTiming.reference ? "BEST " + time(s.raceTiming.reference.at(-1) / 1000) : "";
     }
+    if (this.lapTarget) {
+      pace.hidden = false;
+      if (showSplit) {
+        pace.textContent = "G" + split.index + " " + signedSeconds(split.delta) + " VS YOUR BEST";
+      } else {
+        pace.dataset.ahead = "";
+        pace.textContent = "TARGET " + time(this.lapTarget.ticks / 100);
+      }
+    }
     this.root.querySelector("#position").textContent =
       racing
         ? `${s.rank} / ${s.fieldSize} • LAP ${Math.min(s.lap, laps)} / ${laps}`
@@ -729,6 +797,16 @@ export class UI {
         ? "LAP " + entry.lap : index === 0 ? time(entry.time) : "+" + (entry.time - data.standings[0].time).toFixed(2) + "s"}</span></li>`).join("")}</ol>` : "";
     const laps = !data.race && data.laps?.length > 1 ? `<div class="lap-breakdown" aria-label="Lap times">${data.laps.map((value, i) =>
       `<span>LAP ${i + 1} <b>${time(value)}</b></span>`).join("")}</div>` : "";
+    const completedTrial = this.mode.id === "time" && !this.networked && data.laps?.length === 1;
+    const link = completedTrial ? lapChallengeLink(location.href, this.map.id, this.vehicle.id, data.time) : null;
+    const copyButton = link ? '<button data-action="copy-lap">COPY CHALLENGE LINK</button>' : "";
+    const copyField = link ? `<input id="lap-link" aria-label="Lap challenge link" readonly hidden value="${esc(link)}">` : "";
+    let challengeResult = "";
+    if (completedTrial && this.lapTarget) {
+      const delta = Math.round(data.time * 100) - this.lapTarget.ticks;
+      const result = delta === 0 ? "TARGET MATCHED" : time(Math.abs(delta) / 100) + (delta < 0 ? " UNDER TARGET" : " OVER TARGET");
+      challengeResult = `<strong class="challenge-margin">${result} · TARGET ${time(this.lapTarget.ticks / 100)}</strong>`;
+    }
     const pursuit = data.pursuit ? `<dl class="pursuit-result"><div><dt>Peak heat</dt><dd>${data.pursuit.peak} / 5</dd></div><div><dt>Breakaways</dt><dd>${data.pursuit.breakaways}</dd></div><div><dt>Car health</dt><dd>${data.pursuit.health}%</dd></div></dl>` : "";
     let sectorSheet = "";
     if (data.race) {
@@ -738,7 +816,7 @@ export class UI {
       });
       sectorSheet = `<details class="sector-sheet"><summary>Sector times</summary><table aria-label="Sector and lap times"><thead><tr><th>Lap</th><th>S1</th><th>S2</th><th>S3</th><th>Total</th></tr></thead><tbody>${rows.join("")}</tbody></table></details>`;
     }
-    this.layer.innerHTML = `<section class="result screen"><p>${esc(this.map.name)}</p><h1>${esc(data.title)}</h1><div class="result-time">${time(data.time)}</div><span>${data.best ? `${data.race?.improved ? "NEW BEST" : "BEST"} ${time(data.best)} // ` : ""}${esc(data.mode).toUpperCase()}${data.delta != null ? " // " + signedSeconds(data.delta) + " VS BEST" : ""}</span>${standings}${laps}${sectorSheet}${pursuit}<div><button class="primary" data-action="rematch">RUN IT BACK <i>→</i></button><button data-action="home">MAIN MENU</button></div></section>`;
+    this.layer.innerHTML = `<section class="result screen"><p>${esc(this.map.name)}</p><h1>${esc(data.title)}</h1><div class="result-time">${time(data.time)}</div><span>${data.best ? `${data.race?.improved ? "NEW BEST" : "BEST"} ${time(data.best)} // ` : ""}${esc(data.mode).toUpperCase()}${data.delta != null ? " // " + signedSeconds(data.delta) + " VS BEST" : ""}</span>${challengeResult}${standings}${laps}${sectorSheet}${pursuit}${copyField}<div><button class="primary" data-action="rematch">RUN IT BACK <i>→</i></button>${copyButton}<button data-action="home">MAIN MENU</button></div></section>`;
   }
   pause(paused) {
     this.releaseDriving?.();

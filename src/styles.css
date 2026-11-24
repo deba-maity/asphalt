@@ -4392,3 +4392,10 @@ html.reduced-motion *, html.reduced-motion *::before, html.reduced-motion *::aft
 }
 
 .controller-nav :is(button, select, input, summary, a):focus { outline: 3px solid #baff61; outline-offset: -3px; }
+.lap-invite { max-width: 34rem; margin: 1rem 0; }
+.lap-invite h2 { font-size: clamp(1.25rem, 4vw, 2rem); margin: 0 0 .5rem; }
+.lap-invite p { color: #d2d9dc; line-height: 1.5; margin: 0 0 1.2rem; }
+.lap-invite .primary { padding: .9rem 1.4rem; }
+.challenge-margin { color: #d4ff6a; font-size: .9rem; }
+#lap-link { width: min(32rem, 90%); padding: .65rem; color: #effff4; background: #101a20; border: 1px solid #60877c; }
+.result:has(#lap-link) > div:last-child { flex-wrap: wrap; justify-content: center; }

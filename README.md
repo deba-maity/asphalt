@@ -64,6 +64,8 @@ Touch controls support simultaneous steering and pedals. Use the left stick or D
 
 Fresh settings start in **Battery saver**: 30 FPS, at most 600,000 internal pixels and 600 pixels high. Balanced allows 60 FPS / 1,152,000 pixels / 900 high; High fidelity allows 60 FPS / 2,073,600 pixels / 1080 high. These are upper limits; screen size and automatic resolution reduction can lower them. Existing preferences are preserved. Lower rendering work can reduce power demand, but no laptop temperature reduction is claimed.
 
+On the public site, **Race a friend** starts a one-lap Time Trial. After finishing any solo Time Trial, use **Copy challenge link**. Opening it shows the target time, district and vehicle. A friend can race the same setup, compare their finish time and send their own challenge back.
+
 For LAN crews, run `npm run dev:lan` and give other players the host computer's local IP address and the same room code. The first connected driver is the host and chooses the route and mode in the crew lobby. Changing a vehicle returns to the same crew; Back leaves and disconnects. This is a casual LAN relay, not an authenticated public competitive service. A static `npm run preview` build does not include the lobby relay.
 
 ## Verification and assets
