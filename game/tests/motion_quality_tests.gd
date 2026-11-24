@@ -164,7 +164,8 @@ func run() -> void:
 	for point in cape.current: cloth_reset=cloth_reset and point.distance_to(hero.position)<2
 	check(cloth_reset,"Teleport resets cloth history without a stretched trail")
 	check(main.ui.toast_label.position.y+main.ui.toast_label.size.y<main.world.boss_panel.position.y,"Trial toast and boss bar do not overlap")
-	check(not main.ui.objective_panel.visible,"Trial uses the compact encounter HUD")
+	var instructions: Rect2 = main.ui.objective_panel.get_global_rect()
+	check(main.ui.objective_panel.is_visible_in_tree() and instructions.position.x > 840 and instructions.end.y < 355, "Encounter instructions fit above the right-hand combat controls")
 	var body_count=main.world.find_children("DroppedSword*","RigidBody3D",true,false).size()
 	hero.figure.drop_weapon(); hero.figure.drop_weapon(); hero.figure.animate(1.0/60,hero.model,0)
 	check(main.world.find_children("DroppedSword*","RigidBody3D",true,false).size()==body_count+1,"Defeat creates a physical dropped weapon")
