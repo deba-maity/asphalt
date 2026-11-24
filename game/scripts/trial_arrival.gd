@@ -9,7 +9,7 @@ const LESSONS = [
 	["The Counting Shore", "Walk to the ember in the stone ring.", "{move} to walk. {look} to look around."],
 	["Find your footing", "Focus on the waiting echo.", "{lock_on} to lock on. Stay within sight of the echo."],
 	["Find your reach", "Step close and land a light strike.", "{light} to strike. If your blade misses, take another step."],
-	["Raise your guard", "Hold guard until your stance settles.", "Hold {guard}. Release to recover stamina."],
+	["Raise your guard", "Settle into a guarding stance.", "Hold {guard}. Release to recover stamina."],
 	["Make room", "Roll clear of the echo.", "Use {dodge}. Hold a movement direction to choose where to roll."],
 	["The first echo", "The echo waits for your answer.", "Use {heavy} for a timing lesson, or begin the encounter when ready."]
 ]
@@ -18,7 +18,7 @@ const TOUCH_HINTS := [
 	"Drag the left pad to walk. Swipe the court to look around.",
 	"Tap Lock while the echo is in sight.",
 	"Move within sword's reach, then tap Strike.",
-	"Hold Guard until your stance settles.",
+	"Hold Guard. Release between blows to recover stamina.",
 	"Tap Roll. Hold the left pad to roll in that direction.",
 	"Tap Spar for a timing lesson, or Begin to face the first echo."
 ]
@@ -63,7 +63,7 @@ func reveal_echo() -> void:
 	world.enemies.append(world.warden)
 	nameplate = Label3D.new()
 	nameplate.text = "PRACTICE ECHO"
-	nameplate.font_size = 30
+	nameplate.font_size = 38
 	nameplate.pixel_size = .003
 	nameplate.outline_size = 7
 	nameplate.modulate = Color("c0e5d6")
@@ -87,8 +87,7 @@ func begin_sparring() -> void:
 	world.hero.target = world.warden
 	world.hero.model.stamina = 100
 	nameplate.text = "SPARRING ECHO"
-	world.ui.announce("READ THE BLADE")
-	world.ui.toast("The echo pulls its blows. You can leave practice at any time.", 3)
+	world.ui.clear_court_messages()
 	refresh_hud()
 
 func checkpoint() -> void:
@@ -149,10 +148,11 @@ func refresh_hud() -> void:
 	if step == Step.EMBER and near_ember():
 		ui.interact_text.text = "Tap Listen at the ember" if ui.touch_preferred else ui.play_prompt("{interact} · Listen to the ember")
 	elif sparring != null:
+		ui.status.text = "Safe practice · No damage"
 		ui.chapter_label.text = "READ THE BLADE"
 		ui.objective_text.text = sparring.OBJECTIVES[sparring.phase]
 		ui.tutorial.text = ui.play_prompt(sparring.HINTS[sparring.phase])
-		ui.interact_text.text = "Tap Begin to leave practice" if ui.touch_preferred else ui.play_prompt("{interact} · Begin encounter")
+		ui.interact_text.text = "" if ui.touch_preferred else ui.play_prompt("{interact} · Begin encounter")
 	elif step == Step.READY:
 		ui.interact_text.text = "Tap Begin to challenge the echo" if ui.touch_preferred else ui.play_prompt("{interact} · Challenge the first echo")
 

@@ -1,4 +1,4 @@
-"""Export the browser game with 1K scenery and full-resolution characters."""
+"""Export the browser game with texture sizes matched to their use on screen."""
 from __future__ import annotations
 
 import argparse
@@ -19,11 +19,17 @@ def export(godot: Path, output: Path) -> None:
         staging = Path(temporary)
         project = staging / "game"
         shutil.copytree(ROOT / "game", project, ignore=shutil.ignore_patterns(".godot"))
-        for preset in (project / "assets" / "court").rglob("*.import"):
+        court = project / "assets" / "court"
+        armor = project / "assets" / "performance" / "textures"
+        presets = list(court.rglob("*.import")) + list(armor.glob("*rough*.png.import"))
+        for preset in presets:
+            name = preset.name.lower()
+            surface_mask = name == "arm.jpg.import" or "_arm_" in name or "_rough_" in name
+            limit = 512 if preset.is_relative_to(court) and surface_mask else 1024
             contents = preset.read_text(encoding="utf-8")
             match = re.search(r"^process/size_limit=(\d+)$", contents, re.MULTILINE)
-            if match and (int(match[1]) == 0 or int(match[1]) > 1024):
-                contents = contents[:match.start(1)] + "1024" + contents[match.end(1):]
+            if match and (int(match[1]) == 0 or int(match[1]) > limit):
+                contents = contents[:match.start(1)] + str(limit) + contents[match.end(1):]
                 preset.write_text(contents, encoding="utf-8")
         release = staging / "release"
         release.mkdir()

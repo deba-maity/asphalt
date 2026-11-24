@@ -101,6 +101,8 @@ func test_touch_sparring() -> void:
 		if drill.opening and toward.length() < 1.8 and hero.model.can_begin():
 			tap_at(TrialTouch.BUTTONS.light[0])
 	hero.use_test_direction = false
+	await frames(2)
+	check(main.ui.practice_cue.visible and main.ui.practice_cue.text == "PRACTICE COMPLETE" and main.ui.threat_text.text.is_empty(), "A single high-contrast action cue marks a completed drill")
 	check(drill.phase == drill.Phase.COMPLETE and mentor.model.health == mentor.model.max_health, "A real counterstrike during recovery completes the drill without hurting the echo")
 	check(Session.shore.milestone == saved and court.duel.attacks_started == 0, "Practice keeps the saved lesson and battle statistics intact")
 	check(main.ui.touch_controls.actions() == ["begin", "pause"], "Touch offers an exit after the timing drill")
@@ -156,6 +158,7 @@ func test_touch_lesson() -> void:
 	await test_touch_sparring()
 	tap_at(TrialTouch.BUTTONS.begin[0])
 	await frames(6)
+	check(not main.ui.practice_cue.visible, "The practice prompt clears when actual combat begins")
 	check(main.world.arrival == null and main.world.passage.learned.has("rehearsal"), "Touch Begin starts a fresh fight and remembers the rehearsal")
 	await seconds(.3)
 	touch(1, forward, true)
@@ -206,6 +209,10 @@ func run() -> void:
 	var echo: Fighter = main.world.warden
 	check(not echo.visible and not echo.ai_enabled and main.world.enemies.is_empty(), "Arrival has no visible or targetable enemy")
 	check(trainee.camera.current and not main.world.boss_panel.visible, "Entering the shore restores the player camera and hides the boss bar")
+	check(main.ui.destination_label.visible and "EMBER" in main.ui.destination_label.text, "The quiet arrival marks the ember in the court")
+	var behind_left := trainee.camera.global_position + trainee.camera.global_basis.z * 4 - trainee.camera.global_basis.x * 2
+	main.ui.track_destination(trainee.camera, behind_left, "EMBER")
+	check(main.ui.destination_label.text.begins_with("←") and main.ui.destination_label.position.x >= 0, "A destination behind the left shoulder points back into view")
 	main.world.interact()
 	check(arrival.step==TrialArrival.Step.EMBER, "The ember must be approached")
 	trainee.use_test_direction=true
@@ -218,6 +225,7 @@ func run() -> void:
 	check(echo.visible and not echo.ai_enabled and arrival.step==TrialArrival.Step.LOCK, "Listening manifests a peaceful echo")
 	var waiting_at = echo.position
 	await seconds(6)
+	check(not main.ui.destination_label.visible, "Listening removes the destination marker during sword practice")
 	check(trainee.model.health==100 and echo.position.distance_to(waiting_at)<.1 and echo.model.swing_serial==0, "Waiting past the old attack timer never starts combat")
 	main.ui.show_pause()
 	main.ui.play()
@@ -413,6 +421,7 @@ func test_checkpoint_resume() -> void:
 	main.ui.show_menu()
 	button_named("Continue").pressed.emit()
 	await frames(4)
+	check(main.ui.announce_label.text.is_empty(), "A resumed safe lesson omits the combat chapter announcement")
 	check(main.world.arrival.step == TrialArrival.Step.STRIKE and main.player.target == main.world.warden and main.world.warden.visible and not main.world.warden.ai_enabled, "Continue restores the safe echo in reach at the correct lesson")
 	main.ui.show_trial_guide()
 	button_named("Skip practice").pressed.emit()

@@ -27,6 +27,9 @@ var dialogue_cancel: Button
 var dialogue_callback: Callable
 var dialogue_choice: bool = false
 var speaker_id: String = ""
+var practice_cue: Label
+var practice_cue_style: StyleBoxFlat
+var destination_label: Label
 var lock_label: Label
 var tutorial_timer: float = 0
 var theme: Theme
@@ -208,6 +211,23 @@ func build_hud() -> void:
 	threat_text.position=Vector2(360,225)
 	threat_text.size=Vector2(560,65)
 	threat_text.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	practice_cue = text(hud, "", 25, Color("fff9e7"))
+	practice_cue.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	practice_cue.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	practice_cue.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	practice_cue_style = StyleBoxFlat.new()
+	practice_cue_style.bg_color = Color("17201ef2")
+	practice_cue_style.set_border_width_all(2)
+	practice_cue_style.set_corner_radius_all(5)
+	practice_cue.add_theme_stylebox_override("normal", practice_cue_style)
+	practice_cue.hide()
+	destination_label = text(hud, "", 21, GOLD)
+	destination_label.size = Vector2(170, 29)
+	destination_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	destination_label.add_theme_constant_override("outline_size", 5)
+	destination_label.add_theme_color_override("font_outline_color", Color("201913"))
+	destination_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	destination_label.hide()
 	lock_label = text(hud,"◇",34,GOLD)
 	lock_label.visible = false
 	touch_controls = TrialTouch.new()
@@ -217,6 +237,8 @@ func build_hud() -> void:
 	hud.visible = false
 
 func trial_layout(enabled: bool) -> void:
+	practice_cue.hide()
+	destination_label.hide()
 	touch_controls.visible = enabled and touch_preferred
 	interact_text.text = ""
 	objective_panel.show()
@@ -523,6 +545,49 @@ func bar_style(color: Color) -> StyleBoxFlat:
 	s.bg_color = color
 	s.set_content_margin_all(0)
 	return s
+
+func clear_court_messages() -> void:
+	announce_label.text = ""
+	announce_timer = 0
+	toast_label.hide()
+	toast_timer = 0
+	threat_text.text = ""
+	interact_text.text = ""
+
+func show_practice_cue(value: String) -> void:
+	if value.is_empty():
+		practice_cue.hide()
+		return
+	if practice_cue.text != value:
+		practice_cue.text = value
+		var ink := Color("a5e1bb") if value in ["BLOCKED", "OPENING · STRIKE", "PRACTICE COMPLETE"] else Color("efbf78")
+		practice_cue_style.border_color = ink
+		var font := practice_cue.get_theme_font("font")
+		var width := font.get_string_size(value, HORIZONTAL_ALIGNMENT_LEFT, -1, practice_cue.get_theme_font_size("font_size")).x
+		practice_cue.size = Vector2(maxf(176, width + 36), 42)
+	practice_cue.position = Vector2((get_viewport().get_visible_rect().size.x - practice_cue.size.x) * .5, 246)
+	practice_cue.show()
+
+func track_destination(camera: Camera3D, point: Vector3, title: String) -> void:
+	var viewport_size := get_viewport().get_visible_rect().size
+	var safe := Rect2(Vector2(100, viewport_size.y * .27), Vector2(viewport_size.x - 200, viewport_size.y * .46))
+	var center := safe.get_center()
+	var behind := camera.is_position_behind(point)
+	var at := center
+	if not behind: at = camera.unproject_position(point)
+	if not behind and safe.has_point(at):
+		destination_label.text = "◇ " + title
+	else:
+		var right := camera.to_local(point).x >= 0
+		if behind or at.x < safe.position.x or at.x > safe.end.x:
+			at = Vector2(safe.end.x if right else safe.position.x, center.y)
+			destination_label.text = title + " →" if right else "← " + title
+		else:
+			var above := at.y < safe.position.y
+			at.y = safe.position.y if above else safe.end.y
+			destination_label.text = ("↑ " if above else "↓ ") + title
+	destination_label.position = at - destination_label.size * .5
+	destination_label.show()
 
 func announce(value: String) -> void:
 	announce_label.text = Preferences.prompt(value)

@@ -147,6 +147,7 @@ func enter_encounter(stage: int, trained: bool) -> void:
 	ui.threat_text.text = ""
 
 func begin_arrival() -> void:
+	ui.clear_court_messages()
 	arrival = TrialArrival.new()
 	arrival.world = self
 	add_child(arrival)
@@ -236,6 +237,8 @@ func _process(delta: float) -> void:
 	elapsed+=delta
 	Sound.context("zone_copper_stair",arrival == null and not won,ui.mode!="play",true)
 	if waystone != null and ui.mode == "play":
+		if near_waystone(): ui.destination_label.hide()
+		else: ui.track_destination(hero.camera, passage_target() + Vector3.UP * 1.15, "EMBER" if passage.training() else "NORTH GATE")
 		if north_gate.open and not crossing and hero.position.z < -12.7 and absf(hero.position.x) < 1.1:
 			crossing = true
 			call_deferred("cross_waystone")
@@ -245,13 +248,21 @@ func _process(delta: float) -> void:
 			refresh_waystone()
 		return
 	if arrival != null and ui.mode == "play":
+		if arrival.step == TrialArrival.Step.EMBER and not arrival.near_ember():
+			ui.track_destination(hero.camera, arrival.memorial.global_position + Vector3.UP * 1.15, "EMBER")
+		else: ui.destination_label.hide()
 		ui.update_hud(hero, {})
-		if arrival.sparring != null: ui.threat_text.text = arrival.sparring.cue()
+		if arrival.sparring != null:
+			ui.threat_text.text = ""
+			ui.show_practice_cue(arrival.sparring.cue())
+		else: ui.practice_cue.hide()
 		hud_text_time -= delta
 		if hud_text_time <= 0:
 			hud_text_time = .12
 			arrival.refresh_hud()
 		return
+	ui.destination_label.hide()
+	ui.practice_cue.hide()
 	if result_delay >= 0 and ui.mode == "play":
 		result_delay -= delta
 		if result_delay < 0:

@@ -58,7 +58,6 @@ func contact(defender: Fighter, attacker: Fighter) -> void:
 	world.foley.event("hit", defender.global_position)
 	phase = Phase.COMPLETE
 	opening = false
-	world.ui.announce("TIMING PRACTICED")
 	world.ui.toast("Keeper: Now you know when to answer.", 3)
 
 func drive(mentor: Fighter, delta: float) -> void:
