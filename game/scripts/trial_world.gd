@@ -330,6 +330,10 @@ func light_waystone() -> void:
 	ui.toast(passage.entry().after if passage.training() else "The north gate is open. Carry their names through.", 6)
 	refresh_waystone()
 
+func passage_target() -> Vector3:
+	if north_gate.open: return north_gate.route_target(hero.global_position, waystone.global_position)
+	return waystone.global_position
+
 func refresh_waystone() -> void:
 	ui.update_hud(hero, {})
 	boss_panel.hide()
@@ -338,7 +342,11 @@ func refresh_waystone() -> void:
 	var next_name := "the gate" if final_gate else str(TrialPassage.ENCOUNTERS[passage.stage + 1].name).capitalize()
 	ui.chapter_label.text = "THE ROAD TO DAWN" if final_gate else "A MOMENT AT THE EMBER"
 	ui.objective_panel.show()
-	ui.objective_text.text = ("Walk through the north gate." if final_gate else "Return to the ember for " + next_name + ".") + "\n" + ShoreEmber.bearing(hero, waystone.global_position)
+	var target := passage_target()
+	var instruction := "Return to the ember for " + next_name + "."
+	if final_gate:
+		instruction = "Walk through the north gate." if target.is_equal_approx(waystone.global_position) else "Follow the gold marks to the gate."
+	ui.objective_text.text = instruction + "\n" + ShoreEmber.bearing(hero, target)
 	ui.tutorial.text = ("Keeper: Speak their names when you reach the light." if final_gate else TrialPassage.ENCOUNTERS[passage.stage + 1].rest_hint)
 	ui.tutorial.show()
 	ui.tutorial.modulate.a = 1

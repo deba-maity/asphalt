@@ -221,10 +221,15 @@ func run() -> void:
 		await frames(2)
 		check(world.waystone != null and not world.crossing, "Using the waystone from across the court cannot advance")
 		if stage == TrialPassage.WARDEN:
-			world.hero.position = Vector3(0, .08, -9.4)
+			world.hero.position = Vector3(-8.83, .08, -5.1)
 			world.hero.use_test_direction = true
-			world.hero.test_direction = Vector3.FORWARD
-			await seconds(1.8)
+			check(world.passage_target().z > world.north_gate.position.z, "The bearing leads a player on the flank to the inner side of the gate")
+			for frame in 8 * Engine.physics_ticks_per_second:
+				await get_tree().physics_frame
+				if main.ui.mode == "dawn": break
+				var direction: Vector3 = world.passage_target() - world.hero.global_position
+				direction.y = 0
+				world.hero.test_direction = direction.normalized()
 			if world.hero.position.z >= -12.7:
 				print("Gate approach stopped at ", world.hero.position, " state=", world.hero.model.state, " playing=", world.can_play())
 				for i in world.hero.get_slide_collision_count():

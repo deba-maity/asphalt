@@ -106,7 +106,9 @@ func _process(delta: float) -> void:
 		peak_memory=maxi(peak_memory,memory)
 		if baseline_nodes==0 and elapsed>=180:
 			baseline_nodes=nodes; baseline_memory=memory
-		if baseline_nodes>0 and (nodes>baseline_nodes+12 or memory>baseline_memory+64*1024*1024): failures+=1
+		if baseline_nodes>0 and (nodes>baseline_nodes+12 or memory>baseline_memory+64*1024*1024):
+			failures += 1
+			failure_reasons.append("Court resources grew from %d nodes / %d bytes to %d nodes / %d bytes" % [baseline_nodes, baseline_memory, nodes, memory])
 		var record={"seconds":elapsed,"matches":matches,"actions":actions,"nodes":nodes,"memory":memory,"failures":failures,"pose_samples":pose_samples,"phase_two_samples":phase_two_samples,"advancing_swings":advancing_swings,"idle_checks":idle_checks,"training_samples":training_samples,"passage_calls":passage_calls,"dawn_crossings":dawn_crossings,"checkpoint_resumes":checkpoint_resumes}
 		records.append(record)
 		print("ENDURANCE ",JSON.stringify(record))
@@ -143,12 +145,15 @@ func progress_passage(elapsed: float) -> void:
 			checkpoint_resumes += 1
 	elif elapsed - between_since > 22:
 		failures += 1
-		if failure_reasons.size() < 8: failure_reasons.append("Could not reach the next encounter from stage " + str(main.trial_stage))
+		if failure_reasons.size() < 8:
+			var court: TrialWorld = main.world
+			var destination := str(court.passage_target()) if court.waystone != null else "waiting for passage"
+			failure_reasons.append("Stage %d: player %s, target %s, mode %s" % [main.trial_stage, court.hero.position, destination, main.ui.mode])
 		start_journey()
 	else:
 		var court: TrialWorld = main.world
 		if court.waystone != null:
-			var travel := court.waystone.position - court.hero.position
+			var travel := court.passage_target() - court.hero.global_position
 			travel.y = 0
 			court.hero.test_direction = travel.normalized()
 			if court.near_waystone(): court.interact()

@@ -44,11 +44,24 @@ func mark(earned: int) -> void:
 	for i in seals.size():
 		seals[i].material_override = lit if i < earned else unlit
 
+# A bearing straight to the exit from either flank runs into a stone jamb.
+# Lead walkers to the middle of the doorway before directing them through it.
+const APPROACH_DISTANCE := 3.15
+
+func route_target(walker: Vector3, exit: Vector3) -> Vector3:
+	if absf(walker.x - global_position.x) < .75: return exit
+	return to_global(Vector3(0, 0, APPROACH_DISTANCE))
+
 func unseal() -> void:
 	if open: return
 	open = true
 	closed_barrier.collision_layer = 0
 	mark(seals.size())
+	for z in [APPROACH_DISTANCE, 2.05, .95]:
+		for side in [-1, 1]:
+			var inlay := Figure.box(self, Vector3(.10, .024, .52), Vector3(side * .15, .045, z), Color.WHITE)
+			inlay.rotation.y = side * .57
+			inlay.material_override = lit
 	for i in leaves.size():
 		var angle := deg_to_rad(88 if i == 0 else -88)
 		if Preferences.reduced_effects: leaves[i].rotation.y = angle
