@@ -137,7 +137,7 @@ func run() -> void:
 	main.ui.play()
 	await seconds(.1)
 	check(world.duel.elapsed>paused_time,"Duel timing resumes after pause")
-	check(world.boss_panel.get_global_rect().end.y<=main.ui.tutorial.position.y,"Composure HUD leaves the controls unobstructed")
+	check(not world.boss_panel.get_global_rect().intersects(main.ui.tutorial.get_global_rect()),"Composure HUD leaves the controls unobstructed")
 	main.ui.show_trial_guide()
 	await seconds(.1)
 	var within=true
