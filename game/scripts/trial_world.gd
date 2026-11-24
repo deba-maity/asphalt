@@ -311,6 +311,14 @@ func interact() -> void:
 func near_waystone() -> bool:
 	return waystone != null and hero.position.distance_to(waystone.position) < (2.35 if passage.training() else 1.35)
 
+func resume_open_gate() -> void:
+	won = true
+	duel.finished = true
+	warden.model.health = 0
+	warden.model.state = "dead"
+	light_waystone()
+	ui.announce("THE ROAD TO DAWN")
+
 func light_waystone() -> void:
 	hero.target = null
 	warden.hide()
@@ -360,7 +368,9 @@ func cross_waystone() -> void:
 		crossing = false
 		return
 	if passage.training(): ui.main.enter_next_echo(passage.stage + 1)
-	else: ui.show_dawn()
+	else:
+		if ui.main.journey: Session.shore.remember(ShoreProgress.DAWN, ui.main.trained_on_shore)
+		ui.show_dawn()
 
 func save_current() -> void:
 	# Shore checkpoints are recorded when a lesson or encounter is completed.

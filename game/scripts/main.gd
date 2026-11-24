@@ -166,7 +166,8 @@ func finish_story_death(token: int) -> void:
 
 func restart_checkpoint() -> void:
 	if trial_active:
-		start_trial(trial_stage, false, journey)
+		if journey and Session.shore.milestone == ShoreProgress.OPEN_GATE: continue_shore()
+		else: start_trial(trial_stage, false, journey)
 		return
 	if transitions.state == "loading": return
 	transitions.reset()
@@ -216,6 +217,10 @@ func continue_shore() -> void:
 	var mark := Session.shore.milestone
 	if mark == ShoreProgress.DAWN:
 		ui.show_dawn()
+	elif mark == ShoreProgress.OPEN_GATE:
+		trained_on_shore = Session.shore.rehearsed
+		start_trial(TrialPassage.WARDEN, false, true)
+		world.resume_open_gate()
 	elif mark >= ShoreProgress.FIRST_ECHO:
 		trained_on_shore = Session.shore.rehearsed
 		start_trial(mark - ShoreProgress.FIRST_ECHO, false, true)

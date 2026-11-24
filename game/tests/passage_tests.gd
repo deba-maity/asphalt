@@ -221,6 +221,13 @@ func run() -> void:
 		await frames(2)
 		check(world.waystone != null and not world.crossing, "Using the waystone from across the court cannot advance")
 		if stage == TrialPassage.WARDEN:
+			Session.shore.restore()
+			check(Session.shore.milestone == ShoreProgress.OPEN_GATE, "The untraveled exit gets its own checkpoint")
+			main.ui.show_menu()
+			button_named("Continue").pressed.emit()
+			await frames(4)
+			world = main.world
+			check(main.ui.mode == "play" and world.north_gate.open and world.won and not world.warden.visible and world.enemies.is_empty(), "Continue reopens the cleared court with the path to dawn still playable")
 			world.hero.position = Vector3(-8.83, .08, -5.1)
 			world.hero.use_test_direction = true
 			check(world.passage_target().z > world.north_gate.position.z, "The bearing leads a player on the flank to the inner side of the gate")
@@ -363,4 +370,10 @@ func test_checkpoint_resume() -> void:
 	var restored := ShoreProgress.new(Session.shore.directory)
 	restored.restore()
 	check(restored.milestone == ShoreProgress.FIRST_ECHO and not restored.last_error.is_empty(), "A damaged checkpoint recovers the previous verified backup")
+	restored.write({"schema": 1, "milestone": ShoreProgress.OPEN_GATE, "rehearsed": true})
+	restored.restore()
+	check(restored.milestone == ShoreProgress.DAWN and restored.rehearsed, "An existing completed journey still opens its epilogue")
+	restored.write({"schema": 1, "milestone": ShoreProgress.FIRST_ECHO + 1, "rehearsed": false})
+	restored.restore()
+	check(restored.milestone == ShoreProgress.FIRST_ECHO + 1 and not restored.rehearsed, "Existing unfinished journeys retain their exact encounter")
 	check(not restored.accepts({"schema":1, "milestone":2.5, "rehearsed":false}) and not restored.accepts({"schema":1,"milestone":100,"rehearsed":true}), "Invalid checkpoint indices cannot index the lesson list")
