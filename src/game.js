@@ -2,7 +2,7 @@ import { storage } from "./storage.js";
 import { PaceLap } from "./pace-lap.js";
 import { PursuitHeat, breakawayDistance, breakawaySeconds } from "./pursuit-heat.js";
 import { nearestPointOnPath } from "./road-projection.js";
-import { shortcutApproach } from "./shortcut-guide.js";
+import { shortcutApproach, shortcutMarkerIndex } from "./shortcut-guide.js";
 import { RaceTiming } from "./race-timing.js";
 import { paceGhost } from "./pace-ghost.js";
 import { approachingCorner } from "./corner-notes.js";
@@ -1399,9 +1399,7 @@ export class Game {
         p.cut = null;
       }
       if (p.cut) {
-        const cutPoint = road.points[p.cut.gate].clone();
-        cutPoint.y = road.heightProfile[p.cut.gate];
-        world.setNextMarker(world.authorSegmentToRouteIndex(road.to), road.label, cutPoint);
+        world.setNextMarker(world.authorSegmentToRouteIndex(road.to), road.label, road, p.cut.gate);
         return;
       }
       this.showNextGate();
@@ -1851,9 +1849,7 @@ export class Game {
     const gate = this.player.next;
     const fork = this.player.guidedFork;
     if (fork && !fork.arriving && gate === (fork.entry + 1) % this.world.route.length) {
-      const point = fork.road.points[fork.gate].clone();
-      point.y = fork.road.heightProfile[fork.gate];
-      this.world.setNextMarker(this.world.authorSegmentToRouteIndex(fork.road.to), fork.road.label, point);
+      this.world.setNextMarker(this.world.authorSegmentToRouteIndex(fork.road.to), fork.road.label, fork.road, fork.gate);
       return;
     }
     let label;
@@ -1899,7 +1895,10 @@ export class Game {
     const facing = (-dx * Math.sin(p.mesh.rotation.y) - dz * Math.cos(p.mesh.rotation.y)) * (p.speed < -2 ? -1 : 1);
     if (distanceToTarget > 16 && facing < -0.55 * Math.hypot(dx, dz))
       return { label: "WRONG WAY", detail: "TURN BACK TOWARD THE GREEN GATE" };
-    if (p.cut) return { label: p.cut.road.label, detail: distanceToTarget + "M TO THE NEXT MARKER" };
+    if (p.cut) {
+      const marker = p.cut.road.points[shortcutMarkerIndex(p.cut.road, p.cut.gate)];
+      return { label: p.cut.road.label, detail: Math.round(Math.hypot(marker.x - pos.x, marker.z - pos.z)) + "M TO THE NEXT ARCH" };
+    }
     if (fork) {
       const grip = 3.1 + p.spec.handling * .055;
       const targetSpeed = Math.sqrt(20 * grip / Math.max(.25, fork.angle));

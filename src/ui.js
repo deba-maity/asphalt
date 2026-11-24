@@ -1,3 +1,5 @@
+import { shortcutMarkerIndex } from "./shortcut-guide.js";
+import { bindMenuGamepad } from "./menu-gamepad.js";
 import { storage } from "./storage.js";
 import { raceTime as time } from "./timing.js";
 import { coursePreview } from "./course-shape.js";
@@ -74,6 +76,7 @@ export class UI {
     this.color = this.vehicle.color;
     this.networked = false;
     this.playerName = "Driver";
+    this.mapBack = "modes";
     const savedDifficulty = storage.getItem("nightshift-difficulty");
     this.difficulty = ["easy", "medium", "hard"].includes(savedDifficulty) ? savedDifficulty : "medium";
     this.vehicleFilter = "all";
@@ -86,9 +89,16 @@ export class UI {
     this.homeObserver = new MutationObserver(() => this.installHomeVehicle());
     this.homeObserver.observe(this.layer, { childList: true });
     this.showHome();
+    bindMenuGamepad(this.root, this.game);
   }
 
   bind() {
+    window.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || event.repeat || event.defaultPrevented) return;
+      if (event.target?.matches?.("select, input, textarea")) return;
+      const back = this.layer.querySelector(".back");
+      if (back) { event.preventDefault(); back.click(); }
+    });
     this.root.addEventListener("click", (e) => {
       const b = e.target.closest("[data-action]");
       if (!b) return;
@@ -115,9 +125,14 @@ export class UI {
     if (action === "modes") this.showModes();
     if (action === "garage") this.showVehicle(true);
     if (action === "map") this.showMaps();
+    if (action === "garage-race-setup") {
+      this.mapBack = "garage";
+      this.showMaps();
+    }
     if (action === "choose-mode") {
       this.mode = modes.find((m) => m.id === data.id) || modes[0];
       this.networked = false;
+      this.mapBack = "modes";
       this.showMaps();
     }
     if (action === "choose-map") {
@@ -161,8 +176,8 @@ export class UI {
     if (action === "recover") this.game.returnToCheckpoint();
   }
 
-  shell(kicker, title, body, back = true) {
-    this.layer.innerHTML = `<section class="screen panel-screen"><button class="back" data-action="${back ? "back" : "home"}">← BACK</button><div class="panel-head"><p>${kicker}</p><h1>${title}</h1></div>${body}</section>`;
+  shell(kicker, title, body, backAction = "home") {
+    this.layer.innerHTML = `<section class="screen panel-screen"><button class="back" data-action="${backAction}">← BACK</button><div class="panel-head"><p>${kicker}</p><h1>${title}</h1></div>${body}</section>`;
   }
 
   showHome() {
@@ -205,24 +220,13 @@ export class UI {
       `${esc(this.mode.title).toUpperCase()} // ROUTE SELECT`,
       "City routes",
       `<div class="map-selector"><div class="map-selector-head"><div><label class="route-guide-choice">ROUTE GUIDE <select id="route-guide"><option value="main" ${!this.game.guideShortcuts ? "selected" : ""}>Main circuit</option><option value="cuts" ${this.game.guideShortcuts ? "selected" : ""}>Via shortcuts</option></select></label><p>Follow the green line. You can choose either road at a fork.</p></div></div><div class="map-grid-premium">${cards}</div><div class="map-detail-strip"><div><small>SELECTED DISTRICT</small><b>${esc((maps.find((m) => m.id === selected) || maps[0]).tag).toUpperCase()}</b></div><div><small>RACE ROUTE</small><b>${(maps.find((m) => m.id === selected) || maps[0]).route.length * gatesPerSegment} GATES / ${(maps.find((m) => m.id === selected) || maps[0]).straightSegments?.length || 0} STRAIGHTS</b></div><div><small>ATMOSPHERE</small><b>${selected === "neon" ? "NEON NIGHT" : selected === "coast" ? "COASTAL DAWN" : selected === "dock" ? "INDUSTRIAL DUSK" : "DESERT SUNSET"}</b></div></div></div>`,
+      this.mapBack,
     );
   }
 
   showVehicle(garage = false) {
     this.inGarage = garage;
     const vehicle = this.vehicle;
-    const filtered = vehicles.filter(
-      (v) =>
-        this.vehicleFilter === "all" ||
-        (this.vehicleFilter === "cars"
-          ? v.kind === "car"
-          : this.vehicleFilter === "bikes"
-            ? v.kind === "bike"
-            : this.vehicleFilter === "monster"
-              ? v.kind === "monster"
-              : v.kind === "heavy"),
-    );
-    if (!filtered.some((v) => v.id === vehicle.id)) this.vehicleFilter = "all";
     const visible = vehicles.filter(
       (v) =>
         this.vehicleFilter === "all" ||
@@ -280,7 +284,8 @@ export class UI {
     this.shell(
       garage ? "GARAGE // FLEET" : "SELECT VEHICLE",
       vehicle.name,
-      `<div class="garage-modern"><div class="garage-hero"><div class="garage-hero-grid"></div><div class="preview-wrap premium-preview"><div id="vehicle-preview"></div><div class="preview-corner preview-corner-a">DRAG TO ROTATE</div><div class="preview-corner preview-corner-b">DESIGNED TO DRIVE</div><div class="vehicle-floor-lines"></div><div class="vehicle-type">${esc(vehicle.type).toUpperCase()}</div><div class="vehicle-hero-stamp"><small>RATING</small><b>${rating}</b><span>CLASS ${vehicle.kind === "heavy" ? "H" : vehicle.kind === "bike" ? "B" : "A"}</span></div></div></div><aside class="vehicle-info-modern"><div class="vehicle-id-row"><span>VEHICLE ${vehicles.indexOf(vehicle) + 1}/${vehicles.length}</span><b>${vehicle.kind === "heavy" ? "HEAVY" : vehicle.kind === "bike" ? "BIKE" : "CAR"}</b></div><h2>${esc(vehicle.name)}</h2><p class="vehicle-blurb">${esc(vehicle.type)} built for midnight routes. Tune the finish, then take the fastest line.</p><div class="stats stats-premium">${stat("MAX KM/H", maxSpeed, "cyan", vehicle.top)}${stat("ACCEL", vehicle.accel)}${stat("HANDLING", vehicle.handling)}${stat("BRAKING", vehicle.braking)}${stat("DURABILITY", vehicle.armor, "pink")}${stat("NITRO", vehicle.boost, "violet")}</div><div class="garage-control-row"><div><span>PAINT</span><div class="colors-premium">${palette}</div></div><button class="primary deploy-lg" data-action="${garage ? (this.networked ? "back" : "map") : "start"}">${garage ? (this.networked ? "RETURN TO CREW" : "RACE SETUP") : "DEPLOY"} <i>→</i></button></div></aside><div class="fleet-dock"><div class="fleet-head"><div><span>FLEET</span><p>Swipe, drag or use the wheel to browse.</p></div><div class="fleet-filters">${filters}</div></div><div class="vehicle-list-premium">${options}</div></div></div>`,
+      `<div class="garage-modern"><div class="garage-hero"><div class="garage-hero-grid"></div><div class="preview-wrap premium-preview"><div id="vehicle-preview"></div><div class="preview-corner preview-corner-a">DRAG TO ROTATE</div><div class="preview-corner preview-corner-b">DESIGNED TO DRIVE</div><div class="vehicle-floor-lines"></div><div class="vehicle-type">${esc(vehicle.type).toUpperCase()}</div><div class="vehicle-hero-stamp"><small>RATING</small><b>${rating}</b><span>CLASS ${vehicle.kind === "heavy" ? "H" : vehicle.kind === "bike" ? "B" : "A"}</span></div></div></div><aside class="vehicle-info-modern"><div class="vehicle-id-row"><span>VEHICLE ${vehicles.indexOf(vehicle) + 1}/${vehicles.length}</span><b>${vehicle.kind === "heavy" ? "HEAVY" : vehicle.kind === "bike" ? "BIKE" : "CAR"}</b></div><h2>${esc(vehicle.name)}</h2><p class="vehicle-blurb">${esc(vehicle.type)} built for midnight routes. Tune the finish, then take the fastest line.</p><div class="stats stats-premium">${stat("MAX KM/H", maxSpeed, "cyan", vehicle.top)}${stat("ACCEL", vehicle.accel)}${stat("HANDLING", vehicle.handling)}${stat("BRAKING", vehicle.braking)}${stat("DURABILITY", vehicle.armor, "pink")}${stat("NITRO", vehicle.boost, "violet")}</div><div class="garage-control-row"><div><span>PAINT</span><div class="colors-premium">${palette}</div></div><button class="primary deploy-lg" data-action="${garage ? (this.networked ? "back" : "garage-race-setup") : "start"}">${garage ? (this.networked ? "RETURN TO CREW" : "RACE SETUP") : "DEPLOY"} <i>→</i></button></div></aside><div class="fleet-dock"><div class="fleet-head"><div><span>FLEET</span><p>Swipe, drag or use the wheel to browse.</p></div><div class="fleet-filters">${filters}</div></div><div class="vehicle-list-premium">${options}</div></div></div>`,
+      garage ? (this.networked ? "back" : "home") : "map",
     );
     requestAnimationFrame(() =>
       this.game.mountPreview(
@@ -318,7 +323,7 @@ export class UI {
       "LOCAL NETWORK // UP TO 4 DRIVERS",
       "Start a crew",
       `<div class="lobby-form"><label>DRIVER CALLSIGN<input id="driver-name" maxlength="14" value="${esc(this.playerName)}"></label><label>LOBBY CODE<input id="room-code" maxlength="8" value="NIGHT"></label><button class="primary" data-action="join">CONNECT <i>→</i></button><p>Share this code with drivers on the same network. The host machine runs the lobby server.</p></div>`,
-      false,
+      "home",
     );
   }
 
@@ -337,7 +342,7 @@ export class UI {
       `LOBBY // ${this.network.room}`,
       "Crew assembled",
       `<div class="lobby-view"><div id="player-slots">${this.playerSlots(players)}</div><div class="lobby-controls"><p>Connected drivers sync vehicle positions and race state over this local network. The first connected driver is the crew host.</p><div id="crew-setup" class="settings" data-host="${esc(this.network.host||'')}">${this.crewSetup()}</div><button class="secondary" data-action="garage">CHANGE VEHICLE</button><button class="primary" data-action="lobby-start" ${this.network.host===this.network.id?'':'disabled'}>${this.network.host===this.network.id?'START LAN RACE':'WAITING FOR HOST'} <i>→</i></button></div></div>`,
-      false,
+      "home",
     );
     this.network.on = (msg) => {
       if (msg.type === "players") {
@@ -453,7 +458,7 @@ export class UI {
     this.shell(
       "MAKE IT YOURS",
       "Your way. Your pace.",
-      `<div class="settings settings-modern"><label>PERFORMANCE<select id="quality-mode">${profiles}</select><small>Battery saver limits frames and resolution for longer sessions. Balanced is the everyday setting. High fidelity adds resolution.</small></label><label>AI DIFFICULTY<span class="difficulty-row">${levels}</span></label><label class="setting-toggle"><span>AUTO ACCELERATE<small>On touchscreens, focus on steering. Brake and drift override the throttle.</small></span><input type="checkbox" id="auto-accelerate" ${this.game.autoAccelerate ? "checked" : ""}></label><label class="setting-toggle"><span>TIME TRIAL GHOST<small>Race your fastest recorded lap in each district.</small></span><input type="checkbox" id="pace-ghost" ${storage.getItem("nightshift-ghost") !== "false" ? "checked" : ""}></label><label class="setting-toggle"><span>REDUCED CAMERA MOTION<small>Steady field of view and no impact shake.</small></span><input type="checkbox" id="reduced-motion" ${this.game.reducedMotion ? "checked" : ""}></label><label class="setting-toggle"><span>ENGINE AUDIO<small>Engine, nitro and effects.</small></span><input type="checkbox" id="audio-enabled" ${this.game.audio.enabled ? "checked" : ""}></label><p><a href="credits.html" target="_blank" rel="noopener">Model credits &amp; licenses</a></p><div class="control-reference"><span>DESKTOP</span><p>WASD / arrows · steer & drive<br>Space · drift &nbsp; Shift · nitro<br>F · gun &nbsp; R · rocket &nbsp; Esc · pause</p><span>PHONE</span><p>Hold the steering arrows. Use drift, brake and nitro with your other thumb. Landscape gives you more room.</p></div></div>`,
+      `<div class="settings settings-modern"><label>PERFORMANCE<select id="quality-mode">${profiles}</select><small>Battery saver limits frames and resolution for longer sessions. Balanced is the everyday setting. High fidelity adds resolution.</small></label><label>AI DIFFICULTY<span class="difficulty-row">${levels}</span></label><label class="setting-toggle"><span>AUTO ACCELERATE<small>On touchscreens, focus on steering. Brake and drift override the throttle.</small></span><input type="checkbox" id="auto-accelerate" ${this.game.autoAccelerate ? "checked" : ""}></label><label class="setting-toggle"><span>TIME TRIAL GHOST<small>Race your fastest recorded lap in each district.</small></span><input type="checkbox" id="pace-ghost" ${storage.getItem("nightshift-ghost") !== "false" ? "checked" : ""}></label><label class="setting-toggle"><span>REDUCED CAMERA MOTION<small>Steady field of view and no impact shake.</small></span><input type="checkbox" id="reduced-motion" ${this.game.reducedMotion ? "checked" : ""}></label><label class="setting-toggle"><span>ENGINE AUDIO<small>Engine, nitro and effects.</small></span><input type="checkbox" id="audio-enabled" ${this.game.audio.enabled ? "checked" : ""}></label><p><a href="credits.html" target="_blank" rel="noopener">Model credits &amp; licenses</a></p><div class="control-reference"><span>DESKTOP</span><p>WASD / arrows · steer & drive<br>Space · drift &nbsp; Shift · nitro<br>F · gun &nbsp; R · rocket &nbsp; Esc · pause</p><span>CONTROLLER</span><p>D-pad / left stick · navigate or steer<br>A · choose or cycle an option &nbsp; B · back<br>RT / LT · gas / brake &nbsp; X · drift &nbsp; RB · nitro<br>LB · gun &nbsp; Y · rocket &nbsp; Start · pause</p><span>PHONE</span><p>Hold the steering arrows. Use drift, brake and nitro with your other thumb. Landscape gives you more room.</p></div></div>`,
     );
   }
 
@@ -649,16 +654,21 @@ export class UI {
     const cut = s.player.cut;
     const fork = !cut && s.player.guidedFork;
     const entering = fork && !fork.arriving;
-    const target = cut ? cut.road.points[cut.gate] : entering ? fork.road.points[fork.gate] : world.gatePosition(s.targetIndex);
+    const branch = cut || (entering ? fork : null);
+    const target = branch ? branch.road.points[shortcutMarkerIndex(branch.road, branch.gate)] : world.gatePosition(s.targetIndex);
     const car = s.player.mesh.position;
     ctx.beginPath(); ctx.moveTo(ox + car.x * scale, oy + car.z * scale);
     const trace = (p) => ctx.lineTo(ox + p.x * scale, oy + p.z * scale);
-    if (cut || entering) {
-      const branch = cut || fork;
-      for (let i = branch.gate; i < branch.road.points.length; i++) trace(branch.road.points[i]);
+    const samples = world.samples;
+    const stride = samples.length / world.route.length;
+    const traceBranch = (road, first) => {
+      for (let i = first; i < road.points.length; i++) trace(road.points[i]);
+      const merge = world.authorSegmentToRouteIndex(road.to) * stride;
+      for (let i = 1; i <= stride * 2; i++) trace(samples[(merge + i) % samples.length]);
+    };
+    if (branch) {
+      traceBranch(branch.road, branch.gate);
     } else {
-      const samples = world.samples;
-      const stride = samples.length / world.route.length;
       const end = (s.targetIndex || world.route.length) * stride;
       let closest = end, best = Infinity;
       const last = s.targetIndex === 0 ? end + world.finishSamples : end;
@@ -669,7 +679,7 @@ export class UI {
       const limit = fork?.arriving ? fork.entry * stride : s.targetIndex === 0 && this.game.finalLap() ? last - 1 : end + 3 * stride;
       for (let i = closest; i <= limit; i++) trace(samples[i % samples.length]);
       if (s.targetIndex === 0 && this.game.finalLap()) trace(world.finishLine);
-      if (fork?.arriving) for (let i = 1; i < fork.road.points.length; i++) trace(fork.road.points[i]);
+      if (fork?.arriving) traceBranch(fork.road, 1);
     }
     ctx.strokeStyle = "#65ffcb"; ctx.lineWidth = 3.5; ctx.lineJoin = "round"; ctx.stroke();
     const start = world.finishLine;

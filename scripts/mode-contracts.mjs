@@ -187,7 +187,15 @@ try {
           p.next = afterEntry; p.cut = null;
           pos.copy(world.route[exit]); g.checkProgress(p);
           check(p.next === afterEntry && !p.cut, 'Jumping directly to a shortcut exit does not score');
-          for (const point of road.points) { pos.copy(point); g.checkProgress(p); }
+          for (const point of road.points) {
+            pos.copy(point); g.checkProgress(p);
+            if (!p.cut) continue;
+            const arch = world.branchGate, marker = world.branchIndex;
+            check(arch.visible && marker >= p.cut.gate && marker - p.cut.gate < 3, 'A stable arch leads through the active shortcut');
+            check(arch.position.x === road.points[marker].x && arch.position.y === road.heightProfile[marker] && arch.position.z === road.points[marker].z, 'The arch is on the driving deck');
+            check(!world.markers[exit].userData.arrow.visible, 'The main road cannot show a competing active arch');
+          }
+          check(!world.branchGate.visible && world.markers[p.next].userData.arrow.visible, 'Main circuit guidance resumes after the junction');
           check(!p.cut && p.next === (exit + 1) % world.route.length, 'Ordered route credited: ' + road.label);
           const mid = road.points[4].clone().lerp(road.points[5], .5);
           const probeActor = { mesh: {position: mid}, cut: {road, gate: 5} };

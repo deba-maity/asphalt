@@ -4390,3 +4390,5 @@ html.reduced-motion *, html.reduced-motion *::before, html.reduced-motion *::aft
   .result-time { font-size: 20px; margin-bottom: 0; }
   .result button { min-height: 34px; }
 }
+
+.controller-nav :is(button, select, input, summary, a):focus { outline: 3px solid #baff61; outline-offset: -3px; }

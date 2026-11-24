@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { shortcutMarkerIndex } from "./shortcut-guide.js";
 import { sampleHybridClosedRoute, shortcutPoints, timingGateFraction } from "./course-shape.js";
 import { courseSpan, trimSpan, offsetStation, spanGeometry, bridgeRuns, bridgeRailOffset } from "./course-structures.js";
 import { nearestPointOnPath, roadProjection } from "./road-projection.js";
@@ -4742,6 +4743,14 @@ export class World {
     this.gateBeacon.scale.set(10.6, 2, 1);
     this.gateBeacon.renderOrder = 2;
     g.add(this.gateBeacon);
+    const branchGlow = this.basic({ color: 0x66ffcc, transparent: true, opacity: 0.84 });
+    this.branchGate = new THREE.Group();
+    for (const side of [-1, 1]) {
+      mesh(this.branchGate, box, branchGlow, [side * (shortcutHalfWidth - 0.3), 2.1, 0], [0.22, 4.2, 0.22]);
+    }
+    mesh(this.branchGate, box, branchGlow, [0, 4.2, 0], [shortcutHalfWidth * 2 - 0.4, 0.18, 0.18]);
+    this.branchGate.visible = false;
+    g.add(this.branchGate);
     const start = this.finishLine, yaw = this.segmentAngle(0);
     const tiles = [this.basic({color: 0xf8fafc}), this.basic({color: 0x11151b})];
     for (let row = 0; row < 2; row++) {
@@ -5263,7 +5272,21 @@ export class World {
     return Math.abs(x * forward.z - z * forward.x) <= roadHalfWidth + shoulderAllowance ? fraction : null;
   }
 
-  setNextMarker(index, label = index ? "GATE " + index : "LAP LINE", position = this.gatePosition(index)) {
+  setNextMarker(index, label = index ? "GATE " + index : "LAP LINE", road = null, gate = 0) {
+    if (road) gate = shortcutMarkerIndex(road, gate);
+    if (this.activeMarker === index && this.gateLabel === label && this.markedRoad === road && this.branchIndex === gate) return;
+    const roadChanged = this.markedRoad !== road || this.activeMarker !== index;
+    this.markedRoad = road;
+    this.branchIndex = gate;
+    this.activeMarker = index;
+    const position = road ? road.points[gate] : this.gatePosition(index);
+    const height = road ? road.heightProfile[gate] : position.y;
+    this.branchGate.visible = !!road;
+    if (road) {
+      const before = road.points[Math.max(0, gate - 1)], after = road.points[Math.min(road.points.length - 1, gate + 1)];
+      this.branchGate.position.set(position.x, height, position.z);
+      this.branchGate.rotation.y = Math.atan2(after.x - before.x, after.z - before.z);
+    }
     const texture = this.gateBeacon.material.map;
     if (this.gateLabel !== label) {
       this.gateLabel = label;
@@ -5274,12 +5297,11 @@ export class World {
       ctx.fillText(label, 256, 67, 485);
       texture.needsUpdate = true;
     }
-    this.gateBeacon.position.set(position.x, (position.y || 0) + 6.6, position.z);
-    if (this.activeMarker === index) return;
-    this.activeMarker = index;
+    this.gateBeacon.position.set(position.x, height + 6.6, position.z);
+    if (!roadChanged) return;
     this.markers.forEach((marker, i) => {
-      const active = i === index;
-      marker.visible = active || i === (index + 1) % this.route.length;
+      const active = !road && i === index;
+      marker.visible = road ? i === index : active || i === (index + 1) % this.route.length;
       marker.userData.glow.color.set(active ? 0x66ffcc : 0xe1fff6);
       marker.userData.glow.opacity = active ? 0.93 : 0.27;
       marker.userData.postMat.color.set(active ? 0x66ffcc : 0xb1d9d5);

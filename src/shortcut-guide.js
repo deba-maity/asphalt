@@ -1,3 +1,9 @@
+export function shortcutMarkerIndex(road, gate) {
+  // Keep the arch fixed through a stretch of the ramp while the line follows
+  // every bend. The final arch always sits at the junction on the main road.
+  return Math.min(road.points.length - 1, Math.max(3, Math.ceil(gate / 3) * 3));
+}
+
 // The entry junction still has to be crossed. The planned route is only advice;
 // the race accepts a shortcut after the car physically reaches its first marker.
 export function shortcutApproach(world, player) {

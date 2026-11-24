@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 import {chromium} from 'playwright';
+import {verifyControllerMenu} from './controller-menu.mjs';
 const url = new URL(process.env.TEST_BASE_URL || 'http://127.0.0.1:5185/');
 const server=process.env.TEST_BASE_URL ? null : spawn(process.execPath,['node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port','5185','--strictPort'],{stdio:'ignore',windowsHide:true});
 let browser;
@@ -46,8 +47,10 @@ try{
   const credit=await page.locator('a[href="credits.html"]').getAttribute('href');assert.equal(credit,'credits.html');
   assert((await fetch(new URL('assets/touring/LICENSE.txt', url))).ok);
   assert.deepEqual(failed,[]);assert.deepEqual(errors,[]);await page.close();
+  await verifyControllerMenu(browser, url.href);
   const blocked=await browser.newPage({viewport:{width:960,height:600}});
   await blocked.addInitScript(()=>Object.defineProperty(window,'localStorage',{get(){throw new DOMException('Storage is disabled','SecurityError');}}));
+  await blocked.addInitScript(()=>Object.defineProperty(navigator,'getGamepads',{value(){throw new DOMException('Disabled','SecurityError');}}));
   await blocked.goto(url.href);
   await blocked.getByRole('button',{name:'HIT THE STREETS'}).waitFor({timeout:90000});
   await blocked.getByRole('button',{name:/settings/i}).click();
@@ -71,5 +74,5 @@ try{
     failure.getByRole('button', {name: 'RETRY'}).click()
   ]);
   await failure.waitFor();
-  console.log('PRODUCTION PASS: bundled assets, menu/race/pause/return, credits, private debug hooks, blocked storage and unavailable WebGL');
+  console.log('PRODUCTION PASS: bundled assets, menu/race/pause/return, credits, controller menu and pause, fleet filters, private debug hooks, blocked browser APIs and unavailable WebGL');
 }finally{await browser?.close();server?.kill();}
