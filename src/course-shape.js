@@ -69,6 +69,19 @@ export function shortcutPoints(source, shortcut) {
   return points;
 }
 
+export function planShortcutRoads(controlRoute, shortcuts, surfaceY) {
+  return shortcuts.map(shortcut => {
+    const points = shortcutPoints(controlRoute, shortcut);
+    const elevated = Boolean(shortcut.elevated);
+    const heightProfile = points.map((_, i) => {
+      if (!elevated) return surfaceY + .043;
+      const ramp = Math.sin(Math.PI * i / (points.length - 1));
+      return surfaceY + .08 + Math.pow(Math.max(0, ramp), .62) * 5.75;
+    });
+    return { ...shortcut, points, elevated, heightProfile };
+  });
+}
+
 const previews = new Map();
 export function coursePreview(map) {
   if (previews.has(map.id)) return previews.get(map.id);

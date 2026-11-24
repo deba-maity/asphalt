@@ -26,6 +26,18 @@ try {
       ui.map = map; ui.vehicle = vehicles[0]; ui.mode = modes.find((m) => m.id === modeId);
       ui.start(); game.phase = 'play';
       const world = game.world, player = game.player, points = [];
+      for (const center of [...world.samples, ...world.shortcutRoads.flatMap(road => road.points)]) {
+        if (world.distanceToRoad(center) > .001 || world.clearForRoadside(center)) {
+          throw Error(map.name + ': scenery clearance does not follow the drivable surface');
+        }
+      }
+      const shoulder = world.finishForward.clone().set(world.finishForward.z, 0, -world.finishForward.x);
+      for (const sign of [-1, 1]) {
+        const position = world.finishLine.clone().addScaledVector(shoulder, sign * 25);
+        const probe = {mesh: {position}, role: 'race', velocityX: sign * shoulder.x * 35, velocityZ: sign * shoulder.z * 35};
+        world.constrainToRoad(probe);
+        if (world.projectMainRoad(position).distance > 13.501) throw Error(map.name + ': road shoulder does not restrain the vehicle');
+      }
       const samplesPerJunction = world.samples.length / world.controlRoute.length;
       for (let i = 0; i < world.controlRoute.length; i++) {
         const shortcut = !trailing && modeId !== 'time' && world.shortcutRoads.find((road) => road.from === i);

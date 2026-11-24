@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { shortcutMarkerIndex } from "./shortcut-guide.js";
-import { sampleHybridClosedRoute, shortcutPoints, timingGateFraction } from "./course-shape.js";
-import { courseSpan, trimSpan, offsetStation, spanGeometry, bridgeRuns, bridgeRailOffset } from "./course-structures.js";
+import { sampleHybridClosedRoute, planShortcutRoads, timingGateFraction } from "./course-shape.js";
+import { courseSpan, trimSpan, offsetStation, spanGeometry, bridgeRuns, bridgeRailOffset, rampSpan, rampRailRuns } from "./course-structures.js";
 import { nearestPointOnPath, roadProjection } from "./road-projection.js";
 import { courseCorners } from "./corner-notes.js";
 import { gatesPerSegment } from "./data.js";
@@ -297,9 +297,9 @@ export class World {
     this.courseLength = this.sampleDistances.at(-1);
     this.corners = courseCorners(this.samples, this.sampleDistances, this.controlRoute.length);
     this.timingOffset = this.route[0].distanceTo(this.finishLine);
-    this.shortcutRoads = [];
-    this.destructibles = [];
     this.roadSurfaceY = 0.052;
+    this.shortcutRoads = planShortcutRoads(this.controlRoute, map.shortcuts || [], this.roadSurfaceY);
+    this.destructibles = [];
 
     this.boundaryRadius =
       Math.max(...this.controlRoute.map((p) => Math.hypot(p.x, p.z))) + 110;
@@ -805,9 +805,7 @@ export class World {
   }
 
   buildShortcutRoads() {
-    const shortcuts = this.map.shortcuts || [];
-
-    if (!shortcuts.length) return;
+    if (!this.shortcutRoads.length) return;
 
     const deckMat = this.material({
       color: 0x1e252d,
@@ -830,29 +828,8 @@ export class World {
     const branchArrows = [];
     const arrowTransform = new THREE.Object3D();
 
-    for (const shortcut of shortcuts) {
-      const points = shortcutPoints(this.controlRoute, shortcut);
-      const elevated = Boolean(shortcut.elevated);
-      const heightProfile = points.map((_, i) => {
-        if (!elevated) return this.roadSurfaceY + 0.043;
-
-        const t = i / Math.max(1, points.length - 1);
-        const ramp = Math.sin(Math.PI * t);
-
-        return (
-          this.roadSurfaceY + 0.08 + Math.pow(Math.max(0, ramp), 0.62) * 5.75
-        );
-      });
-
-      this.shortcutRoads.push({
-        from: shortcut.from,
-        to: shortcut.to,
-        points,
-        elevated,
-        heightProfile,
-        label: shortcut.label,
-      });
-
+    for (const shortcut of this.shortcutRoads) {
+      const { points, elevated, heightProfile } = shortcut;
       const road = new THREE.Mesh(
         this.trackGeometry(
           createOpenRibbonGeometry(points, shortcutHalfWidth, heightProfile, 8),
@@ -900,7 +877,7 @@ export class World {
         this.group.add(edge);
       });
 
-      for (let i = 3; i < points.length - 3; i += 5) {
+      for (let i = 3; !elevated && i < points.length - 3; i += 5) {
         const p = points[i];
         const t = tangentAt(points, i);
         const yaw = Math.atan2(t.x, t.z);
@@ -909,40 +886,34 @@ export class World {
         for (const sign of [-1, 1]) {
           const rail = p.clone().addScaledVector(side, sign * 8.6);
           const h = heightProfile[i];
+          if (this.projectMainRoad(rail).distance <= roadHalfWidth + .8) continue;
           mesh(
             this.group,
             box,
             railMat,
             [rail.x, h + 0.72, rail.z],
-            [0.28, elevated ? 1.42 : 1.24, 1.3],
+            [0.28, 1.24, 1.3],
             [0, yaw, 0],
           );
         }
       }
 
       if (elevated) {
-        // The underside and parapets follow the same curve and grade as the tyres.
-        for (let i = 1; i < points.length; i++) {
-          const a = points[i - 1].clone(); a.y = heightProfile[i - 1];
-          const b = points[i].clone(); b.y = heightProfile[i];
-          const along = b.clone().sub(a);
-          const yaw = Math.atan2(along.x, along.z);
-          const pitch = -Math.atan2(along.y, Math.hypot(along.x, along.z));
-          const mid = a.clone().lerp(b, 0.5);
-          const deck = mesh(this.group, box, deckMat, [mid.x, mid.y - 0.42, mid.z],
-            [shortcutHalfWidth * 2, 0.65, along.length() + 0.25]);
-          deck.rotation.set(pitch, yaw, 0, "YXZ");
-          for (const side of [-1, 1]) {
-            const edge = localPoint(mid, yaw, side * (shortcutHalfWidth - 0.12), 0, 0);
-            const rail = mesh(this.group, box, railMat, [edge.x, mid.y + 0.48, edge.z],
-              [0.24, 0.8, along.length() + 0.35]);
-            rail.rotation.copy(deck.rotation);
+        const span = rampSpan(shortcut);
+        this.addCourseSlab("Shortcut deck", span, -shortcutHalfWidth, shortcutHalfWidth, -.72, -.045, deckMat);
+        for (const side of [-1, 1]) {
+          const offset = side * (shortcutHalfWidth - .12);
+          const runs = rampRailRuns(span, offset, this.projectMainRoad, roadHalfWidth, this.roadSurfaceY);
+          for (const run of runs) {
+            this.addCourseSlab("Shortcut parapet", run, offset - .12, offset + .12, 0, .88, railMat);
           }
         }
-        for (const step of [0.32, 0.5, 0.68]) {
-          const index = Math.floor(step * (points.length - 1));
-          const p = points[index];
-          const h = heightProfile[index];
+        for (const step of [.32, .5, .68]) {
+          const station = span[Math.floor(step * (span.length - 1))];
+          const h = station.point.y;
+          const p = [0, -6, 6].map(offset => offsetStation(station, offset, 0))
+            .find(point => this.projectMainRoad(point).distance > roadHalfWidth + 1.1);
+          if (!p) continue;
           mesh(
             this.group,
             box,
@@ -1136,8 +1107,28 @@ export class World {
       }
     }
 
-    this.installInstance("courseChevrons", box, warning, chevrons);
-    this.installInstance("courseChevronSupports", box, dark, supports);
+    this.installRoadside("courseChevrons", box, warning, chevrons);
+    this.installRoadside("courseChevronSupports", box, dark, supports);
+  }
+
+  clearForRoadside(position, margin = 0) {
+    if (this.projectMainRoad(position).distance <= roadHalfWidth + margin) return false;
+    return this.shortcutRoads.every(road =>
+      nearestPointOnPath(position, road.points, false).distance > shortcutHalfWidth + margin);
+  }
+
+  installRoadside(key, geometry, material, matrices) {
+    const point = new THREE.Vector3();
+    const clear = matrices.filter(matrix => {
+      for (const x of [-.5, .5]) {
+        for (const z of [-.5, 0, .5]) {
+          point.set(x, 0, z).applyMatrix4(matrix);
+          if (!this.clearForRoadside(point, .15)) return false;
+        }
+      }
+      return true;
+    });
+    this.installInstance(key, geometry, material, clear);
   }
 
   addRoadBarrierSystems() {
@@ -1236,7 +1227,7 @@ export class World {
           matrix.compose(
             p
               .clone()
-              .addScaledVector(side, sign * 8.8)
+              .addScaledVector(side, sign * 12.3)
               .setY(this.roadSurfaceY + 0.76),
             q.identity(),
             new THREE.Vector3(0.1, 1.35, 0.1),
@@ -1246,11 +1237,11 @@ export class World {
       }
     }
 
-    this.installInstance("jerseyBarriers", box, concrete, kRails);
-    this.installInstance("guardRailBeams", box, steel, guardRails);
-    this.installInstance("guardRailPosts", poleGeo, steel, posts);
-    this.installInstance("delineatorPosts", poleGeo, white, delineators);
-    this.installInstance("medianIslands", box, green, medians);
+    this.installRoadside("jerseyBarriers", box, concrete, kRails);
+    this.installRoadside("guardRailBeams", box, steel, guardRails);
+    this.installRoadside("guardRailPosts", poleGeo, steel, posts);
+    this.installRoadside("delineatorPosts", poleGeo, white, delineators);
+    this.installRoadside("medianIslands", box, green, medians);
   }
 
   addDestructibleRoadTowers() {
@@ -1289,6 +1280,7 @@ export class World {
       const pos = p.clone().addScaledVector(side, roadside);
       const yaw = Math.atan2(t.x, t.z);
       const style = n % 3;
+      if (!this.clearForRoadside(pos, 3.2)) continue;
 
       const barrier = new THREE.Group();
       barrier.position.set(pos.x, this.roadSurfaceY, pos.z);
@@ -1851,6 +1843,7 @@ export class World {
 
       for (const sign of [-1, 1]) {
         const pos = p.clone().addScaledVector(side, sign * 14.85);
+        if (!this.clearForRoadside(pos, 3.0)) continue;
 
         matrix.compose(
           pos.clone().setY(4.15),
@@ -1907,6 +1900,7 @@ export class World {
 
       for (const sign of [-1, 1]) {
         const pos = p.clone().addScaledVector(side, sign * 14.85);
+        if (!this.clearForRoadside(pos, 3.0)) continue;
 
         const m = new THREE.Matrix4();
 
@@ -5311,7 +5305,7 @@ export class World {
   }
 
   distanceToRoad(position) {
-    let nearest = nearestPointOnPath(position, this.route, true).distance;
+    let nearest = this.projectMainRoad(position).distance;
     for (const shortcut of this.shortcutRoads) {
       nearest = Math.min(nearest, nearestPointOnPath(position, shortcut.points, false).distance);
     }

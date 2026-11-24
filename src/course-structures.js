@@ -22,6 +22,41 @@ export function courseSpan(samples, controlCount, from, to) {
   return span;
 }
 
+export function rampSpan(road) {
+  let length = 0;
+  return road.points.map((point, i) => {
+    const before = road.points[Math.max(0, i - 1)], after = road.points[Math.min(road.points.length - 1, i + 1)];
+    if (i) length += point.distanceTo(before);
+    const normal = new THREE.Vector3(after.z - before.z, 0, before.x - after.x).normalize();
+    return { point: point.clone().setY(road.heightProfile[i]), normal, length };
+  });
+}
+
+// Keep parapets continuous except where a low ramp shares the main driving surface.
+export function rampRailRuns(span, offset, projectMainRoad, mainHalfWidth, baseY) {
+  const runs = [];
+  let start = null;
+  for (let i = 1; i < span.length; i++) {
+    const a = span[i - 1], b = span[i], length = b.length - a.length;
+    const steps = Math.max(1, Math.ceil(length / 1.5));
+    for (let j = i === 1 ? 0 : 1; j <= steps; j++) {
+      const distance = a.length + j * length / steps;
+      const station = interpolate(a, b, distance, length);
+      const edge = offsetStation(station, offset, 0);
+      const clear = edge.y >= baseY + 3 || projectMainRoad(edge).distance > mainHalfWidth + .3;
+      if (clear && start === null) start = distance;
+      if (!clear && start !== null) {
+        const end = distance - length / steps;
+        if (end > start) runs.push(trimSpan(span, start, end));
+        start = null;
+      }
+    }
+  }
+  const end = span.at(-1).length;
+  if (start !== null && end > start) runs.push(trimSpan(span, start, end));
+  return runs;
+}
+
 export function trimSpan(span, start, end) {
   const result = [];
   for (let i = 1; i < span.length; i++) {

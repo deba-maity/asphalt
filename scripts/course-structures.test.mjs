@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "three";
 import { maps } from "../src/data.js";
-import { sampleHybridClosedRoute } from "../src/course-shape.js";
-import { courseSpan, trimSpan, offsetStation, spanGeometry, bridgeRuns, bridgeRailOffset } from "../src/course-structures.js";
+import { planShortcutRoads, sampleHybridClosedRoute } from "../src/course-shape.js";
+import { roadProjection } from "../src/road-projection.js";
+import { courseSpan, trimSpan, offsetStation, spanGeometry, bridgeRuns, bridgeRailOffset, rampSpan, rampRailRuns } from "../src/course-structures.js";
 
 const bridgeSections = {neon: [1,2], coast: [2,5], dock: [15,16], mesa: [3,5]};
 test("bridge rails follow the full drawn road, leaving gaps where drivers can take a shortcut", () => {
@@ -27,6 +28,44 @@ test("bridge rails follow the full drawn road, leaving gaps where drivers can ta
         const middle = new THREE.Line3(run[j].point, run[j+1].point);
         assert.ok(junctions.every(p=>middle.closestPointToPoint(p,true,new THREE.Vector3()).distanceTo(p) >= 16));
       }
+    }
+  }
+});
+
+test("elevated shortcut decks meet at every bend and their rails leave the main lane open", () => {
+  for (const map of maps) {
+    const controls = map.route.map(([x, z]) => new THREE.Vector3(x, 0, z));
+    const samples = sampleHybridClosedRoute(controls, map.id === "neon" ? 22 : 18, map.straightSegments);
+    const project = roadProjection(samples, 14.5);
+    const roads = planShortcutRoads(controls, map.shortcuts, .052).filter(road => road.elevated);
+    assert.ok(roads.length, map.name);
+    for (const road of roads) {
+      const span = rampSpan(road);
+      const deck = spanGeometry(span, -8.2, 8.2, -.72, -.045);
+      const vertices = deck.getAttribute("position");
+      assert.equal(vertices.count, (4 * (road.points.length - 1) + 2) * 6);
+      for (const station of span) {
+        for (const sign of [-1, 1]) {
+          const edge = offsetStation(station, sign * 8.2, -.045);
+          assert.ok(Array.from({length: vertices.count}, (_, i) =>
+            Math.hypot(vertices.getX(i) - edge.x, vertices.getY(i) - edge.y, vertices.getZ(i) - edge.z))
+            .some(distance => distance < .0001), road.label + " deck edges meet");
+        }
+      }
+      for (const offset of [-8.08, 8.08]) {
+        const runs = rampRailRuns(span, offset, project, 10.5, .052);
+        assert.ok(runs.some(run => run[0].length <= span.at(-1).length / 2 && run.at(-1).length >= span.at(-1).length / 2));
+        for (const run of runs) {
+          for (let i = 1; i < run.length; i++) {
+            const a = offsetStation(run[i - 1], offset, 0), b = offsetStation(run[i], offset, 0);
+            for (let t = 0; t <= 1; t += .05) {
+              const edge = a.clone().lerp(b, t);
+              assert.ok(edge.y >= 3.05 || project(edge).distance > 10.6, road.label + " railing obstructs the lower lane");
+            }
+          }
+        }
+      }
+      deck.dispose();
     }
   }
 });
