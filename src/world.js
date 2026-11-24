@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { sampleHybridClosedRoute, shortcutPoints, timingGateFraction } from "./course-shape.js";
 import { courseSpan, trimSpan, offsetStation, spanGeometry, bridgeRuns, bridgeRailOffset } from "./course-structures.js";
+import { nearestPointOnPath, roadProjection } from "./road-projection.js";
 import { courseCorners } from "./corner-notes.js";
 import { gatesPerSegment } from "./data.js";
 import { batchWorld } from "./rendering.js";
@@ -65,26 +66,6 @@ function mesh(
   parent.add(m);
 
   return m;
-}
-
-function nearestPointOnPath(position, points, closed) {
-  let distanceSq = Infinity, x = 0, z = 0, index = 0, fraction = 0;
-  const segments = closed ? points.length : points.length - 1;
-  for (let i = 0; i < segments; i++) {
-    const a = points[i], b = points[(i + 1) % points.length];
-    const dx = b.x - a.x, dz = b.z - a.z;
-    const t = clamp(((position.x - a.x) * dx + (position.z - a.z) * dz) / (dx * dx + dz * dz || 1), 0, 1);
-    const px = a.x + t * dx, pz = a.z + t * dz;
-    const squared = (position.x - px) ** 2 + (position.z - pz) ** 2;
-    if (squared < distanceSq) {
-      distanceSq = squared;
-      x = px;
-      z = pz;
-      index = i;
-      fraction = t;
-    }
-  }
-  return { x, z, index, fraction, distance: Math.sqrt(distanceSq) };
 }
 
 function tangentAt(points, i, closed = true) {
@@ -301,6 +282,7 @@ export class World {
       map.id === "neon" ? 22 : 18,
       map.straightSegments || [],
     );
+    this.projectMainRoad = roadProjection(this.samples, roadHalfWidth + shoulderAllowance + 1);
     // The timing stripe sits on the opening straight, clear of the corner at route[0].
     this.finishLine = this.route[0].clone().lerp(this.route[1], timingGateFraction);
     this.finishSamples = Math.ceil(timingGateFraction * this.samples.length / this.route.length);
@@ -5291,7 +5273,9 @@ export class World {
 
   constrainToRoad(actor) {
     const position = actor.mesh.position;
-    let center = nearestPointOnPath(position, this.samples, true);
+    let center = this.projectMainRoad(position);
+    const segment = center.index;
+    actor.courseDistance = THREE.MathUtils.lerp(this.sampleDistances[segment], this.sampleDistances[segment + 1], center.fraction);
     let pastEdge = center.distance - roadHalfWidth;
     let branch = null;
     for (const road of this.shortcutRoads) {
@@ -5310,6 +5294,13 @@ export class World {
       }
     }
     actor.roadBranch = branch;
+    if (branch) {
+      const stride = this.samples.length / this.route.length;
+      const from = this.sampleDistances[this.authorSegmentToRouteIndex(branch.from) * stride];
+      const to = this.sampleDistances[this.authorSegmentToRouteIndex(branch.to) * stride];
+      const fraction = (center.index + center.fraction) / (branch.points.length - 1);
+      actor.courseDistance = from + ((to - from + this.courseLength) % this.courseLength) * fraction;
+    }
     actor.roadHeight = branch ? THREE.MathUtils.lerp(branch.heightProfile[center.index],
       branch.heightProfile[center.index + 1], center.fraction) : this.roadSurfaceY;
     if (pastEdge > shoulderAllowance) {
@@ -5356,7 +5347,7 @@ export class World {
     if (nearest < 8.9) {
       // At grade-separated crossings a car beneath a bridge stays on the lower road.
       if (Number.isFinite(previousHeight) && height - previousHeight > 1.1 &&
-          nearestPointOnPath({ x, z }, this.samples, true).distance <= roadHalfWidth + shoulderAllowance) return this.roadSurfaceY;
+          this.projectMainRoad({ x, z }).distance <= roadHalfWidth + shoulderAllowance) return this.roadSurfaceY;
       return height;
     }
 

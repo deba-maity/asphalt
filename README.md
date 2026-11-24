@@ -4,7 +4,9 @@ Racing, time trials and pursuit across four districts, on the `nightshift` branc
 
 [Play Nightshift in a browser](https://deba-maity.github.io/asphalt/nightshift/)
 
-Choose **Hit the Streets**, a mode, a district and a vehicle, then **Deploy**. Hold **W** or **Up** to accelerate and steer with **A/D** or **Left/Right**. Follow the green arrows through the numbered gates. The corner display calls bends earlier at higher speeds. An amber braking cue marks the turn on the minimap. Amber ramps are optional shortcuts. Cross the checkered stripe in the direction of travel to finish a lap. Sprint takes one lap and Race takes three. Solo races stay open after rivals finish and show your place, gap to the winner and lap times. Pause offers **Return to last gate** and **Restart run**.
+Choose **Hit the Streets**, a mode, a district and a vehicle, then **Deploy**. Hold **W** or **Up** to accelerate and steer with **A/D** or **Left/Right**. Follow the green arrows through the numbered gates. The corner display calls bends earlier at higher speeds. An amber braking cue marks the turn on the minimap. Amber ramps are optional shortcuts. Cross the checkered stripe in the direction of travel to finish a lap. Sprint takes one lap and Race takes three. Solo races stay open after rivals finish. The results show your place, gap to the winner and three sector times for each lap. On a rematch, crossing a sector gate shows the time you gained or lost against your best completed run on that district, in the same mode and difficulty. Pause offers **Return to last gate** and **Restart run**.
+
+In **Police Escape**, follow the gates to extraction. The heat display shows the nearest unit ahead or behind you. Patrols follow the main road, so taking a shortcut or accelerating away after a sideswipe can open a gap. A stopped car under sustained contact can be busted.
 
 Complete a **Time Trial** to record a pace ghost for that district. On the next run, the violet outline follows your recorded line and the timer compares matching gates. The ghost and your best time live in the current browser. The ghost can be switched off in Settings.
 

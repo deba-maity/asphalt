@@ -16,7 +16,7 @@ try {
   page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   await page.goto(url);await page.waitForFunction(()=>window.__nightshift,null,{timeout:90000});
   const result = await page.evaluate(async ({ modeId, district, trailing }) => {
-    if (!['time', 'sprint', 'race'].includes(modeId)) throw Error('Choose time, sprint or race');
+    if (!['time', 'sprint', 'race', 'escape'].includes(modeId)) throw Error('Choose time, sprint, race or escape');
     const { maps, modes, vehicles } = await import('/src/data.js');
     const { game, ui } = window.__nightshift;
     game.clearPreview(); game.mountPreview = () => {}; game.frame = () => {}; game.audio.setEnabled(false);
@@ -81,6 +81,9 @@ try {
       }
       if (player.lap !== goal || game.phase !== 'finished') {
         throw Error(map.id + ': stopped at gate ' + player.next + ', sample ' + nearest + ', position ' + player.mesh.position.toArray() + ', elapsed ' + game.elapsed + ', result ' + document.querySelector('.result h1')?.textContent);
+      }
+      if (modeId === 'escape' && document.querySelector('.result h1')?.textContent !== 'ESCAPED THE HEAT') {
+        throw Error(map.id + ': escape run ended without reaching extraction');
       }
       const field = game.actors.filter((a) => a.role === 'race');
       if (field.some((a) => a.lap === 0 && a.next === 1)) throw Error('Rival stuck at the starting grid');

@@ -4353,6 +4353,14 @@ html.reduced-motion *, html.reduced-motion *::before, html.reduced-motion *::aft
 .classification .your-finish { color: #d4ff6a; border-left: 3px solid currentColor; padding-left: 9px; }
 .lap-breakdown { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 4px 0 8px; font: 11px monospace; }
 .lap-breakdown b { display: block; color: #cfebf1; }
+#wanted .pursuit-gap { display: block; margin: 2px 0 0; letter-spacing: .04em; }
+.sector-sheet { width: min(420px, 90vw); color: #cfebf1; font: 12px "DM Mono", monospace; }
+.sector-sheet summary { width: fit-content; margin: 0 auto; padding: 8px; cursor: pointer; }
+.sector-sheet summary:focus-visible { outline: 2px solid var(--cyan); }
+.sector-sheet table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.sector-sheet th, .sector-sheet td { padding: 4px 2px; border-bottom: 1px solid #354149; text-align: right; }
+.sector-sheet th:first-child { text-align: left; }
+.sector-sheet thead { color: #92aaa9; }
 @media (max-height: 480px) {
   .result { gap: 2px; }
   .result h1 { font-size: 36px; }

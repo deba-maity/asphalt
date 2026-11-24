@@ -1,6 +1,20 @@
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 export const angleDelta = (from, to) => Math.atan2(Math.sin(to-from), Math.cos(to-from));
 
+// Start a moving car at an arc length on a closed road. Distances include the
+// closing segment, so reinforcements can join either side of the lap line.
+export function routeStateAt(distances, arcLength, lane) {
+  const length = distances.at(-1);
+  const at = ((arcLength % length) + length) % length;
+  let low = 0, high = distances.length - 1;
+  while (high - low > 1) {
+    const mid = Math.floor((low + high) / 2);
+    if (distances[mid] <= at) low = mid;
+    else high = mid;
+  }
+  return { index: low, progress: (at - distances[low]) / (distances[high] - distances[low] || 1), lane };
+}
+
 // Preserve travelled distance through segment boundaries. Dropping the excess
 // (or sampling the old segment after incrementing index) makes traffic jump.
 export function advanceRoute(route, state, distance) {

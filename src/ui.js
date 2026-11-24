@@ -2,6 +2,7 @@ import { storage } from "./storage.js";
 import { raceTime as time } from "./timing.js";
 import { coursePreview } from "./course-shape.js";
 import { districtBest } from "./pace-lap.js";
+import { raceRecord } from "./race-timing.js";
 import { gatesPerSegment, maps, modes, vehicles } from "./data.js";
 
 const stat = (label, value, color = "cyan", pct = value) =>
@@ -193,8 +194,11 @@ export class UI {
     const selected = this.map?.id || "neon";
     const cards = maps
       .map(
-        (m, i) =>
-          `<button class="map-card map-${m.id} ${selected === m.id ? "selected" : ""}" data-action="choose-map" data-id="${m.id}">${mapArt(m)}<div class="map-card-copy"><span>ROUTE ${String(i + 1).padStart(2, "0")}</span><h2>${esc(m.name)}</h2><p>${esc(m.tag)}</p><div class="map-facts"><b>${m.route.length * gatesPerSegment} GATES</b><span>${m.straightSegments?.length || 0} SPRINTS</span><span>${m.shortcuts?.length || 0} CUTS</span></div>${this.mode.id === "time" && districtBest(m.id) ? `<small class="map-best">BEST ${time(districtBest(m.id))}</small>` : ""}</div><i class="map-arrow">↗</i></button>`,
+        (m, i) => {
+          const record = raceRecord(m.id, this.mode.id, this.difficulty);
+          const best = this.mode.id === "time" ? districtBest(m.id) : record ? record.at(-1) / 1000 : null;
+          return `<button class="map-card map-${m.id} ${selected === m.id ? "selected" : ""}" data-action="choose-map" data-id="${m.id}">${mapArt(m)}<div class="map-card-copy"><span>ROUTE ${String(i + 1).padStart(2, "0")}</span><h2>${esc(m.name)}</h2><p>${esc(m.tag)}</p><div class="map-facts"><b>${m.route.length * gatesPerSegment} GATES</b><span>${m.straightSegments?.length || 0} SPRINTS</span><span>${m.shortcuts?.length || 0} CUTS</span></div>${best ? `<small class="map-best">BEST ${time(best)}</small>` : ""}</div><i class="map-arrow">↗</i></button>`;
+        },
       )
       .join("");
     this.shell(
@@ -568,6 +572,15 @@ export class UI {
     pace.textContent = showSplit ? "G" + split.index + "  " + signedSeconds(split.delta) + " VS PACE"
       : s.pace?.reference ? "PACE " + time(s.pace.reference.duration / 1000)
       : s.pace?.best ? "BEST " + time(s.pace.best) : "";
+    if (s.raceTiming) {
+      const sector = s.raceTiming.latest;
+      const recent = sector && s.time - sector.at < 5;
+      pace.hidden = !recent && !s.raceTiming.reference;
+      pace.dataset.ahead = recent && sector.delta != null ? String(sector.delta < 0) : "";
+      pace.textContent = recent
+        ? "S" + sector.sector + " " + time(sector.duration) + (sector.delta == null ? "" : " · " + signedSeconds(sector.delta))
+        : s.raceTiming.reference ? "BEST " + time(s.raceTiming.reference.at(-1) / 1000) : "";
+    }
     this.root.querySelector("#position").textContent =
       racing
         ? `${s.rank} / ${s.fieldSize} • LAP ${Math.min(s.lap, laps)} / ${laps}`
@@ -588,10 +601,11 @@ export class UI {
       : s.winnerAhead ? "LEADER FINISHED // RACE TO THE LINE" : `${this.mode.title.toUpperCase()} // FOLLOW THE GREEN GATES`;
     if (this.lastWanted !== s.wanted) {
       this.root.querySelector("#wanted").innerHTML = s.wanted
-        ? `<small>HEAT</small>${"<i>◆</i>".repeat(s.wanted)}`
+        ? `<small>HEAT</small>${"<i>◆</i>".repeat(s.wanted)}<small class="pursuit-gap"></small>`
         : "";
       this.lastWanted = s.wanted;
     }
+    if (s.wanted) this.root.querySelector(".pursuit-gap").textContent = s.pursuitNote;
     const routeProgress = this.root.querySelector("#route-progress");
     if (routeProgress)
       routeProgress.style.width = `${s.progress * 100}%`;
@@ -695,9 +709,17 @@ export class UI {
     const standings = data.standings ? `<ol class="classification" aria-label="Race standings">${data.standings.map((entry, index) =>
       `<li class="${entry.me ? "your-finish" : ""}"><span>${index + 1}</span><b>${esc(entry.name)}</b><span>${entry.time === null
         ? "LAP " + entry.lap : index === 0 ? time(entry.time) : "+" + (entry.time - data.standings[0].time).toFixed(2) + "s"}</span></li>`).join("")}</ol>` : "";
-    const laps = data.laps?.length > 1 ? `<div class="lap-breakdown" aria-label="Lap times">${data.laps.map((value, i) =>
+    const laps = !data.race && data.laps?.length > 1 ? `<div class="lap-breakdown" aria-label="Lap times">${data.laps.map((value, i) =>
       `<span>LAP ${i + 1} <b>${time(value)}</b></span>`).join("")}</div>` : "";
-    this.layer.innerHTML = `<section class="result screen"><p>${esc(this.map.name)}</p><h1>${esc(data.title)}</h1><div class="result-time">${time(data.time)}</div><span>${data.best ? `BEST ${time(data.best)} // ` : ""}${esc(data.mode).toUpperCase()}${data.delta != null ? " // " + signedSeconds(data.delta) + " VS BEST" : ""}</span>${standings}${laps}<div><button class="primary" data-action="rematch">RUN IT BACK <i>→</i></button><button data-action="home">MAIN MENU</button></div></section>`;
+    let sectorSheet = "";
+    if (data.race) {
+      const rows = data.race.rows.map((sectors, lap) => {
+        const total = sectors.reduce((sum, seconds) => sum + seconds, 0);
+        return `<tr><th scope="row">${lap + 1}</th>${sectors.map(seconds => `<td>${time(seconds)}</td>`).join("")}<td>${time(total)}</td></tr>`;
+      });
+      sectorSheet = `<details class="sector-sheet"><summary>Sector times</summary><table aria-label="Sector and lap times"><thead><tr><th>Lap</th><th>S1</th><th>S2</th><th>S3</th><th>Total</th></tr></thead><tbody>${rows.join("")}</tbody></table></details>`;
+    }
+    this.layer.innerHTML = `<section class="result screen"><p>${esc(this.map.name)}</p><h1>${esc(data.title)}</h1><div class="result-time">${time(data.time)}</div><span>${data.best ? `${data.race?.improved ? "NEW BEST" : "BEST"} ${time(data.best)} // ` : ""}${esc(data.mode).toUpperCase()}${data.delta != null ? " // " + signedSeconds(data.delta) + " VS BEST" : ""}</span>${standings}${laps}${sectorSheet}<div><button class="primary" data-action="rematch">RUN IT BACK <i>→</i></button><button data-action="home">MAIN MENU</button></div></section>`;
   }
   pause(paused) {
     this.releaseDriving?.();

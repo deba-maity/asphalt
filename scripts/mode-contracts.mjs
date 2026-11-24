@@ -84,7 +84,31 @@ try {
       }
       if(mode.id==='escape'){
         g.elapsed=90;g.updatePoliceHeat();g.updatePoliceHeat();
-        check(g.actors.filter(a=>a.police).length===5,'Pursuit has five bounded police actors at full heat');
+        const police=g.actors.filter(a=>a.police);
+        check(police.length===5,'Pursuit has five bounded police actors at full heat');
+        const probe={role:'race',mesh:{position:new Vector3()}};
+        let farthestOutsideShoulder=0;
+        for(let frame=0;frame<900;frame++) {
+          for(const car of police) {
+            g.updateAI(car,1/60);
+            probe.mesh.position.copy(car.mesh.position);
+            g.world.constrainToRoad(probe);
+            farthestOutsideShoulder=Math.max(farthestOutsideShoulder,
+              Math.hypot(probe.mesh.position.x-car.mesh.position.x,probe.mesh.position.z-car.mesh.position.z));
+          }
+        }
+        check(farthestOutsideShoulder<.05,map.id+': a pursuit car left the drivable shoulder by '+farthestOutsideShoulder.toFixed(1)+'m');
+        check(g.pursuitContact,'A parked player can be reached on the same road');
+        const hero=g.player, cop=police[0], start=hero.mesh.position.clone(), height=hero.surfaceY;
+        hero.mesh.position.copy(cop.mesh.position);
+        hero.mesh.position.y+=3.5; hero.surfaceY=cop.surfaceY+3.5;
+        g.pursuitContact=false;
+        g.updateAI(cop,1/60);
+        check(!g.pursuitContact,'A unit below a flyover cannot damage the player above it');
+        hero.mesh.position.copy(cop.mesh.position); hero.surfaceY=cop.surfaceY;
+        g.updateAI(cop,1/60);
+        check(g.pursuitContact,'The same unit makes contact on the same deck');
+        hero.mesh.position.copy(start); hero.surfaceY=height;
       }
       const p=g.player;
       ui.updateHUD(g.hudState());
@@ -200,6 +224,7 @@ try {
       for(let lap=0;lap<laps;lap++){
         // Place at each gate to isolate progression from driving skill.
         for(let gate=0;gate<g.world.route.length;gate++){
+          if (competitive) g.elapsed+=1;
           const target = g.world.gatePosition(p.next);
           const forward = g.world.finishForward;
           p.mesh.position.copy(target);
@@ -212,6 +237,8 @@ try {
       ui.updateHUD(g.hudState());
       if(mode.id==='cruise')check(document.querySelector('#position').textContent==='FREE DRIVE' && g.hudState().wanted===0,'Free Drive has no race or pursuit prompt');
       if(competitive){
+        check(document.querySelectorAll('.sector-sheet tbody tr').length===required,'A whole race has a timing row for every lap');
+        check(document.querySelector('.result > span').textContent.includes('NEW BEST'),'Finishing establishes a solo reference time');
         ui.start();g.phase='play';const rival=g.actors[1];
         const line = g.world.finishLine, direction = g.world.finishForward;
         rival.lap = required - 1; rival.next = 0;
