@@ -47,6 +47,8 @@ try {
         check(g.actors.filter(a=>a.police).length===5,'Pursuit has five bounded police actors at full heat');
       }
       const p=g.player;
+      ui.updateHUD(g.hudState());
+      if(mode.id==='sprint')check(document.querySelector('#position').textContent.includes('LAP 1 / 1'),'Sprint shows one lap');
       if (mode.id === 'time') {
         const world = g.world, pos = p.mesh.position, start = pos.clone();
         for (const path of [world.samples, ...world.shortcutRoads.map(s => s.points)]) {
@@ -69,6 +71,11 @@ try {
             'Sliding along the edge preserves forward motion');
           pos.addScaledVector(normal, -4);
           check(world.constrainToRoad(p), 'Driver can turn back onto the road');
+        }
+        if (map.id === "dock") {
+          pos.set(-196.73, world.roadSurfaceY, -61.27); p.roadBranch = null;
+          world.constrainToRoad(p);
+          check(!p.roadBranch && Math.abs(pos.z + 82) <= 13.51, "Dockyard's back-road shoulder cannot trap the driver beside Container Cut");
         }
         const initialGate = p.next, initialHeading = p.mesh.rotation.y;
         const gate = world.route[initialGate];
@@ -133,19 +140,36 @@ try {
       for(let lap=0;lap<laps;lap++){
         // Place at each gate to isolate progression from driving skill.
         for(let gate=0;gate<g.world.route.length;gate++){
-          p.mesh.position.copy(g.world.route[p.next]);g.checkProgress(p);
+          const target = g.world.gatePosition(p.next);
+          const forward = g.world.finishForward;
+          p.mesh.position.copy(target);
+          g.checkProgress(p, target.x - forward.x, target.z - forward.z);
+          g.resolveRaceFinish();
         }
         check(p.lap===lap+1,'Each circuit counts exactly once');
         check(g.phase===(mode.id!=='cruise' && lap===required-1?'finished':'play'),`${mode.id}: correct finish lap`);
       }
       ui.updateHUD(g.hudState());
       if(mode.id==='cruise')check(document.querySelector('#position').textContent==='FREE DRIVE' && g.hudState().wanted===0,'Free Drive has no race or pursuit prompt');
-      if(mode.id==='sprint')check(document.querySelector('#position').textContent.includes('LAP 1 / 1'),'Sprint shows one lap');
       if(competitive){
         ui.start();g.phase='play';const rival=g.actors[1];
-        rival.lap=required-1;rival.next=0;rival.mesh.position.copy(g.world.route[0]);
-        g.updateAI(rival,1/60);
-        check(g.phase==='finished' && document.querySelector('.result h1').textContent.includes('RIVAL'),'A rival can win a competitive mode');
+        const line = g.world.finishLine, direction = g.world.finishForward;
+        rival.lap = required - 1; rival.next = 0;
+        rival.mesh.position.copy(line).addScaledVector(direction, -.05);
+        rival.mesh.rotation.y = Math.atan2(-direction.x, -direction.z);
+        rival.speed = 24; rival.velocityX = direction.x * 24; rival.velocityZ = direction.z * 24;
+        g.elapsed = 40; g.updateAI(rival, 1/60);
+        check(g.phase === 'play' && rival.finishedAt != null, 'Rivals can finish without ending the solo race');
+        const player = g.player;
+        player.lap = required - 1; player.next = 0; g.elapsed = 43;
+        player.mesh.position.copy(line).addScaledVector(direction, -.25);
+        g.checkProgress(player, player.mesh.position.x - direction.x, player.mesh.position.z - direction.z);
+        check(player.next === 0 && player.finishedAt == null, 'The race stays live until the stripe is crossed');
+        player.mesh.position.copy(line).addScaledVector(direction, .25);
+        g.checkProgress(player, line.x - direction.x, line.z - direction.z);
+        g.resolveRaceFinish();
+        check(g.phase === 'finished' && document.querySelector('.result h1').textContent === 'SECOND PLACE', 'Player earns second place at the stripe');
+        check(document.querySelector('.classification .your-finish').textContent.includes('+3.'), 'Standings show the gap to the winner');
       }
       results.push({map:map.id,mode:mode.id,finish:mode.id==='cruise'?'open-ended':required});
     }

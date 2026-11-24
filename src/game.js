@@ -1,4 +1,6 @@
 import { storage } from "./storage.js";
+import { PaceLap } from "./pace-lap.js";
+import { paceGhost } from "./pace-ghost.js";
 import * as THREE from "three";
 import { World } from "./world.js";
 import {
@@ -629,11 +631,11 @@ export class Game {
 
     this.player = this.makeActor(config.vehicle, config.color, false, "YOU");
 
-    this.player.mesh.position.copy(this.world.route[0]);
+    this.player.mesh.position.copy(this.world.finishLine);
     const competitive = ["race", "sprint"].includes(config.mode.id);
     if (competitive) {
       const forward = this.world.route[1].clone().sub(this.world.route[0]).normalize();
-      this.player.mesh.position.addScaledVector(forward, 3 * gridRowSpacing);
+      this.player.mesh.position.addScaledVector(forward, -2.5);
     }
 
     this.alignActorToRoad(this.player);
@@ -649,6 +651,15 @@ export class Game {
     this.player.boost = 100;
 
     this.player.progress = 0;
+    this.lapTimes = [];
+    this.lastLapAt = 0;
+    this.goUntil = 0;
+    this.pace = config.mode.id === "time" ? new PaceLap(config.map.id, this.world.route.length, config.vehicle) : null;
+    this.pace?.record(0, this.player.mesh.position, this.player.surfaceY, this.player.mesh.rotation.y);
+    if (this.pace?.reference && storage.getItem("nightshift-ghost") !== "false") {
+      this.ghost = paceGhost(this.pace.reference.kind);
+      this.actorGroup.add(this.ghost);
+    }
 
     this.actors.push(this.player);
 
@@ -692,6 +703,8 @@ export class Game {
     this.touch = {};
 
     this.audio.stop();
+    this.pace = null;
+    this.ghost = null;
     this.skids?.dispose(); this.skids = null;
 
     this.projectiles.length = 0;
@@ -791,7 +804,7 @@ export class Game {
   alignActorToRoad(actor) {
     if (!actor?.mesh || !this.world) return;
 
-    actor.surfaceY = this.world.getRoadHeightAt(actor.mesh.position.x, actor.mesh.position.z, actor.surfaceY ?? 0);
+    actor.surfaceY = actor.roadHeight ?? this.world.getRoadHeightAt(actor.mesh.position.x, actor.mesh.position.z, actor.surfaceY ?? 0);
     alignVehicleToSurface(actor.mesh, actor.surfaceY);
   }
 
@@ -858,6 +871,7 @@ export class Game {
 
   updatePlayer(dt) {
     const p = this.player;
+    const fromX = p.mesh.position.x, fromZ = p.mesh.position.z;
 
     const k = { ...this.keys };
     // Releasing a touch pedal must not cancel a held physical keyboard key.
@@ -972,7 +986,7 @@ export class Game {
       );
     }
 
-    this.checkProgress(p);
+    this.checkProgress(p, fromX, fromZ, dt);
 
     if (hit) {
       p.health = Math.max(0, p.health - 4 * dt);
@@ -1117,10 +1131,16 @@ export class Game {
 
   updateRacer(a, dt) {
     const world = this.world, position = a.mesh.position, samples = world.samples;
+    const fromX = position.x, fromZ = position.z;
+    if (a.finishedAt != null && this.elapsed - a.finishedAt > 2.5) {
+      a.mesh.visible = false;
+      return;
+    }
     const stride = samples.length / world.route.length;
     const end = (a.next || world.route.length) * stride;
+    const last = a.next === 0 ? end + world.finishSamples : end;
     let nearest = end, distance = Infinity;
-    for (let index = end - stride; index <= end; index++) {
+    for (let index = end - stride; index <= last; index++) {
       const d = position.distanceToSquared(samples[index % samples.length]);
       if (d < distance) { distance = d; nearest = index; }
     }
@@ -1141,7 +1161,7 @@ export class Game {
     const error = angleDelta(a.mesh.rotation.y, desired);
     const cruise = (a.spec.maxSpeed || 260) / 5.7 * a.skill * .85;
     const corner = clamp(1 - Math.abs(error) * .75, .35, 1);
-    const targetSpeed = cruise * corner;
+    const targetSpeed = a.finishedAt == null ? cruise * corner : 12;
     a.heading = a.mesh.rotation.y;
     driveStep(a, {
       gas: a.speed < targetSpeed ? 1 : 0,
@@ -1151,17 +1171,20 @@ export class Game {
     a.mesh.rotation.y = a.heading;
     position.x += a.velocityX * dt;
     position.z += a.velocityZ * dt;
-    this.collisions(a);
+    if (a.finishedAt == null) this.collisions(a);
     a.onRoad = world.constrainToRoad(a);
     if (!a.onRoad && !a.spec.offroadImmune) a.speed *= Math.pow(.93, dt * 18);
     this.alignActorToRoad(a);
-    const gate = world.route[a.next];
-    if (Math.hypot(position.x - gate.x, position.z - gate.z) < 15.5) {
-      if (a.next === 0) {
-        a.lap++;
-        if (a.lap >= (this.config.mode.id === "race" ? 3 : 1)) this.finish(a.name + " WINS");
+    if (a.finishedAt == null) {
+      const gate = world.gatePosition(a.next);
+      const crossing = a.next === 0 ? world.finishFraction(fromX, fromZ, position) : null;
+      if (a.next === 0 ? crossing !== null : Math.hypot(position.x - gate.x, position.z - gate.z) < 15.5) {
+        if (a.next === 0 && ++a.lap >= this.lapGoal()) {
+          a.finishedAt = Math.max(0, this.elapsed - (1 - crossing) * dt);
+          if (this.config.network) this.finish(a.name + " WINS");
+        }
+        a.next = (a.next + 1) % world.route.length;
       }
-      a.next = (a.next + 1) % world.route.length;
     }
     animateVehicle(a.mesh, a.speed, false, this.time, -a.steerInput, a.acceleration < -2, false, dt);
   }
@@ -1213,7 +1236,7 @@ export class Game {
     const start = this.actors.indexOf(p) + 1;
     for (let i = start; i < this.actors.length; i++) {
       const a = this.actors[i];
-      if (a.remote) continue;
+      if (a.remote || a.finishedAt != null) continue;
 
       const d = p.mesh.position.distanceTo(a.mesh.position);
 
@@ -1270,11 +1293,12 @@ export class Game {
     return hit;
   }
 
-  checkProgress(p) {
+  checkProgress(p, fromX = p.mesh.position.x, fromZ = p.mesh.position.z, dt = 0) {
     const world = this.world;
     const pos = p.mesh.position;
     const near = (point, radius) => Math.hypot(pos.x - point.x, pos.z - point.z) < radius;
-    let hit = near(world.route[p.next], 15.5) ? p.next : -1;
+    const crossing = p.next === 0 ? world.finishFraction(fromX, fromZ, pos) : null;
+    let hit = p.next === 0 ? (crossing !== null ? 0 : -1) : near(world.route[p.next], 15.5) ? p.next : -1;
     // A legal shortcut substitutes its own ordered gates between the two junctions.
     if (!p.cut) {
       for (const road of world.shortcutRoads) {
@@ -1306,22 +1330,20 @@ export class Game {
       world.setNextMarker(p.next);
     }
     if (hit >= 0) {
+      const stamp = Math.max(0, this.elapsed - (1 - (crossing ?? 1)) * dt);
+      this.pace?.gate(hit, stamp);
       p.next = (hit + 1) % this.world.route.length;
 
       if (hit === 0) {
         p.lap++;
 
-        if (["race", "sprint"].includes(this.config.mode.id) && p.lap >= (this.config.mode.id === "race" ? 3 : 1)) {
-          this.finish("FIRST PLACE");
+        if (this.config.mode.id !== "cruise") {
+          this.lapTimes.push(stamp - this.lastLapAt);
+          this.lastLapAt = stamp;
+          if (p.lap >= this.lapGoal()) p.finishedAt = stamp;
         }
-
-        if (this.config.mode.id === "time") {
-          this.finish("TIME RECORDED");
-        }
-
-        if (this.config.mode.id === "escape") {
-          this.finish("ESCAPED THE HEAT");
-        }
+        if (this.config.mode.id === "time") this.finish("TIME RECORDED");
+        if (this.config.mode.id === "escape") this.finish("ESCAPED THE HEAT");
       }
 
       p.progress = p.lap * this.world.route.length + p.next;
@@ -1346,6 +1368,8 @@ export class Game {
       this.actors.push(a);
     }
 
+    if (Number.isInteger(data.next) && data.next >= 0 && data.next < this.world.route.length) a.next = data.next;
+    if (Number.isInteger(data.lap) && data.lap >= 0 && data.lap <= this.lapGoal()) a.lap = data.lap;
     a.target = {
       position: new THREE.Vector3(
         data.x,
@@ -1398,20 +1422,12 @@ export class Game {
 
     this.finishTimer = 3;
 
-    let best;
-
-    if (this.config.mode.id === "time") {
-      const key = `nightshift-best-${this.world.map.id}`;
-
-      const previous = Number(storage.getItem(key) || 0);
-
-      best = !previous || this.elapsed < previous ? this.elapsed : previous;
-
-      storage.setItem(key, String(best));
-
-      if (best === this.elapsed) {
-        title = "NEW PERSONAL BEST";
-      }
+    const stamp = this.player.finishedAt ?? this.elapsed;
+    let trial;
+    if (this.pace && this.player.finishedAt != null) {
+      const p = this.player;
+      trial = this.pace.finish(stamp, p.mesh.position, p.surfaceY, p.mesh.rotation.y);
+      if (trial.improved) title = "NEW PERSONAL BEST";
     }
 
     this.config.network?.send({
@@ -1419,20 +1435,27 @@ export class Game {
       event: {
         type: "finish",
         title,
-        time: this.elapsed,
+        time: stamp,
         mode: this.config.mode.id,
       },
     });
 
+    const classified = !this.config.network && ["race", "sprint"].includes(this.config.mode.id) && this.player.finishedAt != null;
     this.callbacks.result?.({
       title,
-      time: this.elapsed,
+      time: stamp,
+      laps: [...this.lapTimes],
+      standings: classified ? this.standings().map(({ actor }) => ({
+        name: actor.name, me: actor === this.player, time: actor.finishedAt ?? null,
+        lap: Math.min(this.lapGoal(), actor.lap + 1)
+      })) : null,
       mode: this.config.mode.title,
-      best,
+      best: trial?.best,
+      delta: trial?.delta,
     });
   }
 
-  remoteFinish(event) {
+  remoteFinish(event, sender) {
     if (this.phase === "finished") {
       return;
     }
@@ -1441,9 +1464,12 @@ export class Game {
 
     this.finishTimer = 3;
 
+    const name = this.config.network?.players?.find((p) => p.id === sender)?.name || "CREW DRIVER";
+    const place = event.title === "FIRST PLACE";
+    const title = place ? name + " WINS" : this.config.mode.id === "time" ? name + " FINISHED" : event.title;
     this.callbacks.result?.({
-      title: event.title || "RACE COMPLETE",
-      time: event.time || this.elapsed,
+      title: title || "RACE COMPLETE",
+      time: event.time ?? this.elapsed,
       mode: this.config.mode.title,
     });
   }
@@ -1474,12 +1500,15 @@ export class Game {
     const p = this.player;
     const previous = mod(p.next - 1, this.world.route.length);
     p.cut = null;
-    p.mesh.position.copy(this.world.route[previous]);
+    p.roadBranch = null;
+    p.roadHeight = this.world.roadSurfaceY;
+    p.mesh.position.copy(this.world.gatePosition(previous));
     p.mesh.rotation.y = this.routeAngle(previous);
     p.surfaceY = this.world.roadSurfaceY;
     p.speed = p.velocityX = p.velocityZ = p.steerInput = p.slip = 0;
     this.alignActorToRoad(p);
     this.rememberPose(p.mesh);
+    this.pace?.record(this.elapsed, p.mesh.position, p.surfaceY, p.mesh.rotation.y, {force: true, jump: true});
     this.cameraReady = false;
     this.world.setNextMarker(p.next, p.next === 0 && this.finalLap() ? "FINISH" : undefined);
     this.togglePause();
@@ -1578,17 +1607,34 @@ export class Game {
 
       this.callbacks.countdown?.(value);
 
-      if (this.countdown <= -0.7) {
+      if (this.countdown <= 0) {
         this.phase = "play";
-
-        this.callbacks.countdown?.("");
+        this.goUntil = .7;
       }
     } else if (this.phase === "play") {
       this.elapsed += dt;
+      if (this.goUntil && this.elapsed >= this.goUntil) {
+        this.goUntil = 0;
+        this.callbacks.countdown?.("");
+      }
 
       this.updatePoliceHeat();
 
       this.updatePlayer(dt);
+      if (this.pace && this.phase === "play") {
+        const p = this.player;
+        this.pace.record(this.elapsed, p.mesh.position, p.surfaceY, p.mesh.rotation.y);
+        if (this.ghost) {
+          const pose = this.pace.pose(this.elapsed);
+          this.ghost.visible = !!pose;
+          if (pose) {
+            this.ghost.position.set(pose.x, pose.y, pose.z);
+            this.ghost.rotation.y = pose.heading;
+            // Fade the outline where it would overlap the player's bodywork.
+            this.ghost.material.opacity = clamp(Math.hypot(pose.x - p.mesh.position.x, pose.z - p.mesh.position.z) / 12, .12, .75);
+          }
+        }
+      }
 
       for (const a of this.actors) {
         if (a === this.player) {
@@ -1602,8 +1648,9 @@ export class Game {
         }
       }
 
+      this.resolveRaceFinish();
       if (this.player.health <= 0) {
-        this.finish("BUSTED");
+        this.finish(this.config.mode.id === "escape" ? "BUSTED" : "WRECKED");
       }
 
       if (this.config.network && this.time - this.lastNetwork > 0.05) {
@@ -1680,6 +1727,24 @@ export class Game {
     this.camera.updateProjectionMatrix();
   }
 
+  lapGoal() { return this.config.mode.id === "race" ? 3 : 1; }
+
+  standings() {
+    return this.actors.filter((a) => !a.police).map((actor) => ({
+      actor, distance: actor.lap + this.world.lapFraction(actor)
+    })).sort((a, b) => {
+      const left = a.actor.finishedAt ?? Infinity, right = b.actor.finishedAt ?? Infinity;
+      return left === right ? b.distance - a.distance : left - right;
+    });
+  }
+
+  resolveRaceFinish() {
+    if (this.phase !== "play" || this.player.finishedAt == null || !["race", "sprint"].includes(this.config.mode.id)) return;
+    const rank = this.standings().findIndex(({ actor }) => actor === this.player) + 1;
+    const place = ["FIRST", "SECOND", "THIRD", "FOURTH", "FIFTH", "SIXTH"][rank - 1] ?? rank + "TH";
+    this.finish(place + " PLACE");
+  }
+
   finalLap() {
     return this.config.mode.id !== "cruise" && (this.config.mode.id !== "race" || this.player.lap >= 2);
   }
@@ -1690,13 +1755,23 @@ export class Game {
     const n = route.length;
     const index = p.next % n;
     const prev = route[(index - 1 + n) % n];
-    const here = route[index];
+    const here = this.world.gatePosition(index);
     const next = route[(index + 1) % n];
     const target = p.cut ? p.cut.road.points[p.cut.gate] : here;
-    const distanceToTarget = Math.round(Math.hypot(target.x - p.mesh.position.x, target.z - p.mesh.position.z));
-    const facing = -(target.x - p.mesh.position.x) * Math.sin(p.mesh.rotation.y)
-      - (target.z - p.mesh.position.z) * Math.cos(p.mesh.rotation.y);
-    if (distanceToTarget > 16 && facing < -0.55 * distanceToTarget)
+    const pos = p.mesh.position;
+    let distanceToTarget = Math.round(Math.hypot(target.x - pos.x, target.z - pos.z));
+    let ahead = target;
+    if (!p.cut) {
+      const world = this.world, stride = world.samples.length / n;
+      const location = world.mainLocation(p);
+      const end = index ? world.sampleDistances[index * stride] : world.courseLength + world.timingOffset;
+      distanceToTarget = Math.max(distanceToTarget, Math.round(end - location.distance));
+      const last = index ? index * stride : world.samples.length + world.finishSamples;
+      if (location.sample + 2 < last) ahead = world.samples[(location.sample + 2) % world.samples.length];
+    }
+    const dx = ahead.x - pos.x, dz = ahead.z - pos.z;
+    const facing = (-dx * Math.sin(p.mesh.rotation.y) - dz * Math.cos(p.mesh.rotation.y)) * (p.speed < -2 ? -1 : 1);
+    if (distanceToTarget > 16 && facing < -0.55 * Math.hypot(dx, dz))
       return { label: "WRONG WAY", detail: "TURN BACK TOWARD THE GREEN GATE" };
     if (p.cut) return { label: p.cut.road.label, detail: distanceToTarget + "M TO THE NEXT MARKER" };
     if (!index) return { label: this.finalLap() ? "FINISH LINE" : "LAP LINE", detail: distanceToTarget + "M TO THE CHECKERED LINE" };
@@ -1705,7 +1780,6 @@ export class Game {
     const cross = incoming.x * outgoing.z - incoming.z * outgoing.x;
     const dot = clamp(incoming.dot(outgoing), -1, 1);
     const angle = Math.acos(dot);
-    const distance = Math.max(0, Math.round(p.mesh.position.distanceTo(here)));
 
     let label = "KEEP STRAIGHT";
 
@@ -1719,7 +1793,7 @@ export class Game {
 
     return {
       label,
-      detail: `${distance}M TO CHECKPOINT ${index || n}`,
+      detail: `${distanceToTarget}M TO CHECKPOINT ${index}`,
     };
   }
 
@@ -1728,12 +1802,9 @@ export class Game {
 
     const pursuit = this.config.mode.id === "escape";
 
-    const field = this.actors.filter((a) => !a.police && !a.remote);
-    const score = (a) => a.lap * this.world.route.length + (a.next || this.world.route.length);
-    const lead = score(p);
-    const gate = this.world.route[p.next];
-    const rank = 1 + field.filter((a) => a !== p && (score(a) > lead ||
-      (score(a) === lead && a.mesh.position.distanceToSquared(gate) < p.mesh.position.distanceToSquared(gate)))).length;
+    const standings = this.standings();
+    const rank = standings.findIndex(({ actor }) => actor === p) + 1;
+    const progress = standings[rank - 1].distance;
 
     return {
       speed: Math.round(Math.abs(p.speed) * 5.7),
@@ -1757,6 +1828,11 @@ export class Game {
       cue: this.routeCue(),
 
       rank,
+      progress: this.config.mode.id === "cruise" ? progress - p.lap : clamp(progress / this.lapGoal(), 0, 1),
+      fieldSize: standings.length,
+      winnerAhead: p.finishedAt == null && standings[0].actor.finishedAt != null,
+      pace: this.pace,
+      ghost: this.ghost?.visible ? this.ghost.position : null,
 
       map: this.world.map,
 

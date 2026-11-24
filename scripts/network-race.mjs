@@ -79,6 +79,7 @@ try {
   await host.evaluate(()=>window.__nightshift.game.finish('FIRST PLACE'));
   await guest.waitForFunction(()=>window.__nightshift.game.phase==='finished');
   assert.equal(await guest.locator('.pause-overlay').count(),0,'Remote result replaces the pause panel');
+  assert.match(await guest.locator('.result h1').innerText(), /WINS$/, 'Guest sees the winning driver instead of claiming first place');
   await guest.locator('[data-action="rematch"]').click();
   assert(await guest.locator('.result').isVisible(),'Waiting guest retains the result and home button');
   await host.locator('[data-action="rematch"]').click();

@@ -46,3 +46,10 @@ export function pixelRatioFor(width, height, dpr, scale, maxPixels, maxHeight) {
   if (![width, height, dpr, scale].every(Number.isFinite) || width <= 0 || height <= 0) return 1;
   return Math.max(0.1, Math.min(dpr, scale, Math.sqrt(maxPixels / (width * height)), maxHeight / height));
 }
+
+export function raceTime(seconds) {
+  const ticks = Math.max(0, Math.round(seconds * 100));
+  const minutes = String(Math.floor(ticks / 6000)).padStart(2, '0');
+  const wholeSeconds = String(Math.floor(ticks / 100) % 60).padStart(2, '0');
+  return minutes + ':' + wholeSeconds + '.' + String(ticks % 100).padStart(2, '0');
+}

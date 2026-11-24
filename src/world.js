@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { sampleHybridClosedRoute, shortcutPoints, timingGateFraction } from "./course-shape.js";
 import { gatesPerSegment } from "./data.js";
 import { batchWorld } from "./rendering.js";
 import { advanceRoute, deflectVelocity } from "./route-motion.js";
@@ -65,7 +66,7 @@ function mesh(
 }
 
 function nearestPointOnPath(position, points, closed) {
-  let distanceSq = Infinity, x = 0, z = 0;
+  let distanceSq = Infinity, x = 0, z = 0, index = 0, fraction = 0;
   const segments = closed ? points.length : points.length - 1;
   for (let i = 0; i < segments; i++) {
     const a = points[i], b = points[(i + 1) % points.length];
@@ -77,9 +78,11 @@ function nearestPointOnPath(position, points, closed) {
       distanceSq = squared;
       x = px;
       z = pz;
+      index = i;
+      fraction = t;
     }
   }
-  return { x, z, distance: Math.sqrt(distanceSq) };
+  return { x, z, index, fraction, distance: Math.sqrt(distanceSq) };
 }
 
 function tangentAt(points, i, closed = true) {
@@ -118,49 +121,6 @@ function sampleSmoothClosedRoute(route, count) {
   points.pop();
 
   return points.map((point) => new THREE.Vector3(point.x, 0, point.z));
-}
-
-function catmullPoint(p0, p1, p2, p3, t) {
-  const t2 = t * t;
-  const t3 = t2 * t;
-
-  return new THREE.Vector3(
-    0.5 *
-      (2 * p1.x +
-        (-p0.x + p2.x) * t +
-        (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
-        (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
-    0,
-    0.5 *
-      (2 * p1.z +
-        (-p0.z + p2.z) * t +
-        (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) * t2 +
-        (-p0.z + 3 * p1.z - 3 * p2.z + p3.z) * t3),
-  );
-}
-
-function sampleHybridClosedRoute(route, subdivisions, straightSegments = []) {
-  const result = [];
-  const straight = new Set(straightSegments);
-  const n = route.length;
-
-  for (let i = 0; i < n; i++) {
-    const p0 = route[(i - 1 + n) % n];
-    const p1 = route[i];
-    const p2 = route[(i + 1) % n];
-    const p3 = route[(i + 2) % n];
-
-    for (let s = 0; s < subdivisions; s++) {
-      const t = s / subdivisions;
-      result.push(
-        straight.has(i)
-          ? p1.clone().lerp(p2, t)
-          : catmullPoint(p0, p1, p2, p3, t),
-      );
-    }
-  }
-
-  return result;
 }
 
 function createRibbonGeometry(points, halfWidth, y, uvScale = 14) {
@@ -339,6 +299,17 @@ export class World {
       map.id === "neon" ? 22 : 18,
       map.straightSegments || [],
     );
+    // The timing stripe sits on the opening straight, clear of the corner at route[0].
+    this.finishLine = this.route[0].clone().lerp(this.route[1], timingGateFraction);
+    this.finishSamples = Math.ceil(timingGateFraction * this.samples.length / this.route.length);
+    this.finishForward = this.route[1].clone().sub(this.route[0]).normalize();
+    this.sampleDistances = [0];
+    for (let i = 0; i < this.samples.length; i++) {
+      const next = this.samples[(i + 1) % this.samples.length];
+      this.sampleDistances.push(this.sampleDistances[i] + this.samples[i].distanceTo(next));
+    }
+    this.courseLength = this.sampleDistances.at(-1);
+    this.timingOffset = this.route[0].distanceTo(this.finishLine);
     this.shortcutRoads = [];
     this.destructibles = [];
     this.roadSurfaceY = 0.052;
@@ -846,29 +817,6 @@ export class World {
     this.addDestructibleRoadTowers();
   }
 
-  createShortcutPoints(shortcut) {
-    const source = this.controlRoute || this.route;
-    const from = source[shortcut.from % source.length];
-    const to = source[shortcut.to % source.length];
-    const mid = from.clone().lerp(to, 0.5);
-    const direct = to.clone().sub(from);
-    const side = new THREE.Vector3(-direct.z, 0, direct.x).normalize();
-    const control = mid.addScaledVector(
-      side,
-      (shortcut.side || 1) * (shortcut.bend || 54),
-    );
-    const points = [];
-
-    for (let i = 0; i <= 18; i++) {
-      const t = i / 18;
-      const a = from.clone().lerp(control, t);
-      const b = control.clone().lerp(to, t);
-      points.push(a.lerp(b, t));
-    }
-
-    return points;
-  }
-
   buildShortcutRoads() {
     const shortcuts = this.map.shortcuts || [];
 
@@ -896,7 +844,7 @@ export class World {
     const arrowTransform = new THREE.Object3D();
 
     for (const shortcut of shortcuts) {
-      const points = this.createShortcutPoints(shortcut);
+      const points = shortcutPoints(this.controlRoute, shortcut);
       const elevated = Boolean(shortcut.elevated);
       const heightProfile = points.map((_, i) => {
         if (!elevated) return this.roadSurfaceY + 0.043;
@@ -1113,7 +1061,7 @@ export class World {
     const chevrons = [];
     const supports = [];
 
-    const start = this.route[0];
+    const start = this.finishLine;
     const startYaw = this.segmentAngle(0);
 
     for (const side of [-1, 1]) {
@@ -4885,7 +4833,7 @@ export class World {
     this.gateBeacon.scale.set(10.6, 2, 1);
     this.gateBeacon.renderOrder = 2;
     g.add(this.gateBeacon);
-    const start = this.route[0], yaw = this.segmentAngle(0);
+    const start = this.finishLine, yaw = this.segmentAngle(0);
     const tiles = [this.basic({color: 0xf8fafc}), this.basic({color: 0x11151b})];
     for (let row = 0; row < 2; row++) {
       for (let column = 0; column < 20; column++) {
@@ -4895,7 +4843,7 @@ export class World {
     }
 
     for (let i = 0; i < this.route.length; i++) {
-      const point = this.route[i];
+      const point = this.gatePosition(i);
 
       const angle = this.segmentAngle(i);
 
@@ -5331,7 +5279,59 @@ export class World {
     }
   }
 
-  setNextMarker(index, label = index ? "GATE " + index : "LAP LINE", position = this.route[index]) {
+  gatePosition(index) {
+    return index === 0 ? this.finishLine : this.route[index];
+  }
+
+  lapFraction(actor) {
+    const position = actor.mesh.position;
+    const stride = this.samples.length / this.route.length;
+    if (actor.cut) {
+      const { road, gate } = actor.cut;
+      const from = this.sampleDistances[this.authorSegmentToRouteIndex(road.from) * stride];
+      const to = this.sampleDistances[this.authorSegmentToRouteIndex(road.to) * stride];
+      const previous = road.points[gate - 1], target = road.points[gate];
+      const along = 1 - clamp(position.distanceTo(target) / (previous.distanceTo(target) || 1), 0, 1);
+      const fraction = (gate - 1 + along) / (road.points.length - 1);
+      return (from + (to - from) * fraction - this.timingOffset) / this.courseLength;
+    }
+    const { distance } = this.mainLocation(actor);
+    return clamp((distance - this.timingOffset) / this.courseLength, 0, 1);
+  }
+
+  mainLocation(actor) {
+    const position = actor.mesh.position;
+    const samples = this.samples, count = samples.length, stride = count / this.route.length;
+    const end = (actor.next || this.route.length) * stride;
+    const last = actor.next === 0 ? end + this.finishSamples : end;
+    let closest = Infinity, distance = 0, sample = 0;
+    for (let i = end - stride; i < last; i++) {
+      const index = i % count, a = samples[index], b = samples[(index + 1) % count];
+      const dx = b.x - a.x, dz = b.z - a.z;
+      const t = clamp(((position.x - a.x) * dx + (position.z - a.z) * dz) / (dx * dx + dz * dz || 1), 0, 1);
+      const squared = (position.x - a.x - t * dx) ** 2 + (position.z - a.z - t * dz) ** 2;
+      if (squared < closest) {
+        closest = squared;
+        sample = i;
+        distance = (i >= count ? this.courseLength : 0) + this.sampleDistances[index]
+          + t * (this.sampleDistances[index + 1] - this.sampleDistances[index]);
+      }
+    }
+    return { distance, sample };
+  }
+
+  finishFraction(fromX, fromZ, to) {
+    const line = this.finishLine, forward = this.finishForward;
+    const before = (fromX - line.x) * forward.x + (fromZ - line.z) * forward.z;
+    const after = (to.x - line.x) * forward.x + (to.z - line.z) * forward.z;
+    if (!(before < 0 && after >= 0)) return null;
+    const fraction = -before / (after - before);
+    const x = fromX + (to.x - fromX) * fraction - line.x;
+    const z = fromZ + (to.z - fromZ) * fraction - line.z;
+    return Math.abs(x * forward.z - z * forward.x) <= roadHalfWidth + shoulderAllowance ? fraction : null;
+  }
+
+  setNextMarker(index, label = index ? "GATE " + index : "LAP LINE", position = this.gatePosition(index)) {
     const texture = this.gateBeacon.material.map;
     if (this.gateLabel !== label) {
       this.gateLabel = label;
@@ -5368,14 +5368,25 @@ export class World {
     const position = actor.mesh.position;
     let center = nearestPointOnPath(position, this.samples, true);
     let pastEdge = center.distance - roadHalfWidth;
-    for (const shortcut of this.shortcutRoads) {
-      const candidate = nearestPointOnPath(position, shortcut.points, false);
+    let branch = null;
+    for (const road of this.shortcutRoads) {
+      if (actor.role === "race" || (actor.roadBranch && actor.roadBranch !== road)) continue;
+      const candidate = nearestPointOnPath(position, road.points, false);
+      const junction = candidate.index < 3 || candidate.index >= road.points.length - 4;
+      const following = actor.roadBranch === road;
+      // Neighbouring shoulders and overpasses are not junctions. Hold the
+      // current surface through the middle of a shortcut even at a crossing.
+      if (!following && !junction && actor.cut?.road !== road) continue;
       const pastShortcut = candidate.distance - shortcutHalfWidth;
-      if (pastShortcut < pastEdge) {
+      if ((following && !junction) || pastShortcut + (following ? -.4 : .4) < pastEdge) {
         center = candidate;
         pastEdge = pastShortcut;
+        branch = road;
       }
     }
+    actor.roadBranch = branch;
+    actor.roadHeight = branch ? THREE.MathUtils.lerp(branch.heightProfile[center.index],
+      branch.heightProfile[center.index + 1], center.fraction) : this.roadSurfaceY;
     if (pastEdge > shoulderAllowance) {
       const nx = (center.x - position.x) / center.distance;
       const nz = (center.z - position.z) / center.distance;

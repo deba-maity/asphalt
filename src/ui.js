@@ -1,4 +1,7 @@
 import { storage } from "./storage.js";
+import { raceTime as time } from "./timing.js";
+import { coursePreview } from "./course-shape.js";
+import { districtBest } from "./pace-lap.js";
 import { gatesPerSegment, maps, modes, vehicles } from "./data.js";
 
 const stat = (label, value, color = "cyan", pct = value) =>
@@ -8,8 +11,8 @@ const QUALITY_LABELS = {
   balanced: "BALANCED · 60 FPS",
   quality: "HIGH FIDELITY · 60 FPS",
 };
-const time = (seconds) =>
-  `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${(seconds % 60).toFixed(2).padStart(5, "0")}`;
+
+function signedSeconds(value) { return (value < 0 ? "−" : "+") + Math.abs(value).toFixed(2) + "s"; }
 
 function esc(value) {
   return String(value).replace(
@@ -21,33 +24,8 @@ function esc(value) {
   );
 }
 
-function routePath(map) {
-  const route = map.route;
-  const xs = route.map((p) => p[0]);
-  const ys = route.map((p) => p[1]);
-  const minX = Math.min(...xs),
-    maxX = Math.max(...xs),
-    minY = Math.min(...ys),
-    maxY = Math.max(...ys);
-  const sx = 255 / Math.max(1, maxX - minX),
-    sy = 135 / Math.max(1, maxY - minY);
-  const points = route.map(([x, y]) => [
-    22 + (x - minX) * sx,
-    24 + (y - minY) * sy,
-  ]);
-  const mid = (a, b) => [(a[0] + b[0]) * 0.5, (a[1] + b[1]) * 0.5];
-  const start = mid(points.at(-1), points[0]);
-  const commands = [`M${start[0].toFixed(1)},${start[1].toFixed(1)}`];
-  points.forEach((p, i) => {
-    const m = mid(p, points[(i + 1) % points.length]);
-    commands.push(
-      `Q${p[0].toFixed(1)},${p[1].toFixed(1)} ${m[0].toFixed(1)},${m[1].toFixed(1)}`,
-    );
-  });
-  return commands.join(" ") + " Z";
-}
-
 function mapArt(map, large = false) {
+  const preview = coursePreview(map);
   const palette = {
     neon: ["#57e9ff", "#9256ff", "#161c44"],
     coast: ["#53f1d0", "#2e8ec4", "#0e3945"],
@@ -71,10 +49,11 @@ function mapArt(map, large = false) {
       </defs>
       <rect width="300" height="180" fill="url(#g-${map.id})"/>
       ${buildings}
-      <path d="${routePath(map)}" fill="none" stroke="${palette[0]}" stroke-width="20" opacity=".12" filter="url(#blur-${map.id})"/>
-      <path d="${routePath(map)}" fill="none" stroke="#07111c" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="${routePath(map)}" fill="none" stroke="${palette[0]}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="${22 + (map.route[0][0] - Math.min(...map.route.map((p) => p[0]))) * (255 / Math.max(1, Math.max(...map.route.map((p) => p[0])) - Math.min(...map.route.map((p) => p[0]))))}" cy="24" r="5" fill="#fff"/>
+      <path d="${preview.circuit}" fill="none" stroke="${palette[0]}" stroke-width="20" opacity=".12" filter="url(#blur-${map.id})"/>
+      <path d="${preview.circuit}" fill="none" stroke="#07111c" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="${preview.circuit}" fill="none" stroke="${palette[0]}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      ${preview.cuts.map((path) => `<path d="${path}" fill="none" stroke="#ffc373" stroke-width="1.5" stroke-dasharray="3 2"/>`).join("")}
+      <circle cx="${preview.start[0]}" cy="${preview.start[1]}" r="3.6" fill="#fff" stroke="#141d26" stroke-width="1.2"/>
     </svg>
     <div class="map-art-scan"></div>
     <div class="map-art-label"><span>SECTOR ${String(maps.findIndex((m) => m.id === map.id) + 1).padStart(2, "0")}</span><b>${esc(map.tag)}</b></div>
@@ -96,7 +75,7 @@ export class UI {
     this.playerName = "Driver";
     this.difficulty = "medium";
     this.vehicleFilter = "all";
-    this.root.innerHTML = `<main id="menu-layer"></main><section id="hud" hidden><div class="hud-vignette"></div><div class="hud-top"><div class="wordmark small">NIGHTSHIFT<span>//</span></div><div class="objective-stack"><span id="objective">RACE // 3 LAPS</span><i class="route-progress"><b id="route-progress"></b></i></div><div class="race-tools"><div id="timer">00:00.00</div><button class="pause-button" data-action="pause" aria-label="Pause race">Ⅱ</button></div></div><div id="countdown"></div><div id="event-feed"><b id="drive-state">HOLD THE LINE</b><span id="drive-detail">CHECKPOINT LINKED</span></div><div class="hud-bottom"><div class="mini-wrap"><canvas id="minimap" width="170" height="170"></canvas><span>ROUTE LINK</span><b>MAP</b></div><div class="readouts"><div class="speed-pod"><small>SPEED</small><strong id="speed">000</strong><em>KM/H</em></div><div class="meter"><label>NITRO CORE <b id="nitro-text">100</b></label><i><b id="nitro"></b></i><label class="armor">INTEGRITY <b id="health-text">100</b></label><i class="health"><b id="health"></b></i></div></div><div class="race-state"><b id="position">LAP 1 / 3</b><span id="checkpoint">CHECKPOINT 1</span><div id="wanted"></div></div></div><div class="touch-controls" aria-label="Driving controls"><div class="touch-steering"><button data-drive="KeyA" aria-label="Steer left">❮</button><button data-drive="KeyD" aria-label="Steer right">❯</button></div><div class="touch-weapons"><button data-drive="KeyF" aria-label="Fire gun">FIRE</button><button data-drive="KeyR" aria-label="Launch rocket">ROCKET</button></div><div class="touch-pedals"><button class="touch-nitro" data-drive="ShiftLeft" aria-label="Use nitro">N₂O</button><button data-drive="Space" aria-label="Drift">DRIFT</button><button data-drive="KeyS" aria-label="Brake and reverse">BRAKE</button><button class="touch-gas" data-drive="KeyW" aria-label="Accelerate">GAS</button></div></div></section><div id="toast"></div>`;
+    this.root.innerHTML = `<main id="menu-layer"></main><section id="hud" hidden><div class="hud-vignette"></div><div class="hud-top"><div class="wordmark small">NIGHTSHIFT<span>//</span></div><div class="objective-stack"><span id="objective">RACE // 3 LAPS</span><i class="route-progress"><b id="route-progress"></b></i></div><div class="race-tools"><div class="timing-stack"><div id="timer">00:00.00</div><span id="pace-note" hidden></span></div><button class="pause-button" data-action="pause" aria-label="Pause race">Ⅱ</button></div></div><div id="countdown"></div><div id="event-feed"><b id="drive-state">HOLD THE LINE</b><span id="drive-detail">CHECKPOINT LINKED</span></div><div class="hud-bottom"><div class="mini-wrap"><canvas id="minimap" width="170" height="170"></canvas><span>ROUTE LINK</span><b>MAP</b></div><div class="readouts"><div class="speed-pod"><small>SPEED</small><strong id="speed">000</strong><em>KM/H</em></div><div class="meter"><label>NITRO CORE <b id="nitro-text">100</b></label><i><b id="nitro"></b></i><label class="armor">INTEGRITY <b id="health-text">100</b></label><i class="health"><b id="health"></b></i></div></div><div class="race-state"><b id="position">LAP 1 / 3</b><span id="checkpoint">CHECKPOINT 1</span><div id="wanted"></div></div></div><div class="touch-controls" aria-label="Driving controls"><div class="touch-steering"><button data-drive="KeyA" aria-label="Steer left">❮</button><button data-drive="KeyD" aria-label="Steer right">❯</button></div><div class="touch-weapons"><button data-drive="KeyF" aria-label="Fire gun">FIRE</button><button data-drive="KeyR" aria-label="Launch rocket">ROCKET</button></div><div class="touch-pedals"><button class="touch-nitro" data-drive="ShiftLeft" aria-label="Use nitro">N₂O</button><button data-drive="Space" aria-label="Drift">DRIFT</button><button data-drive="KeyS" aria-label="Brake and reverse">BRAKE</button><button class="touch-gas" data-drive="KeyW" aria-label="Accelerate">GAS</button></div></div></section><div id="toast"></div>`;
     this.layer = this.root.querySelector("#menu-layer");
     this.hud = this.root.querySelector("#hud");
     this.mini = this.root.querySelector("#minimap");
@@ -162,7 +141,7 @@ export class UI {
       this.difficulty = data.id;
       this.showSettings();
     }
-    if (action === "start") this.start();
+    if (action === "start" || (action === "restart-solo" && this.game.paused && !this.networked)) this.start();
     if (action === "home") this.exitToHome();
     if (action === "lobby") this.showLobby();
     if (action === "join") this.joinLobby();
@@ -213,7 +192,7 @@ export class UI {
     const cards = maps
       .map(
         (m, i) =>
-          `<button class="map-card map-${m.id} ${selected === m.id ? "selected" : ""}" data-action="choose-map" data-id="${m.id}">${mapArt(m)}<div class="map-card-copy"><span>ROUTE ${String(i + 1).padStart(2, "0")}</span><h2>${esc(m.name)}</h2><p>${esc(m.tag)}</p><div class="map-facts"><b>${m.route.length * gatesPerSegment} GATES</b><span>${m.straightSegments?.length || 0} SPRINTS</span><span>${m.shortcuts?.length || 0} CUTS</span></div></div><i class="map-arrow">↗</i></button>`,
+          `<button class="map-card map-${m.id} ${selected === m.id ? "selected" : ""}" data-action="choose-map" data-id="${m.id}">${mapArt(m)}<div class="map-card-copy"><span>ROUTE ${String(i + 1).padStart(2, "0")}</span><h2>${esc(m.name)}</h2><p>${esc(m.tag)}</p><div class="map-facts"><b>${m.route.length * gatesPerSegment} GATES</b><span>${m.straightSegments?.length || 0} SPRINTS</span><span>${m.shortcuts?.length || 0} CUTS</span></div>${this.mode.id === "time" && districtBest(m.id) ? `<small class="map-best">BEST ${time(districtBest(m.id))}</small>` : ""}</div><i class="map-arrow">↗</i></button>`,
       )
       .join("");
     this.shell(
@@ -369,7 +348,7 @@ export class UI {
       }
       if (msg.type === "position") this.game.remotePosition(msg.id, msg.data);
       if (msg.type === "event" && msg.event?.type === "finish") {
-        if (msg.id !== this.network.id) this.game.remoteFinish(msg.event);
+        if (msg.id !== this.network.id) this.game.remoteFinish(msg.event, msg.id);
         this.toast(`${msg.event.title} — ${msg.event.time.toFixed(2)}s`);
       }
       if (
@@ -426,6 +405,7 @@ export class UI {
     this.releaseDriving?.();
     this.game.clearPreview();
     this.layer.innerHTML = "";
+    this.root.querySelector(".pause-overlay")?.remove();
     this.hud.hidden = false;
     this.root.classList.toggle("manual-gas", !this.game.autoAccelerate);
     this.game.start({
@@ -467,7 +447,7 @@ export class UI {
     this.shell(
       "MAKE IT YOURS",
       "Your way. Your pace.",
-      `<div class="settings settings-modern"><label>PERFORMANCE<select id="quality-mode">${profiles}</select><small>Battery saver limits frames and resolution for longer sessions. Balanced is the everyday setting. High fidelity adds resolution.</small></label><label>AI DIFFICULTY<span class="difficulty-row">${levels}</span></label><label class="setting-toggle"><span>AUTO ACCELERATE<small>On touchscreens, focus on steering. Brake and drift override the throttle.</small></span><input type="checkbox" id="auto-accelerate" ${this.game.autoAccelerate ? "checked" : ""}></label><label class="setting-toggle"><span>REDUCED CAMERA MOTION<small>Steady field of view and no impact shake.</small></span><input type="checkbox" id="reduced-motion" ${this.game.reducedMotion ? "checked" : ""}></label><label class="setting-toggle"><span>ENGINE AUDIO<small>Engine, nitro and effects.</small></span><input type="checkbox" id="audio-enabled" ${this.game.audio.enabled ? "checked" : ""}></label><p><a href="credits.html" target="_blank" rel="noopener">Model credits &amp; licenses</a></p><div class="control-reference"><span>DESKTOP</span><p>WASD / arrows · steer & drive<br>Space · drift &nbsp; Shift · nitro<br>F · gun &nbsp; R · rocket &nbsp; Esc · pause</p><span>PHONE</span><p>Hold the steering arrows. Use drift, brake and nitro with your other thumb. Landscape gives you more room.</p></div></div>`,
+      `<div class="settings settings-modern"><label>PERFORMANCE<select id="quality-mode">${profiles}</select><small>Battery saver limits frames and resolution for longer sessions. Balanced is the everyday setting. High fidelity adds resolution.</small></label><label>AI DIFFICULTY<span class="difficulty-row">${levels}</span></label><label class="setting-toggle"><span>AUTO ACCELERATE<small>On touchscreens, focus on steering. Brake and drift override the throttle.</small></span><input type="checkbox" id="auto-accelerate" ${this.game.autoAccelerate ? "checked" : ""}></label><label class="setting-toggle"><span>TIME TRIAL GHOST<small>Race your fastest recorded lap in each district.</small></span><input type="checkbox" id="pace-ghost" ${storage.getItem("nightshift-ghost") !== "false" ? "checked" : ""}></label><label class="setting-toggle"><span>REDUCED CAMERA MOTION<small>Steady field of view and no impact shake.</small></span><input type="checkbox" id="reduced-motion" ${this.game.reducedMotion ? "checked" : ""}></label><label class="setting-toggle"><span>ENGINE AUDIO<small>Engine, nitro and effects.</small></span><input type="checkbox" id="audio-enabled" ${this.game.audio.enabled ? "checked" : ""}></label><p><a href="credits.html" target="_blank" rel="noopener">Model credits &amp; licenses</a></p><div class="control-reference"><span>DESKTOP</span><p>WASD / arrows · steer & drive<br>Space · drift &nbsp; Shift · nitro<br>F · gun &nbsp; R · rocket &nbsp; Esc · pause</p><span>PHONE</span><p>Hold the steering arrows. Use drift, brake and nitro with your other thumb. Landscape gives you more room.</p></div></div>`,
     );
   }
 
@@ -492,6 +472,7 @@ export class UI {
         storage.setItem("nightshift-auto", e.target.checked);
         this.root.classList.toggle("manual-gas", !e.target.checked);
       }
+      if (e.target.id === "pace-ghost") storage.setItem("nightshift-ghost", e.target.checked);
       if (e.target.id === "reduced-motion") {
         this.game.reducedMotion = e.target.checked;
         document.documentElement.classList.toggle('reduced-motion',e.target.checked);
@@ -560,9 +541,17 @@ export class UI {
     this.root.querySelector("#health").style.width = `${s.health}%`;
     this.root.querySelector("#health-text").textContent = Math.round(s.health);
     this.root.querySelector("#timer").textContent = time(s.time);
+    const pace = this.root.querySelector("#pace-note");
+    const split = s.pace?.lastSplit;
+    const showSplit = split && s.time - split.seconds < 4;
+    pace.hidden = !s.pace?.best;
+    pace.dataset.ahead = showSplit ? String(split.delta < 0) : "";
+    pace.textContent = showSplit ? "G" + split.index + "  " + signedSeconds(split.delta) + " VS PACE"
+      : s.pace?.reference ? "PACE " + time(s.pace.reference.duration / 1000)
+      : s.pace?.best ? "BEST " + time(s.pace.best) : "";
     this.root.querySelector("#position").textContent =
       racing
-        ? `${s.rank} / ${s.actors.filter((a) => !a.police).length} • LAP ${Math.min(s.lap, laps)} / ${laps}`
+        ? `${s.rank} / ${s.fieldSize} • LAP ${Math.min(s.lap, laps)} / ${laps}`
         : pursuit
           ? "ESCAPE RUN"
           : this.mode.id === "cruise" ? "FREE DRIVE" : "TIME TRIAL";
@@ -576,7 +565,7 @@ export class UI {
       ? "OUTRUN THE PURSUIT"
       : this.mode.id === "cruise" ? "EXPLORE THE ROUTE"
       : this.mode.id === "time" ? "BEAT YOUR PERSONAL BEST"
-      : `${this.mode.title.toUpperCase()} // FOLLOW THE GREEN GATES`;
+      : s.winnerAhead ? "LEADER FINISHED // RACE TO THE LINE" : `${this.mode.title.toUpperCase()} // FOLLOW THE GREEN GATES`;
     if (this.lastWanted !== s.wanted) {
       this.root.querySelector("#wanted").innerHTML = s.wanted
         ? `<small>HEAT</small>${"<i>◆</i>".repeat(s.wanted)}`
@@ -585,7 +574,7 @@ export class UI {
     }
     const routeProgress = this.root.querySelector("#route-progress");
     if (routeProgress)
-      routeProgress.style.width = `${Math.max(3, Math.min(100, ((s.next - 1) / Math.max(1, s.total - 1)) * 100))}%`;
+      routeProgress.style.width = `${s.progress * 100}%`;
     this.drawMap(s);
   }
   mapBackground(world, width, height) {
@@ -620,7 +609,7 @@ export class UI {
     ctx.clearRect(0, 0, c.width, c.height);
     ctx.drawImage(canvas, 0, 0);
     const cut = s.player.cut;
-    const target = cut ? cut.road.points[cut.gate] : world.route[s.targetIndex];
+    const target = cut ? cut.road.points[cut.gate] : world.gatePosition(s.targetIndex);
     const car = s.player.mesh.position;
     ctx.beginPath(); ctx.moveTo(ox + car.x * scale, oy + car.z * scale);
     const trace = (p) => ctx.lineTo(ox + p.x * scale, oy + p.z * scale);
@@ -631,18 +620,27 @@ export class UI {
       const stride = samples.length / world.route.length;
       const end = (s.targetIndex || world.route.length) * stride;
       let closest = end, best = Infinity;
-      for (let i = end - stride; i <= end; i++) {
+      const last = s.targetIndex === 0 ? end + world.finishSamples : end;
+      for (let i = end - stride; i <= last; i++) {
         const distance = car.distanceToSquared(samples[i % samples.length]);
         if (distance < best) { best = distance; closest = i; }
       }
-      for (let i = closest; i <= end + 3 * stride; i++) trace(samples[i % samples.length]);
+      const limit = s.targetIndex === 0 && this.game.finalLap() ? last - 1 : end + 3 * stride;
+      for (let i = closest; i <= limit; i++) trace(samples[i % samples.length]);
+      if (s.targetIndex === 0 && this.game.finalLap()) trace(world.finishLine);
     }
     ctx.strokeStyle = "#65ffcb"; ctx.lineWidth = 3.5; ctx.lineJoin = "round"; ctx.stroke();
-    const start = world.route[0];
+    const start = world.finishLine;
     ctx.fillStyle = "#fff"; ctx.fillRect(ox + start.x * scale - 2, oy + start.z * scale - 2, 4, 4);
     ctx.beginPath(); ctx.arc(ox + target.x * scale, oy + target.z * scale, 4, 0, Math.PI * 2);
     ctx.fillStyle = "#fff"; ctx.fill(); ctx.strokeStyle = "#43e5ae"; ctx.lineWidth = 1.5; ctx.stroke();
+    if (s.ghost) {
+      const x = ox + s.ghost.x * scale, y = oy + s.ghost.z * scale;
+      ctx.strokeStyle = "#d3b3ff"; ctx.lineWidth = 2;
+      ctx.strokeRect(x - 3, y - 3, 6, 6);
+    }
     for (const a of s.actors) {
+      if (!a.mesh.visible) continue;
       const x = ox + a.mesh.position.x * scale,
         y = oy + a.mesh.position.z * scale;
       ctx.fillStyle =
@@ -668,7 +666,13 @@ export class UI {
   result(data) {
     this.releaseDriving?.();
     this.root.querySelector(".pause-overlay")?.remove();
-    this.layer.innerHTML = `<section class="result screen"><p>OPERATION COMPLETE</p><h1>${esc(data.title)}</h1><div class="result-time">${time(data.time)}</div><span>${data.best ? `BEST ${time(data.best)} // ` : ""}${esc(data.mode).toUpperCase()}</span><div><button class="primary" data-action="rematch">RUN IT BACK <i>→</i></button><button data-action="home">MAIN MENU</button></div></section>`;
+    this.hud.hidden = true;
+    const standings = data.standings ? `<ol class="classification" aria-label="Race standings">${data.standings.map((entry, index) =>
+      `<li class="${entry.me ? "your-finish" : ""}"><span>${index + 1}</span><b>${esc(entry.name)}</b><span>${entry.time === null
+        ? "LAP " + entry.lap : index === 0 ? time(entry.time) : "+" + (entry.time - data.standings[0].time).toFixed(2) + "s"}</span></li>`).join("")}</ol>` : "";
+    const laps = data.laps?.length > 1 ? `<div class="lap-breakdown" aria-label="Lap times">${data.laps.map((value, i) =>
+      `<span>LAP ${i + 1} <b>${time(value)}</b></span>`).join("")}</div>` : "";
+    this.layer.innerHTML = `<section class="result screen"><p>${esc(this.map.name)}</p><h1>${esc(data.title)}</h1><div class="result-time">${time(data.time)}</div><span>${data.best ? `BEST ${time(data.best)} // ` : ""}${esc(data.mode).toUpperCase()}${data.delta != null ? " // " + signedSeconds(data.delta) + " VS BEST" : ""}</span>${standings}${laps}<div><button class="primary" data-action="rematch">RUN IT BACK <i>→</i></button><button data-action="home">MAIN MENU</button></div></section>`;
   }
   pause(paused) {
     this.releaseDriving?.();
@@ -678,7 +682,7 @@ export class UI {
     }
     this.root.insertAdjacentHTML(
       "beforeend",
-      `<div class="pause-overlay"><p>PAUSED</p><button class="primary" data-action="resume">RESUME</button>${this.game.phase === "play" ? '<button data-action="recover">RETURN TO LAST GATE</button>' : ""}<button data-action="home">QUIT TO MENU</button></div>`,
+      `<div class="pause-overlay"><p>PAUSED</p><button class="primary" data-action="resume">RESUME</button>${this.game.phase === "play" ? '<button data-action="recover">RETURN TO LAST GATE</button>' : ""}${!this.networked ? '<button data-action="restart-solo">RESTART RUN</button>' : ""}<button data-action="home">QUIT TO MENU</button></div>`,
     );
   }
   toast(message) {
