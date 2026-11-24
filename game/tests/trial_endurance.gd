@@ -31,6 +31,9 @@ var passage_calls := 0
 var dawn_crossings := 0
 var checkpoint_resumes := 0
 var between_since := -1.0
+var between_frame := 0
+var last_gate_resume := -1
+var gate_resumes := 0
 var previous_stage := 0
 
 func _ready() -> void:
@@ -67,6 +70,7 @@ func _process(delta: float) -> void:
 		boss.model.state = "dead"
 		boss.slain.emit(boss)
 		between_since = elapsed
+		between_frame = Engine.get_physics_frames()
 		return
 	hero.model.health=maxf(hero.model.health,70)
 	boss.model.health=maxf(boss.model.health,boss.model.max_health*.3)
@@ -109,7 +113,7 @@ func _process(delta: float) -> void:
 		if baseline_nodes>0 and (nodes>baseline_nodes+12 or memory>baseline_memory+64*1024*1024):
 			failures += 1
 			failure_reasons.append("Court resources grew from %d nodes / %d bytes to %d nodes / %d bytes" % [baseline_nodes, baseline_memory, nodes, memory])
-		var record={"seconds":elapsed,"matches":matches,"actions":actions,"nodes":nodes,"memory":memory,"failures":failures,"pose_samples":pose_samples,"phase_two_samples":phase_two_samples,"advancing_swings":advancing_swings,"idle_checks":idle_checks,"training_samples":training_samples,"passage_calls":passage_calls,"dawn_crossings":dawn_crossings,"checkpoint_resumes":checkpoint_resumes}
+		var record={"seconds":elapsed,"matches":matches,"actions":actions,"nodes":nodes,"memory":memory,"failures":failures,"pose_samples":pose_samples,"phase_two_samples":phase_two_samples,"advancing_swings":advancing_swings,"idle_checks":idle_checks,"training_samples":training_samples,"passage_calls":passage_calls,"dawn_crossings":dawn_crossings,"checkpoint_resumes":checkpoint_resumes,"gate_resumes":gate_resumes}
 		records.append(record)
 		print("ENDURANCE ",JSON.stringify(record))
 		write_report(elapsed,false)
@@ -129,7 +133,10 @@ func start_journey() -> void:
 func progress_passage(elapsed: float) -> void:
 	Input.action_release("guard")
 	Input.action_release("sprint")
-	if between_since < 0: between_since = elapsed
+	if between_since < 0:
+		between_since = elapsed
+		between_frame = Engine.get_physics_frames()
+	var travel_seconds := float(Engine.get_physics_frames() - between_frame) / Engine.physics_ticks_per_second
 	if main.ui.mode == "dawn":
 		dawn_crossings += 1
 		start_journey()
@@ -143,16 +150,26 @@ func progress_passage(elapsed: float) -> void:
 			main.ui.show_menu()
 			main.continue_shore()
 			checkpoint_resumes += 1
-	elif elapsed - between_since > 22:
+	# Rendering and physics can fall behind the wall clock on a busy host.
+	# Bound actual walking time, with a separate wall-clock limit for a hung simulation.
+	elif travel_seconds > 22 or elapsed - between_since > 120:
 		failures += 1
 		if failure_reasons.size() < 8:
 			var court: TrialWorld = main.world
 			var destination := str(court.passage_target()) if court.waystone != null else "waiting for passage"
-			failure_reasons.append("Stage %d: player %s, target %s, mode %s" % [main.trial_stage, court.hero.position, destination, main.ui.mode])
+			failure_reasons.append("Stage %d: player %s, target %s, mode %s, duel finished %s, delay %.2f, physics %.1fs, wall %.1fs" % [main.trial_stage, court.hero.position, destination, main.ui.mode, court.duel.finished, court.result_delay, travel_seconds, elapsed - between_since])
 		start_journey()
 	else:
 		var court: TrialWorld = main.world
 		if court.waystone != null:
+			if court.north_gate.open and dawn_crossings % 2 == 1 and last_gate_resume != dawn_crossings:
+				last_gate_resume = dawn_crossings
+				Session.shore.restore()
+				main.ui.show_menu()
+				main.continue_shore()
+				main.player.use_test_direction = true
+				gate_resumes += 1
+				return
 			var travel := court.passage_target() - court.hero.global_position
 			travel.y = 0
 			court.hero.test_direction = travel.normalized()
@@ -188,4 +205,4 @@ func inspect_actor(actor: Fighter) -> void:
 
 func write_report(elapsed: float, complete: bool) -> void:
 	var file=FileAccess.open("user://endurance-report.json",FileAccess.WRITE)
-	file.store_string(JSON.stringify({"complete":complete,"seconds":elapsed,"requested_seconds":duration,"matches":matches,"actions":actions,"failures":failures,"failure_reasons":failure_reasons,"peak_memory":peak_memory,"pose_samples":pose_samples,"phase_two_samples":phase_two_samples,"advancing_swings":advancing_swings,"idle_checks":idle_checks,"training_samples":training_samples,"passage_calls":passage_calls,"dawn_crossings":dawn_crossings,"checkpoint_resumes":checkpoint_resumes,"samples":records},"  "))
+	file.store_string(JSON.stringify({"complete":complete,"seconds":elapsed,"requested_seconds":duration,"matches":matches,"actions":actions,"failures":failures,"failure_reasons":failure_reasons,"peak_memory":peak_memory,"pose_samples":pose_samples,"phase_two_samples":phase_two_samples,"advancing_swings":advancing_swings,"idle_checks":idle_checks,"training_samples":training_samples,"passage_calls":passage_calls,"dawn_crossings":dawn_crossings,"checkpoint_resumes":checkpoint_resumes,"gate_resumes":gate_resumes,"samples":records},"  "))
