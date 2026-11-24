@@ -31,6 +31,9 @@ routeArrowGeo.setAttribute(
 );
 routeArrowGeo.setIndex([0, 1, 2]);
 routeArrowGeo.computeVertexNormals();
+const turnChevron = new THREE.ShapeGeometry(new THREE.Shape([
+  [-.7, .46], [-.04, .46], [.7, 0], [-.04, -.46], [-.7, -.46], [.04, 0],
+].map(([x, y]) => new THREE.Vector2(x, y))));
 const vec = (p) => new THREE.Vector3(p[0], 0, p[1]);
 
 const seeded = (n) => {
@@ -1003,21 +1006,10 @@ export class World {
       metalness: 0.62,
     });
 
-    const warning = this.basic({
-      color:
-        this.map.id === "dock"
-          ? 0xffa255
-          : this.map.id === "mesa"
-            ? 0xffd05a
-            : 0x55e7ff,
-      transparent: true,
-      opacity: 0.82,
-    });
-
-    const matrix = new THREE.Matrix4();
-    const q = new THREE.Quaternion();
-    const chevrons = [];
-    const supports = [];
+    const warning = this.basic({ color: 0xffcc68, side: THREE.DoubleSide, toneMapped: false });
+    const matrix = new THREE.Matrix4(), q = new THREE.Quaternion();
+    const up = new THREE.Vector3(0, 1, 0);
+    const chevrons = [], boards = [], supports = [];
 
     const start = this.finishLine;
     const startYaw = this.segmentAngle(0);
@@ -1073,42 +1065,32 @@ export class World {
       this.addPanel(pos, yaw, label, "NIGHTSHIFT SERIES", 10.2, 2.75);
     }
 
+    const stride = this.samples.length / this.route.length;
     for (let i = 1; i < this.route.length; i++) {
-      const prev = tangentAt(this.route, i - 1);
-      const next = tangentAt(this.route, i);
-      const turn = prev.x * next.z - prev.z * next.x;
-
-      if (Math.abs(turn) < 0.18 && i % 3 !== 0) continue;
-
-      const yaw = this.segmentAngle(i);
-      const side = turn >= 0 ? -1 : 1;
-
-      for (let j = -1; j <= 1; j++) {
-        const base = localPoint(
-          this.route[i],
-          yaw,
-          side * 11.6,
-          1.15,
-          j * 2.15,
-        );
-        matrix.compose(
-          base,
-          q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw - side * 0.42),
-          new THREE.Vector3(1.25, 0.22, 0.08),
-        );
-        chevrons.push(matrix.clone());
-
-        matrix.compose(
-          localPoint(this.route[i], yaw, side * 12.0, 0.72, j * 2.15),
-          q.identity(),
-          new THREE.Vector3(0.16, 1.44, 0.16),
-        );
+      const index = i * stride, reach = Math.floor(stride / 2);
+      const before = tangentAt(this.samples, index - reach);
+      const after = tangentAt(this.samples, index + reach);
+      const turn = before.x * after.z - before.z * after.x;
+      if (Math.abs(turn) < .18) continue;
+      const direction = tangentAt(this.samples, index);
+      const yaw = Math.atan2(direction.x, direction.z);
+      const outside = turn > 0 ? 1 : -1;
+      for (const along of [-4.5, 0, 4.5]) {
+        const base = localPoint(this.samples[index], yaw, outside * 13.1, 0, along);
+        if (!this.clearForRoadside(base, 1.35)) continue;
+        matrix.compose(base.clone().setY(.73), q.identity(), new THREE.Vector3(.14, 1.46, .14));
         supports.push(matrix.clone());
+        matrix.compose(base.clone().setY(1.65), q.setFromAxisAngle(up, yaw), new THREE.Vector3(1.85, 1.22, .12));
+        boards.push(matrix.clone());
+        const face = localPoint(base, yaw, 0, 1.65, -.075);
+        const arrowYaw = outside > 0 ? yaw + Math.PI : yaw;
+        matrix.compose(face, q.setFromAxisAngle(up, arrowYaw), new THREE.Vector3(1, 1, 1));
+        chevrons.push(matrix.clone());
       }
     }
-
-    this.installRoadside("courseChevrons", box, warning, chevrons);
-    this.installRoadside("courseChevronSupports", box, dark, supports);
+    this.installInstance("courseChevronSupports", box, dark, supports);
+    this.installInstance("courseChevronBoards", box, dark, boards);
+    this.installInstance("courseChevrons", turnChevron, warning, chevrons);
   }
 
   clearForRoadside(position, margin = 0) {
@@ -1169,7 +1151,8 @@ export class World {
       const prev = tangentAt(this.route, i - 1);
       const next = tangentAt(this.route, i);
       const turn = prev.x * next.z - prev.z * next.x;
-      const tangent = tangentAt(this.route, i);
+      const station = i * this.samples.length / this.route.length;
+      const tangent = tangentAt(this.samples, station);
       const yaw = Math.atan2(tangent.x, tangent.z);
       const side = new THREE.Vector3(-tangent.z, 0, tangent.x);
 

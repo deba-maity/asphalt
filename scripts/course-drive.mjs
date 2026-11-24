@@ -31,6 +31,10 @@ try {
           throw Error(map.name + ': scenery clearance does not follow the drivable surface');
         }
       }
+      const signs = ['courseChevronSupports', 'courseChevronBoards', 'courseChevrons'].map(name =>
+        world.group.children.filter(object => object.name.startsWith('instances:' + name + ':'))
+          .reduce((total, object) => total + object.count, 0));
+      if (signs[0] < 3 || !signs.every(count => count === signs[0])) throw Error(map.name + ': incomplete corner signs');
       const shoulder = world.finishForward.clone().set(world.finishForward.z, 0, -world.finishForward.x);
       for (const sign of [-1, 1]) {
         const position = world.finishLine.clone().addScaledVector(shoulder, sign * 25);
