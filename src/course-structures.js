@@ -22,6 +22,28 @@ export function courseSpan(samples, controlCount, from, to) {
   return span;
 }
 
+export function shortcutArrowPlacements(road, spacing) {
+  if (!Number.isFinite(spacing) || spacing <= 0) throw new RangeError("Arrow spacing must be positive");
+  const arrows = [];
+  let distance = 0, next = spacing / 2;
+  for (let i = 1; i < road.points.length; i++) {
+    const a = road.points[i - 1], b = road.points[i];
+    const dx = b.x - a.x, dz = b.z - a.z;
+    const length = Math.hypot(dx, dz);
+    const rise = road.heightProfile[i] - road.heightProfile[i - 1];
+    while (next < distance + length) {
+      const t = (next - distance) / length;
+      arrows.push({
+        x: a.x + dx * t, z: a.z + dz * t, y: road.heightProfile[i - 1] + rise * t,
+        yaw: Math.atan2(dx, dz), pitch: -Math.atan2(rise, length),
+      });
+      next += spacing;
+    }
+    distance += length;
+  }
+  return arrows;
+}
+
 export function rampSpan(road) {
   let length = 0;
   return road.points.map((point, i) => {

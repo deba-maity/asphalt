@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { shortcutMarkerIndex } from "./shortcut-guide.js";
 import { sampleHybridClosedRoute, planShortcutRoads, timingGateFraction } from "./course-shape.js";
-import { courseSpan, trimSpan, offsetStation, spanGeometry, bridgeRuns, bridgeRailOffset, rampSpan, rampRailRuns } from "./course-structures.js";
+import { courseSpan, trimSpan, offsetStation, spanGeometry, bridgeRuns, bridgeRailOffset, rampSpan, rampRailRuns, shortcutArrowPlacements } from "./course-structures.js";
 import { nearestPointOnPath, roadProjection } from "./road-projection.js";
 import { courseCorners } from "./corner-notes.js";
 import { gatesPerSegment } from "./data.js";
@@ -843,13 +843,10 @@ export class World {
       road.userData.worldOwned = true;
       this.group.add(road);
 
-      for (let i = 2; i < points.length - 1; i += 2) {
-        const a = points[i - 1], b = points[i + 1];
-        const direction = b.clone().sub(a);
-        const pitch = -Math.atan2(heightProfile[i + 1] - heightProfile[i - 1], Math.hypot(direction.x, direction.z));
-        arrowTransform.rotation.set(pitch, Math.atan2(direction.x, direction.z), 0, "YXZ");
-        arrowTransform.position.copy(points[i]).y = heightProfile[i] + .12;
-        arrowTransform.scale.set(1.25, 1, 1.6);
+      for (const arrow of shortcutArrowPlacements(shortcut, this.lowPower ? 20 : 14)) {
+        arrowTransform.rotation.set(arrow.pitch, arrow.yaw, 0, "YXZ");
+        arrowTransform.position.set(arrow.x, arrow.y + .15, arrow.z);
+        arrowTransform.scale.set(1.55, 1, 1.85);
         arrowTransform.updateMatrix();
         branchArrows.push(arrowTransform.matrix.clone());
       }

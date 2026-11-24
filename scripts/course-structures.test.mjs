@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { maps } from "../src/data.js";
 import { planShortcutRoads, sampleHybridClosedRoute } from "../src/course-shape.js";
 import { roadProjection } from "../src/road-projection.js";
-import { courseSpan, trimSpan, offsetStation, spanGeometry, bridgeRuns, bridgeRailOffset, rampSpan, rampRailRuns } from "../src/course-structures.js";
+import { courseSpan, trimSpan, offsetStation, spanGeometry, bridgeRuns, bridgeRailOffset, rampSpan, rampRailRuns, shortcutArrowPlacements } from "../src/course-structures.js";
 
 const bridgeSections = {neon: [1,2], coast: [2,5], dock: [15,16], mesa: [3,5]};
 test("bridge rails follow the full drawn road, leaving gaps where drivers can take a shortcut", () => {
@@ -66,6 +66,29 @@ test("elevated shortcut decks meet at every bend and their rails leave the main 
         }
       }
       deck.dispose();
+    }
+  }
+});
+
+test("shortcut arrows follow the deck every 14 or 20 metres through the entry and exit", () => {
+  for (const map of maps) {
+    const controls = map.route.map(([x, z]) => new THREE.Vector3(x, 0, z));
+    for (const road of planShortcutRoads(controls, map.shortcuts, .052)) {
+      for (const spacing of [14,20]) {
+        const arrows = shortcutArrowPlacements(road, spacing);
+        const span = rampSpan(road);
+        const length = span.at(-1).length;
+        assert.ok(arrows.length >= Math.floor(length / spacing));
+        for (const [i, arrow] of arrows.entries()) {
+          const distance = spacing * (i + .5);
+          const [station] = trimSpan(span, distance, distance);
+          assert.ok(station.point.distanceTo(new THREE.Vector3(arrow.x, arrow.y, arrow.z)) < .0001);
+          const ahead = trimSpan(span, distance + .01, distance + .01)[0].point;
+          const painted = new THREE.Vector3(0, 0, 1).applyEuler(new THREE.Euler(arrow.pitch, arrow.yaw, 0, "YXZ"));
+          assert.ok(painted.dot(ahead.sub(station.point).normalize()) > .999, road.label + " arrow points along its grade");
+        }
+        assert.ok(length - spacing * (arrows.length - .5) <= spacing + .001);
+      }
     }
   }
 });
