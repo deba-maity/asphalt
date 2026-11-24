@@ -835,12 +835,14 @@ export class Game {
       a.raceLane = ((i % 3) - 1) * 3.2;
       a.mesh.position.copy(this.player.mesh.position);
 
-      const lane = [-5.8, 5.8, -2.8, 2.8, 0][i % 5];
+      // Leave the center lane open for the player's launch. Racers keep their
+      // starting columns until the field has room to merge onto the racing line.
+      a.gridLane = i % 2 ? -5.5 : 5.5;
       const row = Math.floor(i / 2);
 
       a.mesh.position
         .addScaledVector(forward, -(row + 1) * gridRowSpacing)
-        .addScaledVector(side, lane);
+        .addScaledVector(side, -a.gridLane);
     }
 
     this.alignActorToRoad(a);
@@ -1156,8 +1158,10 @@ export class Game {
     const target = samples[look % samples.length];
     const ahead = samples[(look + 1) % samples.length];
     const forward = ahead.clone().sub(target).normalize();
-    const x = target.x + forward.z * a.raceLane;
-    const z = target.z - forward.x * a.raceLane;
+    const merge = clamp((this.elapsed - 4) / 3, 0, 1);
+    const lane = THREE.MathUtils.lerp(a.gridLane, a.raceLane, merge * merge * (3 - 2 * merge));
+    const x = target.x + forward.z * lane;
+    const z = target.z - forward.x * lane;
     const desired = Math.atan2(position.x - x, position.z - z);
     const error = angleDelta(a.mesh.rotation.y, desired);
     const cruise = (a.spec.maxSpeed || 260) / 5.7 * a.skill * .85;
@@ -1751,6 +1755,12 @@ export class Game {
   }
 
   routeCue() {
+    if (this.phase === "countdown" && ["race", "sprint"].includes(this.config.mode.id)) {
+      const controls = this.touch.active
+        ? (this.autoAccelerate ? "AUTO ACCELERATE ON" : "HOLD GAS TO LAUNCH")
+        : "HOLD W, ↑ OR RT TO LAUNCH";
+      return { label: "STARTING GRID", detail: controls };
+    }
     const p = this.player;
     const route = this.world.route;
     const n = route.length;

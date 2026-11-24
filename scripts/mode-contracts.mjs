@@ -27,6 +27,18 @@ try {
       const competitive=['race','sprint'].includes(mode.id),required=mode.id==='race'?3:1;
       check(g.actors.length===(competitive?6:1),`${mode.id}: intended starting field`);
       if (competitive) {
+        g.elapsed = 0;
+        const referenceLaunch = { speed: 0, heading: g.player.heading, boost: 100 };
+        // A driver reacting half a second after GO still has an open lane.
+        for (let tick = 0; tick < 150; tick++) {
+          g.keys.ArrowUp = tick >= 30;
+          driveStep(referenceLaunch, { gas: g.keys.ArrowUp ? 1 : 0 }, g.player.spec, 1 / 60);
+          g.simulate(1 / 60);
+          check(Math.abs(g.player.speed - referenceLaunch.speed) < .001,
+            map.name + ': the entire grid leaves room for a delayed player launch');
+        }
+        g.keys.ArrowUp = false;
+        ui.start(); g.phase = 'play'; g.elapsed = 0;
         for (const rival of g.actors.slice(1)) {
           const start = rival.mesh.position.clone();
           check(g.world.constrainToRoad(rival), 'Starting grid fits on the asphalt');
