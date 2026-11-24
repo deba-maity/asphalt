@@ -47,6 +47,7 @@ func test_touch_lesson() -> void:
 	button_named("Accept the cost").pressed.emit()
 	await seconds(.35)
 	var controls: TrialTouch = main.ui.touch_controls
+	check(not main.ui.help_caption.visible, "Touch removes the duplicate footer menu hint")
 	check(main.ui.touch_preferred and controls.is_visible_in_tree(), "Touch input enables the trial pad")
 	var forward := TrialTouch.PAD + Vector2.UP * 63
 	touch(1, forward, true)
@@ -125,6 +126,8 @@ func run() -> void:
 	check(main.player.figure.cape.clock==frozen_clock,"Briefing suspends cloth and character simulation")
 	button_named("Accept the cost").pressed.emit()
 	await frames(5)
+	check(main.ui.objective_panel.is_visible_in_tree() and main.ui.objective_panel.is_ancestor_of(main.ui.tutorial), "Practice controls are readable within the objective panel")
+	check(not main.ui.toast_label.get_global_rect().intersects(main.ui.objective_panel.get_global_rect()), "Keeper dialogue leaves the current lesson uncovered")
 	check(main.ui.mode=="play" and not get_tree().paused and main.world.can_play(),"Accepting the story returns control to the player")
 	check(Session.shore.milestone == ShoreProgress.SHORE, "The journey begins saving after accepting the offer")
 	var arrival: TrialArrival = main.world.arrival
@@ -202,8 +205,12 @@ func run() -> void:
 		boss.model.health=0; boss.model.state="dead"; boss.slain.emit(boss)
 		await frames(3)
 		check(world.won and world.duel.finished,"A defeated encounter resolves exactly once: "+str(stage))
+		var fallen := boss.figure as PerformanceFigure
+		fallen.drop_weapon()
+		var released_sword: WeakRef = weakref(fallen.dropped_body)
 		world.result_delay=.001
 		await frames(4)
+		check(released_sword.get_ref() == null, "A defeated echo takes its dropped weapon out of the persistent court")
 		check(main.ui.mode == "play" and world.can_play() and world.waystone != null, "Victory opens a walkable safe court: " + str(stage))
 		check(Session.shore.milestone == ShoreProgress.FIRST_ECHO + stage + 1, "The next checkpoint is saved immediately: " + str(stage))
 		check(world.north_gate.open == (stage == TrialPassage.WARDEN) and (world.north_gate.closed_barrier.collision_layer == 0) == world.north_gate.open, "Only the final victory opens a walkable north gate")
@@ -326,6 +333,7 @@ func test_checkpoint_resume() -> void:
 	main.ui.show_menu()
 	button_named("Continue").pressed.emit()
 	await frames(4)
+	check(main.ui.objective_panel.is_visible_in_tree() and main.ui.objective_panel.is_ancestor_of(main.ui.tutorial), "Resuming an encounter restores its objective and controls")
 	check(main.trial_stage == 1 and main.journey and main.world.arrival == null, "Leaving immediately after victory resumes at the next echo")
 	main.player.model.health = 0
 	main.player.model.state = "dead"

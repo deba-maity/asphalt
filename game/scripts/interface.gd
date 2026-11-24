@@ -40,6 +40,7 @@ var threat_text: Label
 var help_caption: Label
 var player_panel: PanelContainer
 var objective_panel: PanelContainer
+var objective_details: VBoxContainer
 var touch_controls: TrialTouch
 var touch_preferred: bool = false
 
@@ -150,6 +151,7 @@ func build_hud() -> void:
 	status = text(left,"",16)
 	objective_panel=panel(hud,Vector2(883,26),Vector2(369,145))
 	var right = column(objective_panel)
+	objective_details = right
 	chapter_label = text(right,"01   /   BREAD AND STEEL",17,GOLD)
 	objective_text = text(right,"",18)
 	objective_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -187,15 +189,35 @@ func build_hud() -> void:
 func trial_layout(enabled: bool) -> void:
 	touch_controls.visible = enabled and touch_preferred
 	interact_text.text = ""
-	objective_panel.visible=not enabled
-	threat_text.position=Vector2(360,254) if enabled else Vector2(360,225)
-	player_panel.add_theme_stylebox_override("panel",style(Color(.035,.045,.05,.35),Color.TRANSPARENT) if enabled else style(Color(.055,.08,.10,.94),Color(.75,.64,.42,.35)))
-	toast_label.position=Vector2(265,520) if enabled else Vector2(265,594)
-	tutorial.visible=true; tutorial.modulate.a=1
-	tutorial.position=Vector2(32,678) if enabled else Vector2(32,643)
-	tutorial.size=Vector2(890,28) if enabled else Vector2(980,60)
-	tutorial.add_theme_font_size_override("font_size",15 if enabled else 17)
-	help_caption.text=Preferences.prompt("{journal} Trial guide · {pause} Pause" if enabled else "{journal} Journal · {pause} Pause")
+	objective_panel.show()
+	threat_text.position = Vector2(360,254) if enabled else Vector2(360,225)
+	var trial_ink := style(Color(.035,.045,.05,.78), Color.TRANSPARENT)
+	var archive_ink := style(Color(.055,.08,.10,.94),Color(.75,.64,.42,.35))
+	player_panel.add_theme_stylebox_override("panel", trial_ink if enabled else archive_ink)
+	toast_label.position = Vector2(333,94) if enabled else Vector2(265,594)
+	toast_label.size = Vector2(535,82) if enabled else Vector2(750,58)
+	tutorial.show()
+	tutorial.modulate.a = 1
+	if enabled:
+		if tutorial.get_parent() != objective_details: tutorial.reparent(objective_details, false)
+		tutorial.custom_minimum_size = Vector2(325,0)
+		tutorial.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		tutorial.add_theme_font_size_override("font_size",19)
+		tutorial.add_theme_color_override("font_color",Color("d9caa7"))
+	else:
+		if tutorial.get_parent() != hud: tutorial.reparent(hud, false)
+		tutorial.custom_minimum_size = Vector2.ZERO
+		tutorial.position = Vector2(32,643)
+		tutorial.size = Vector2(980,60)
+		tutorial.autowrap_mode = TextServer.AUTOWRAP_OFF
+		tutorial.add_theme_font_size_override("font_size",17)
+		tutorial.add_theme_color_override("font_color",INK)
+	# Text placed over the 3D court needs to stay legible in sunlight and fog.
+	for caption in [toast_label, interact_text, threat_text, announce_label, help_caption]:
+		caption.add_theme_constant_override("outline_size", 4 if enabled else 0)
+		caption.add_theme_color_override("font_outline_color",Color("171c1b"))
+	help_caption.visible = not enabled or not touch_preferred
+	help_caption.text = Preferences.prompt("{journal} Trial guide · {pause} Pause" if enabled else "{journal} Journal · {pause} Pause")
 
 func show_menu() -> void:
 	Session.running=false
@@ -531,6 +553,7 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch and event.pressed and event.device != InputEvent.DEVICE_ID_EMULATION and not touch_preferred:
 		touch_preferred = true
 		if main.trial_active:
+			help_caption.hide()
 			touch_controls.show()
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	if not rebinding.is_empty():

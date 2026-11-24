@@ -32,6 +32,7 @@ var teleport: bool=true
 var phase_offsets: Dictionary={}
 var flask: Node3D
 var dropped_weapon: bool=false
+var dropped_body: RigidBody3D
 var grip_bones: Array[int]=[]
 var balance=PerformanceBalance.new()
 var recoil_age: float=1
@@ -286,10 +287,19 @@ func _process(_delta: float) -> void:
 func gait_time(clip: String) -> float:
 	return fposmod(locomotion_phase+float(phase_offsets.get(clip,0)),1)*library.get_animation(clip).length
 
+func clear_dropped_weapon() -> void:
+	if is_instance_valid(dropped_body) and not dropped_body.is_queued_for_deletion():
+		dropped_body.queue_free()
+	dropped_body = null
+
+func _exit_tree() -> void:
+	clear_dropped_weapon()
+
 func drop_weapon() -> void:
 	if dropped_weapon: return
 	dropped_weapon=true
 	var body=RigidBody3D.new()
+	dropped_body = body
 	body.name="DroppedSword"
 	body.collision_layer=0; body.collision_mask=1
 	body.mass=1.4; body.continuous_cd=true

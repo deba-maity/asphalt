@@ -314,6 +314,8 @@ func near_waystone() -> bool:
 func light_waystone() -> void:
 	hero.target = null
 	warden.hide()
+	warden.process_mode = Node.PROCESS_MODE_DISABLED
+	(warden.figure as PerformanceFigure).clear_dropped_weapon()
 	warden.collision_layer = 0
 	warden.hurtbox.collision_layer = 0
 	warden.ai_enabled = false
