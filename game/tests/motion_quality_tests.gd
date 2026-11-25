@@ -96,7 +96,10 @@ func run() -> void:
 	var obstruction=main.world.solid_box(Vector3(6,8,.4),Vector3(0,2,2),Color.GRAY)
 	await frames(40)
 	var constrained_distance=hero.camera.global_position.distance_to(hero.yaw.global_position)
-	check(hero.pitch.get_hit_length()<2.7 and constrained_distance<=hero.pitch.get_hit_length()+.02,"Trial camera retracts inside an actual wall constraint")
+	# The arm approaches this wall obliquely when the camera frames a duel.
+	var wall_front: float = obstruction.global_position.z - .2
+	var eye: Vector3 = hero.camera.global_position
+	check(hero.pitch.get_hit_length() < hero.pitch.spring_length - .3 and absf(eye.x) < 3 and eye.z < wall_front - .17 and constrained_distance <= hero.pitch.get_hit_length()+.02, "Trial camera retracts and keeps its lens on the near side of the wall")
 	obstruction.queue_free()
 	await frames(3)
 	var released_distance=hero.camera.global_position.distance_to(hero.yaw.global_position)

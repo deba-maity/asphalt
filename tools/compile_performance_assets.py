@@ -150,6 +150,7 @@ def character(gender, destination):
 
 def motions():
     wanted = {'Idle_Loop', 'Sword_Idle', 'Sprint_Enter', 'Sprint_Loop', 'Sprint_Exit', 'Roll', 'Dodge_Left', 'Dodge_Right', 'Death01', 'Hit_Chest', 'Hit_Head', 'Hit_Shoulder_L', 'Hit_Shoulder_R', 'Drink', 'Idle_Talking_Loop', 'Turn90_L', 'Turn90_R', 'Sword_Block', 'Shield_OneShot', 'Sword_Heavy_A', 'Sword_Heavy_A_Rec', 'Sword_Regular_A', 'Sword_Regular_A_Rec', 'Sword_Regular_B', 'Sword_Regular_B_Rec', 'Sword_Regular_C', 'Sword_Light_A', 'Sword_Light_A_Rec', 'Sword_Dash'}
+    wanted.update(('Sword_Enter', 'Sword_Exit', 'Interact', 'Idle_LookAround_Loop'))
     wanted.update('Jog_'+d+'_Loop' for d in ('Fwd', 'Bwd', 'Left', 'Right', 'Fwd_L', 'Fwd_R', 'Bwd_L', 'Bwd_R'))
     wanted.update('Walk_'+d+'_Loop' for d in ('Fwd', 'Bwd', 'L', 'R', 'Fwd_L', 'Fwd_R', 'Bwd_L', 'Bwd_R'))
     inventory=[]

@@ -17,6 +17,15 @@ func run() -> void:
 	main.start_trial(TrialPassage.WARDEN,false)
 	var hero: Fighter=main.player; var boss: Fighter=main.world.warden
 	hero.use_test_direction=true; boss.ai_enabled=false
+	var stance := ShoreStance.new()
+	var actor_figure := hero.figure as PerformanceFigure
+	stance.arrive()
+	stance.ready_sword(true)
+	stance.step(.18, "guard", 0, actor_figure.library)
+	check(stance.gesture.is_empty() and not stance.sword_on_back, "Guard interrupts an arrival gesture on its first combat frame")
+	stance.rest_sword()
+	stance.step(.6, "idle", 0, actor_figure.library)
+	check(stance.sword_on_back, "The authored stow transfers the hilt when the wrist reaches the back harness")
 	await seconds(.3)
 	for actor in [hero,boss]:
 		var parts=actor.figure.model_root.find_children("Knight*","MeshInstance3D",true,false)

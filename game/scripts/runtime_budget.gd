@@ -1,8 +1,8 @@
 class_name RuntimeBudget
 extends Node
 
-# Rendering limits do not alter physics ticks or combat timing. Idle scenes
-# stop animating; focus loss pauses play and lowers the presentation budget.
+# Idle screens suspend gameplay physics. The focused title and story screens
+# can still animate their coast and fire within the lower presentation budget.
 var main: Node
 var focused: bool=true
 var held_world: Node

@@ -1,8 +1,21 @@
 class_name TrialWorld
 extends ChapterWorld
 
+var torch_fire := ShaderMaterial.new()
+var weather_time := 0.0
+var shore_air: Environment
+var shore_fill: DirectionalLight3D
+var daylight := 0.0
+var daylight_target := 0.0
+var causeway: ShoreCauseway
+var coast: CourtCoast
+var standards: CourtStandards
 var arrival: TrialArrival
+var title_ember: ShoreEmber
 var court_camera: Camera3D
+var shot_start := Vector3.ZERO
+var shot_target := Vector3.ZERO
+var shot_time := 0.0
 var warden: Fighter
 var boss_title: Label
 var waystone: ShoreEmber
@@ -20,6 +33,8 @@ var duel: TrialDuel
 var composure_bar: ProgressBar
 var composure_label: Label
 var outcome_pending: bool=false
+var seal_flight: SealFlight
+const ECHO_COLORS := [Color("79d6c4"), Color("94bede"), Color("e7bd7f"), Color("e6a065")]
 var passage: TrialPassage=TrialPassage.new()
 var hud_text_time: float=0
 
@@ -30,6 +45,12 @@ func _ready() -> void:
 	CourtArt.dress(self)
 	CourtArchitecture.dress(self)
 	batch_scenery()
+	causeway = ShoreCauseway.new()
+	add_child(causeway)
+	coast = CourtCoast.new()
+	add_child(coast)
+	standards = CourtStandards.new()
+	add_child(standards)
 	north_gate = ShoreGate.new()
 	north_gate.position = Vector3(0, 0, -11.3)
 	add_child(north_gate)
@@ -109,6 +130,7 @@ func enter_encounter(stage: int, trained: bool) -> void:
 	enemies.clear()
 	warden.free()
 	passage = TrialPassage.new(stage)
+	daylight_target = stage / 4.0
 	duel = TrialDuel.new(self)
 	crossing = false
 	won = false
@@ -136,6 +158,8 @@ func enter_encounter(stage: int, trained: bool) -> void:
 		at = hero.position + direction.normalized() * 6.0
 	at.y = .08
 	spawn_opponent(at)
+	(hero.figure as PerformanceFigure).shore_stance.ready_sword()
+	introduce_echo()
 	if stage == 0 and trained: passage.learn("rehearsal")
 	if trained or stage > 0: hero.target = warden
 	boss_title.text = passage.entry().name
@@ -146,6 +170,11 @@ func enter_encounter(stage: int, trained: bool) -> void:
 	ui.interact_text.text = ""
 	ui.threat_text.text = ""
 
+func introduce_echo() -> void:
+	var figure := warden.figure as PerformanceFigure
+	figure.shore_stance.ready_sword()
+	figure.echo_appearance.begin(figure, ECHO_COLORS[passage.stage])
+
 func begin_arrival() -> void:
 	ui.clear_court_messages()
 	arrival = TrialArrival.new()
@@ -153,13 +182,55 @@ func begin_arrival() -> void:
 	add_child(arrival)
 	boss_panel.hide()
 
+func present_traveler(at: Vector3, facing: Vector3) -> void:
+	hero.target = null
+	hero.clear_intent()
+	hero.model.state = "idle"
+	hero.model.elapsed = 0.0
+	hero.velocity = Vector3.ZERO
+	hero.position = at
+	hero.rotation.y = atan2(at.x - facing.x, at.z - facing.z)
+	hero.reset_physics_interpolation()
+	(hero.figure as PerformanceFigure).settle_on_shore()
+
+func show_title_view() -> void:
+	warden.hide()
+	warden.process_mode = Node.PROCESS_MODE_DISABLED
+	if waystone != null: waystone.hide()
+	if arrival != null: arrival.memorial.hide()
+	if title_ember == null:
+		title_ember = ShoreEmber.new()
+		title_ember.position = Vector3(1.05, 0, 0)
+		add_child(title_ember)
+	title_ember.show()
+	present_traveler(Vector3(0, .04, 3.6), title_ember.position)
+	frame_court()
+
 func frame_court() -> void:
+	frame_view(Vector3(5.8, 2.55, 6.9), Vector3(-3.25, 1.10, 2.49), 53)
+
+func frame_dawn() -> void:
+	if title_ember != null: title_ember.hide()
+	if waystone != null: waystone.hide()
+	if arrival != null: arrival.memorial.hide()
+	warden.hide()
+	warden.process_mode = Node.PROCESS_MODE_DISABLED
+	north_gate.unseal(true)
+	daylight_target = 1.0
+	set_daylight(1.0)
+	present_traveler(ShoreCauseway.centre(8.6) + Vector3.UP * .04, ShoreCauseway.centre(19))
+	frame_view(Vector3(-1.28, 2.11, -15.9), Vector3(-1.05, 1.28, -30.2), 53)
+
+func frame_view(at: Vector3, subject: Vector3, fov: float) -> void:
 	if court_camera == null:
 		court_camera = Camera3D.new()
-		court_camera.fov = 56
 		add_child(court_camera)
-	court_camera.position = Vector3(6.4, 3.5, 8.4)
-	court_camera.look_at(Vector3(-2.8, 1.15, 2.5))
+	shot_start = at
+	shot_target = subject
+	shot_time = 0.0
+	court_camera.fov = fov
+	court_camera.position = at
+	court_camera.look_at(subject)
 	court_camera.make_current()
 
 func _exit_tree() -> void:
@@ -169,27 +240,24 @@ func _exit_tree() -> void:
 func build_court() -> void:
 	var atmosphere=WorldEnvironment.new()
 	var panorama=PanoramaSkyMaterial.new()
-	panorama.panorama=load("res://assets/court/sunset_forest.hdr")
+	panorama.panorama=load("res://assets/court/counting_shore.webp")
 	var sky=Sky.new(); sky.sky_material=panorama
 	atmosphere.environment=ArtDirection.environment("fortress", sky)
-	atmosphere.environment.background_energy_multiplier=.55
-	atmosphere.environment.fog_density=.006
-	atmosphere.environment.fog_sky_affect=.26
-	atmosphere.environment.fog_light_color=Color("8c9c9c")
-	atmosphere.environment.ambient_light_energy=.38
+	shore_air = atmosphere.environment
+	atmosphere.environment.fog_sky_affect=.06
+	atmosphere.environment.fog_light_color=Color("9da8af")
 	add_child(atmosphere)
 	sun=DirectionalLight3D.new()
 	sun.rotation_degrees=Vector3(-24,-47,0)
-	sun.light_color=Color("f3cf9f")
-	sun.light_energy=1.55
 	sun.shadow_enabled=Preferences.shadows
 	sun.directional_shadow_max_distance=35
 	add_child(sun)
-	var fill=DirectionalLight3D.new()
-	fill.rotation_degrees=Vector3(-40,130,0)
-	fill.light_color=Color("95b4d3")
-	fill.light_energy=.32
-	add_child(fill)
+	shore_fill = DirectionalLight3D.new()
+	shore_fill.rotation_degrees = Vector3(-40, 130, 0)
+	shore_fill.light_color = Color("95b4d3")
+	add_child(shore_fill)
+	daylight_target = passage.stage / 4.0
+	set_daylight(daylight_target)
 	var floor=solid_box(Vector3(30,.5,30),Vector3(0,-.26,0),Color("777975"))
 	for mesh in floor.get_children():
 		if mesh is MeshInstance3D: SurfaceLibrary.apply(mesh,"stone",Color("777975"),.65)
@@ -206,6 +274,7 @@ func build_court() -> void:
 		wall.rotation.y=angle
 		var cap=Figure.box(self,Vector3(2.0,.16,.83),point+Vector3.UP*1.25,Color("95958a"))
 		cap.rotation.y=angle
+	torch_fire.shader = preload("res://assets/court/ember_flame.gdshader")
 	for i in 8:
 		var angle=TAU*i/8
 		# Keep the colonnade outside the fighting ring. Decorative columns must
@@ -224,17 +293,67 @@ func build_court() -> void:
 			SurfaceLibrary.apply(block,"stone",Color("757a73"),1)
 		Figure.box(pillar,Vector3(.95,.22,.95),Vector3.UP*3.45,Color("9b9b8e"))
 		if i%2==0:
-			var lamp=OmniLight3D.new(); lamp.position=base+Vector3.UP*2.8
-			lamp.light_color=Color("ffb56b"); lamp.light_energy=1.2; lamp.omni_range=5; add_child(lamp)
-			var bowl=Figure.cylinder(pillar,.16,.27,.18,Vector3.UP*3.65,Color("393f3e"),20)
-			var fire=StandardMaterial3D.new(); fire.albedo_color=Color("efba79"); fire.emission_enabled=true; fire.emission=Color("ef9a51"); fire.emission_energy_multiplier=1.4
-			bowl.material_override=fire
+			var lamp := OmniLight3D.new()
+			lamp.position = base + Vector3.UP * 3.97
+			lamp.light_color = Color("ffb56b")
+			lamp.light_energy = .95
+			lamp.omni_range = 4.5
+			add_child(lamp)
+			var bowl := Figure.cylinder(pillar, .16, .29, .19, Vector3.UP * 3.65, Color("3e3631"), 20)
+			bowl.material_override = SurfaceLibrary.material("steel", Color("695648"), 2.5)
+			var torch := MeshInstance3D.new()
+			torch.name = "WatchFire"
+			torch.mesh = ShoreEmber.flame_mesh()
+			torch.position.y = 3.75
+			torch.scale = Vector3(.86, 1.12, .86)
+			torch.material_override = torch_fire
+			torch.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			pillar.add_child(torch)
 	for side in [-1,1]:
 		for x in [-2.2,2.2]: solid_box(Vector3(.75,3,.9),Vector3(x,1.5,side*11),Color("727a72"))
+
+# Returning to a saved encounter restores its hour immediately. In a continuous
+# journey the light changes over several seconds as each echo yields.
+func set_daylight(progress: float) -> void:
+	daylight = clampf(progress, 0, 1)
+	sun.light_color = Color("e0d7c9").lerp(Color("ffcf94"), daylight)
+	sun.light_energy = lerpf(.88, 1.39, daylight)
+	shore_fill.light_energy = lerpf(.22, .30, daylight)
+	shore_air.ambient_light_energy = lerpf(.41, .46, daylight)
+	shore_air.ambient_light_color = Color("97b9d0").lerp(Color("b4c6d0"), daylight)
+	shore_air.background_energy_multiplier = lerpf(.86, 1.13, daylight)
+	shore_air.fog_density = lerpf(.0095, .006, daylight)
+	shore_air.tonemap_exposure = lerpf(1.01, 1.08, daylight)
+
+func advance_weather(delta: float) -> void:
+	weather_time += delta
+	standards.set_wind(weather_time)
+	coast.set_tide(weather_time)
+	causeway.needles.set_shader_parameter("wind_time", weather_time)
+	torch_fire.set_shader_parameter("fire_time", weather_time)
+
+func animate_story_backdrop(delta: float) -> void:
+	if court_camera == null or not court_camera.current or Preferences.reduced_effects: return
+	if is_instance_valid(ui.main.budget) and not ui.main.budget.focused: return
+	advance_weather(delta)
+	shot_time += delta
+	# A short dolly settles into a fixed composition while the player reads.
+	var ease_in := smoothstep(0.0, 6.0, shot_time)
+	var direction := shot_target.direction_to(shot_start)
+	court_camera.position = shot_start - direction * (.38 * ease_in)
+	var ember := title_ember
+	if arrival != null and arrival.memorial.visible: ember = arrival.memorial
+	if is_instance_valid(ember) and ember.visible and not ember.can_process():
+		ember.advance_fire(delta)
 
 func _process(delta: float) -> void:
 	if not Session.running or hero==null: return
 	elapsed+=delta
+	if ui.mode == "play":
+		if not Preferences.reduced_effects:
+			advance_weather(delta)
+		if not is_equal_approx(daylight, daylight_target):
+			set_daylight(daylight_target if Preferences.reduced_effects else move_toward(daylight, daylight_target, delta * .13))
 	Sound.context("zone_copper_stair",arrival == null and not won,ui.mode!="play",true)
 	if waystone != null and ui.mode == "play":
 		if near_waystone(): ui.destination_label.hide()
@@ -265,6 +384,8 @@ func _process(delta: float) -> void:
 	ui.practice_cue.hide()
 	if result_delay >= 0 and ui.mode == "play":
 		result_delay -= delta
+		if won and result_delay <= .98 and not ui.main.duel_replay and (passage.training() or ui.main.journey):
+			update_seal_flight(clampf(1.0 - result_delay / .98, 0.0, 1.0))
 		if result_delay < 0:
 			if won and not ui.main.duel_replay and (passage.training() or ui.main.journey): light_waystone()
 			else: ui.show_trial_result(won)
@@ -276,6 +397,7 @@ func _process(delta: float) -> void:
 				var attack: Dictionary=warden.model.config.attacks[id]
 				attack.rate*=1.12
 				for part in ["windup","active","recovery"]: attack[part]/=1.12
+			kindle_crown()
 			ui.announce("THE LAST EMBER")
 			ui.toast("The Warden quickens. Keep enough stamina to escape.",4)
 			duel.phase_changed()
@@ -333,7 +455,36 @@ func resume_open_gate() -> void:
 	light_waystone()
 	ui.announce("THE ROAD TO DAWN")
 
+func kindle_crown() -> void:
+	var figure := warden.figure as PerformanceFigure
+	var materials := [figure.regalia.bronze, figure.cape.material_override]
+	for material in materials:
+		if Preferences.reduced_effects: material.set_shader_parameter("heat", 1.0)
+		else: create_tween().tween_method(func(value: float): material.set_shader_parameter("heat", value), 0.0, 1.0, .72)
+
+func update_seal_flight(fraction: float) -> void:
+	if Preferences.reduced_effects:
+		if is_instance_valid(seal_flight): seal_flight.hide()
+		return
+	var figure := warden.figure as PerformanceFigure
+	if seal_flight == null:
+		seal_flight = SealFlight.new()
+		add_child(seal_flight)
+		var target := north_gate.seals[mini(passage.stage, 2)].global_position
+		if not passage.training(): target = north_gate.seals[1].global_position
+		var source := warden.global_position + Vector3.UP * .38
+		seal_flight.carry(to_local(source), to_local(target), ECHO_COLORS[passage.stage])
+		figure.echo_appearance.begin(figure, ECHO_COLORS[passage.stage], true)
+	seal_flight.show()
+	seal_flight.show_progress(fraction)
+	figure.echo_appearance.release(fraction, warden.scale.y)
+
 func light_waystone() -> void:
+	if is_instance_valid(seal_flight):
+		seal_flight.queue_free()
+		seal_flight = null
+	daylight_target = (passage.stage + 1) / 4.0
+	(hero.figure as PerformanceFigure).shore_stance.rest_sword()
 	hero.target = null
 	warden.hide()
 	warden.process_mode = Node.PROCESS_MODE_DISABLED

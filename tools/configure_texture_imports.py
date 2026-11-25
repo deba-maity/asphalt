@@ -22,14 +22,23 @@ count = 0
 for directory in ['performance/textures', 'court']:
     for path in (ASSETS/directory).rglob('*.import'):
         source = Path(str(path).removesuffix('.import'))
-        if source.suffix.lower() not in ['.png', '.jpg', '.jpeg']: continue
+        if source.suffix.lower() not in ['.png', '.jpg', '.jpeg', '.webp']: continue
         text = path.read_text(encoding='utf-8')
         options = {'compress/mode': '2', 'compress/high_quality': 'true',
                    'process/size_limit': '2048', 'mipmaps/generate': 'true'}
-        if source.resolve() in normals or 'nor_gl' in source.name or 'Normal' in source.name:
+        if source.suffix.lower() == '.webp' or source.name.startswith('knight-'):
+            # Keep one cross-platform image with mips for the moving armor,
+            # stone floor and standards. The web export downsizes its own copy.
+            limits = {'headland_pine': '512', 'shore_standard': '1024',
+                      'shore_mosaic': '1024', 'shore_mosaic_normal': '1024'}
+            quality = '0.96' if source.resolve() in normals or source.stem.endswith('_normal') else '0.90'
+            options.update({'compress/mode': '1', 'compress/lossy_quality': quality,
+                            'process/size_limit': limits.get(source.stem, '2048')})
+        if source.resolve() in normals or 'nor_gl' in source.name or 'Normal' in source.name or source.stem.endswith('_normal'):
             options['compress/normal_map'] = '1'
         for key, value in options.items():
             text = re.sub(r'^'+re.escape(key)+r'=.*$', key+'='+value, text, flags=re.MULTILINE)
-        path.write_text(text, encoding='utf-8')
+        if text != path.read_text(encoding='utf-8'):
+            path.write_text(text, encoding='utf-8')
         count += 1
-print('Configured', count, 'texture imports: 2K maximum, mipmaps, high-quality VRAM compression')
+print('Configured', count, 'texture imports: 2K maximum, mipmaps, platform-appropriate compression')

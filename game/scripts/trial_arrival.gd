@@ -8,8 +8,8 @@ enum Step { EMBER, LOCK, STRIKE, GUARD, DODGE, READY, LEAVING }
 const LESSONS = [
 	["The Counting Shore", "Walk to the ember in the stone ring.", "{move} to walk. {look} to look around."],
 	["Find your footing", "Focus on the waiting echo.", "{lock_on} to lock on. Stay within sight of the echo."],
-	["Find your reach", "Step close and land a light strike.", "{light} to strike. If your blade misses, take another step."],
-	["Raise your guard", "Settle into a guarding stance.", "Hold {guard}. Release to recover stamina."],
+	["Find your reach", "Step onto the chalk arc and land a light strike.", "{light} to strike. If your blade misses, take another step."],
+	["Raise your guard", "Match the echo’s guard and hold it.", "Hold {guard}. Release to recover stamina."],
 	["Make room", "Roll clear of the echo.", "Use {dodge}. Hold a movement direction to choose where to roll."],
 	["The first echo", "The echo waits for your answer.", "Use {heavy} for a timing lesson, or begin the encounter when ready."]
 ]
@@ -30,10 +30,15 @@ var from_retry := false
 var nameplate: Label3D
 var memorial: ShoreEmber
 var guard_time: float = 0
+var reach_arc: MeshInstance3D
+var chalk := ShaderMaterial.new()
+var practice_swing := -1
 
 func _ready() -> void:
+	(world.hero.figure as PerformanceFigure).settle_on_shore()
 	var echo := world.warden
 	echo.ai_enabled = false
+	echo.process_mode = Node.PROCESS_MODE_DISABLED
 	echo.hide()
 	echo.collision_layer = 0
 	echo.hurtbox.collision_layer = 0
@@ -49,14 +54,17 @@ func interact() -> void:
 	if step == Step.READY:
 		begin_encounter()
 	elif step == Step.EMBER and near_ember():
-		reveal_echo()
+		reveal_echo(true)
 		step = Step.LOCK
 		world.foley.event("heal", world.warden.global_position)
 		world.ui.announce("THE FIRST ECHO")
 		world.ui.toast("Keeper: Its blade will stay lowered until you give the word.", 4)
 		checkpoint()
 
-func reveal_echo() -> void:
+func reveal_echo(reach: bool = false) -> void:
+	(world.hero.figure as PerformanceFigure).shore_stance.ready_sword(reach)
+	world.warden.process_mode = Node.PROCESS_MODE_INHERIT
+	world.introduce_echo()
 	world.warden.show()
 	world.warden.collision_layer = 4
 	world.warden.hurtbox.collision_layer = 16
@@ -71,6 +79,30 @@ func reveal_echo() -> void:
 	nameplate.position = Vector3.UP * 2.45
 	world.warden.add_child(nameplate)
 	memorial.hide()
+	create_reach_arc()
+
+func create_reach_arc() -> void:
+	reach_arc = MeshInstance3D.new()
+	reach_arc.name = "PracticeReach"
+	var floor_mark := PlaneMesh.new()
+	floor_mark.size = Vector2(3.6, 3.6)
+	reach_arc.mesh = floor_mark
+	reach_arc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	chalk.shader = preload("res://assets/court/practice_reach.gdshader")
+	reach_arc.material_override = chalk
+	reach_arc.hide()
+	add_child(reach_arc)
+
+func update_demonstration() -> void:
+	if reach_arc == null: return
+	reach_arc.visible = step == Step.STRIKE
+	(world.warden.figure as PerformanceFigure).shore_stance.demonstrating_guard = step == Step.GUARD
+	if not reach_arc.visible: return
+	var foe := world.warden.position
+	reach_arc.position = Vector3(foe.x, .038, foe.z)
+	var approach := Vector2(world.hero.position.x - foe.x, world.hero.position.z - foe.z)
+	if approach.length_squared() > .002: chalk.set_shader_parameter("approach", approach.normalized())
+	chalk.set_shader_parameter("ready", 1.0 if approach.length() <= 1.76 else 0.0)
 
 func resume_lesson(saved_step: int) -> void:
 	step = clampi(saved_step, Step.EMBER, Step.READY) as Step
@@ -98,6 +130,8 @@ func learn(action: String) -> void:
 	if sparring != null:
 		sparring.learn(action)
 		return
+	if step == Step.STRIKE and action in ["light", "trial_second", "trial_finish"]:
+		practice_swing = world.hero.model.swing_serial
 	if step == Step.LOCK and action == "lock" and world.hero.target == world.warden:
 		step = Step.STRIKE
 	elif step == Step.DODGE and action == "dodge":
@@ -117,11 +151,19 @@ func contact(defender: Fighter, attacker: Fighter) -> void:
 	defender.reaction_serial += 1
 	defender.reaction_clip = "Hit_Chest"
 	if step == Step.STRIKE and attacker.model.attack_id in ["light", "trial_second", "trial_finish"]:
+		practice_swing = -1
 		step = Step.GUARD
 		checkpoint()
 
 func _physics_process(delta: float) -> void:
 	if not world.can_play(): return
+	if step == Step.STRIKE and practice_swing >= 0:
+		var swing := world.hero.model
+		if swing.swing_serial != practice_swing or swing.state != "attack" or swing.elapsed > float(swing.attack.windup) + float(swing.attack.active) + .12:
+			practice_swing = -1
+			if world.hero.position.distance_to(world.warden.position) > 1.80:
+				world.ui.toast("Your blade fell short. Step onto the chalk arc.", 2.3)
+			else: world.ui.toast("Face the echo for the next cut.", 2.0)
 	if step == Step.GUARD:
 		guard_time = guard_time + delta if world.hero.model.state == "guard" else 0.0
 		if guard_time >= .35:
@@ -130,11 +172,14 @@ func _physics_process(delta: float) -> void:
 
 func refresh_hud() -> void:
 	if step == Step.LEAVING: return
+	update_demonstration()
 	var ui := world.ui
 	var lesson: Array = LESSONS[step]
 	ui.objective_panel.show()
 	ui.chapter_label.text = lesson[0].to_upper()
 	ui.objective_text.text = lesson[1]
+	if step == Step.STRIKE and world.hero.position.distance_to(world.warden.position) <= 1.76:
+		ui.objective_text.text = "You are in reach. Face the echo and strike."
 	if step == Step.EMBER and not near_ember():
 		ui.objective_text.text += "\n" + ShoreEmber.bearing(world.hero, memorial.global_position)
 	elif step in [Step.LOCK, Step.STRIKE]:

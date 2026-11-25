@@ -8,9 +8,8 @@ Codex assistance. MIT license; retain the included notice.
 Engine: Godot Engine contributors, MIT license.
 See GODOT_LICENSE.txt and THIRD_PARTY_NOTICES.txt for bundled component notices.
 
-Website screenshots: real historical pass-one Godot viewport captures from the
-development machine (Intel i7-1185G7 / Iris Xe). Resize/WebP compression only.
-They do not claim current-build visual acceptance or Ryzen laptop performance.
+Website screenshots: in-game captures of the Counting Shore, practice echo
+and Cinder Warden. Captured in Chromium and resized for the game page.
 
 Optional source asset conversion: Pillow (HPND), a development tool only.
 Windows resource stamping: electron/rcedit v2.0.0 (MIT), a development tool only.
@@ -31,6 +30,13 @@ Ashen Trial courtyard art: Poly Haven, CC0 1.0.
 Kless Gyzen (mossy rocks), Tina (castle door), Rob Tuytel (stone/ground),
 Rico Cilliers (ground adjustment), Andreas Mischok (forest panorama).
 See COURT_ASSET_LICENSE.txt and game/assets/court/provenance.json.
+
+The Counting Shore's dawn panorama, sun-and-waves embroidery, headland pine
+and stone mosaic are original artwork created with image generation assistance.
+The standards, tides, watchfires and causeway are rendered in the game.
+The original shoreline ambience layers three synthesized breaking waves.
+Cinzel typeface: Copyright 2020 The Cinzel Project Authors.
+SIL Open Font License 1.1. See OFL.txt.
 
 Ashen Trial foley: Kenney Vleugels / Kenney.nl, CC0 1.0.
 RPG Audio and Impact Sounds; selected recordings retained unchanged.

@@ -1,6 +1,6 @@
 extends Node
 
-const CLIPS=["swing","hit","guard","parry","heal","reward","step_earth","step_stone","amb_wind","amb_river","amb_ashes","music_calm","music_combat"]
+const CLIPS=["swing","hit","guard","parry","heal","reward","step_earth","step_stone","amb_wind","amb_river","amb_ashes","amb_tide","music_calm","music_combat"]
 var voices: Array[AudioStreamPlayer]=[]
 var tracks: Array[AudioStreamPlayer]=[]
 var ambience: AudioStreamPlayer
@@ -29,7 +29,7 @@ func _ready() -> void:
 		if id.begins_with("amb_") or id.begins_with("music_"):
 			stream=stream.duplicate()
 			stream.loop_mode=AudioStreamWAV.LOOP_FORWARD
-			stream.loop_end=stream.data.size()/2
+			stream.loop_end=roundi(stream.get_length() * stream.mix_rate)
 		resources[id]=stream
 	for i in 8:
 		var voice=AudioStreamPlayer.new()
@@ -57,6 +57,7 @@ func context(zone: String, in_combat: bool, quiet: bool=false, use_trial_score: 
 	silence=quiet
 	trial_score=use_trial_score
 	var next="amb_ashes" if zone=="zone_counting_shore" else ("amb_river" if zone=="zone_sere_mill" else "amb_wind")
+	if use_trial_score: next = "amb_tide"
 	if next!=current_ambience:
 		current_ambience=next
 		ambience.stop()

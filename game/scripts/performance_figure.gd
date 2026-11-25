@@ -40,6 +40,10 @@ var recoil_strength: float=0
 var reaction_time: float=0
 var reaction_duration: float=.38
 var cape: PerformanceCape
+var shore_stance := ShoreStance.new()
+var sheathed_hilt: Node3D
+var echo_appearance := EchoAppearance.new()
+var regalia: EchoRegalia
 
 func _ready() -> void:
 	var character="rayan" if role=="rayan" else "warden"
@@ -92,9 +96,62 @@ func _ready() -> void:
 	for bone in body_skeleton.get_bone_count():
 		var bone_name=body_skeleton.get_bone_name(bone)
 		if bone_name.ends_with("_r") and bone_name.split("_")[0] in ["thumb","index","middle","ring","pinky"]: grip_bones.append(bone)
+	fit_scabbard()
 	sample_pose("Sword_Idle",0,rotations,positions)
 	apply_pose()
 	cape=PerformanceCape.new(); cape.figure=self; add_child(cape)
+
+# Fit the harness to the authored handoff pose of each retargeted character.
+# The hand and back grips coincide during the swap, including on scaled enemies.
+func fit_scabbard() -> void:
+	sample_pose("Sword_Enter", .65, rotations, positions)
+	apply_pose()
+	var spine := body_skeleton.find_bone("spine_03")
+	var back := BoneAttachment3D.new()
+	back.bone_name = "spine_03"
+	body_skeleton.add_child(back)
+	var harness := Node3D.new()
+	harness.name = "SwordHarness"
+	back.add_child(harness)
+	harness.transform = body_skeleton.get_bone_global_pose(spine).affine_inverse() * body_skeleton.get_bone_global_pose(hand_index) * weapon.transform
+	sheathed_hilt = Node3D.new()
+	harness.add_child(sheathed_hilt)
+	for part in weapon.get_children():
+		if part != blade: sheathed_hilt.add_child(part.duplicate())
+	sheathed_hilt.hide()
+	var sleeve := Figure.cylinder(harness, .066, .042, .83, Vector3.DOWN * .578, Color("51372d"), 8)
+	sleeve.scale.z = .48
+	for depth in [.19, .23, .89, .97]:
+		var radius := .068 if depth < .5 else .048
+		var fitting := Figure.cylinder(harness, radius, radius, .033, Vector3.DOWN * depth, Color("aa8757"), 8)
+		fitting.scale.z = .52
+
+# Title, briefing and ending frames can be paused before a physics tick. Dress
+# the skeleton, harness and interpolated mantle together for that first frame.
+func settle_on_shore() -> void:
+	shore_stance.arrive()
+	if dropped_weapon:
+		clear_dropped_weapon()
+		dropped_weapon = false
+	current_clip = "Idle"
+	current_time = 0.0
+	pose_key = ""
+	transition.active = false
+	locomotion_weight = 0.0
+	smooth_speed = 0.0
+	model_root.rotation.y = PI
+	contact_solver.reset()
+	sample_pose(current_clip, current_time, rotations, positions)
+	for bone in rotations.size():
+		angular_velocity[bone] = Vector3.ZERO
+		linear_velocity[bone] = Vector3.ZERO
+	apply_pose()
+	interpolator.capture(body_skeleton, true)
+	weapon.hide()
+	flask.hide()
+	sheathed_hilt.show()
+	cape.reset_cloth(cape.anchor_transform())
+	cape.present(1.0)
 
 func apply_materials() -> void:
 	for instance in model_root.find_children("*","MeshInstance3D",true,false):
@@ -148,7 +205,16 @@ func animate(delta: float, model: CombatModel, speed: float, travel: Vector3=Vec
 	recoil_age+=delta
 	var old_rot=rotations.duplicate(); var old_pos=positions.duplicate()
 	var changed=false
+	echo_appearance.advance(delta, model.state, get_parent().scale.y)
+	var was_sheathed := shore_stance.sword_on_back
+	shore_stance.step(delta, model.state, speed, library)
+	if was_sheathed != shore_stance.sword_on_back and model.state == "idle":
+		var actor: Fighter = get_parent()
+		actor.world.foley.event("draw", actor.global_position, .47 if shore_stance.sword_on_back else .72)
+	var idle_clip := shore_stance.resting_clip()
+	var idle_time := shore_stance.sample_time(visual_clock)
 	var key=model.state+str(model.swing_serial if model.state=="attack" else 0)
+	if model.state=="idle": key += idle_clip
 	if model.state=="hit": key+=str(get_parent().reaction_serial)
 	var turn: PerformanceTurn=get_parent().turning
 	if turn.active: key+="_"+turn.clip
@@ -173,7 +239,8 @@ func animate(delta: float, model: CombatModel, speed: float, travel: Vector3=Vec
 	current_time=model.elapsed
 	flask.visible=model.state=="heal"
 	if model.state=="dead" and not dropped_weapon: drop_weapon()
-	weapon.visible=model.state!="heal" and not dropped_weapon
+	weapon.visible = model.state != "heal" and not dropped_weapon and not shore_stance.sword_on_back
+	sheathed_hilt.visible = shore_stance.sword_on_back and not dropped_weapon
 	match model.state:
 		"attack":
 			current_clip=model.attack.get("clip","Sword_Regular_A")
@@ -193,13 +260,14 @@ func animate(delta: float, model: CombatModel, speed: float, travel: Vector3=Vec
 			current_time=minf(reaction_time,.12)+maxf(0,reaction_time-.12)*(length-.12)/maxf(.01,reaction_duration-.12)
 		"heal": current_clip="Drink"; current_time=model.elapsed*3.0/float(model.config.get("heal_duration",2.3))
 		"guard": current_clip="Sword_Block"; current_time=minf(model.elapsed,.2)
-		_: current_clip="Sword_Idle"; current_time=visual_clock
+		_: current_clip = idle_clip; current_time = idle_time
 	if turn.active: current_clip=turn.clip; current_time=turn.time
 	sample_pose(current_clip,current_time,rotations,positions)
+	if model.state in ["idle", "guard"]:
+		locomotion_weight = move_toward(locomotion_weight, clampf(speed / .65, 0, 1), delta * 7)
 	if turn.active:
-		mix_pose("Sword_Block" if model.state=="guard" else "Sword_Idle",.2 if model.state=="guard" else visual_clock,.88,true)
-	elif model.state in ["idle","guard"]:
-		locomotion_weight=move_toward(locomotion_weight,clampf(speed/.65,0,1),delta*7)
+		mix_pose("Sword_Block" if model.state=="guard" else idle_clip,.2 if model.state=="guard" else idle_time,.88,true)
+	elif model.state in ["idle","guard"] and locomotion_weight > .001:
 		if travel.length()>.001: stride_direction=stride_direction.lerp(travel.normalized(),1-exp(-delta*16)).normalized()
 		var sprint=clampf((smooth_speed-4.8)/1.2,0,1)
 		sprint*=smoothstep(.7,.95,-stride_direction.z)
@@ -230,11 +298,14 @@ func animate(delta: float, model: CombatModel, speed: float, travel: Vector3=Vec
 			rotations[bone]=walk_rot[bone].slerp(rotations[bone],gait)
 			positions[bone]=walk_pos[bone].lerp(positions[bone],gait)
 		mix_pose("Sprint",gait_time("Sprint"),sprint)
-		mix_pose("Sword_Block" if model.state=="guard" else "Sword_Idle",.2 if model.state=="guard" else visual_clock,.82 if sprint<.1 else .3,true)
+		if model.state == "guard":
+			mix_pose("Sword_Block", .2, .82, true)
+		elif idle_clip != "Idle":
+			mix_pose(idle_clip, idle_time, .82 if sprint < .1 else .3, true)
 		for bone in rotations.size():
 			rotations[bone]=idle_rot[bone].slerp(rotations[bone],locomotion_weight)
 			positions[bone]=idle_pos[bone].lerp(positions[bone],locomotion_weight)
-	if model.state in ["idle","dodge"]:
+	if model.state in ["idle","dodge"] and not shore_stance.sword_on_back:
 		var grip_pose=library.get_animation("Sword_Idle")
 		for bone in grip_bones: rotations[bone]=grip_pose.rotation_track_interpolate(bone*2,0)
 	if model.state=="guard" and recoil_age<.45:

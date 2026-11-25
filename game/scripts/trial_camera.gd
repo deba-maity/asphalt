@@ -29,13 +29,18 @@ func _process(delta: float) -> void:
 	var transform=actor.get_global_transform_interpolated()
 	var center=transform.origin+Vector3.UP*1.4
 	var distance=0.0
+	var shoulder_angle := 0.0
 	if is_instance_valid(actor.target) and actor.target.model.state!="dead":
 		var other=actor.target.get_global_transform_interpolated().origin
 		var separation=other-transform.origin
 		distance=separation.length()
-		center+=separation.limit_length(5)*.18
+		shoulder_angle = lerpf(.54, .18, smoothstep(2.4, 7.8, distance))
+		center+=separation.limit_length(5)*.28
 		var desired_yaw=atan2(-separation.x,-separation.z)+manual_offset
 		actor.yaw.rotation.y=lerp_angle(actor.yaw.rotation.y,desired_yaw,1-exp(-delta*6.5))
+	# Rotate the collision arm independently of the movement yaw. The blade
+	# stays beside the player's silhouette while forward still closes the gap.
+	actor.pitch.rotation.y = lerp_angle(actor.pitch.rotation.y, shoulder_angle, 1-exp(-delta*6.5))
 	center+=actor.yaw.basis.x*.28
 	if not initialized or transform.origin.distance_to(last_physics_position)>3:
 		pivot=center; initialized=true

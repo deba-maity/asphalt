@@ -203,6 +203,13 @@ func run() -> void:
 	await seconds(2.6)
 	check(absf(hero.trial_camera.manual_offset)<.01,"Lock framing returns smoothly after manual orbit ends")
 	hero.pitch.rotation.x=-.24
+	await seconds(.18)
+	var hero_screen: Vector2 = hero.camera.unproject_position(hero.global_position + Vector3.UP * 1.3)
+	var boss_screen: Vector2 = hero.camera.unproject_position(boss.global_position + Vector3.UP * 1.3)
+	var viewport_width := get_viewport().get_visible_rect().size.x
+	check(absf(boss_screen.x-hero_screen.x) > viewport_width*.03 and hero.pitch.rotation.y > .4, "Lock-on shows both torsos separately at sword range")
+	var walk_forward: Vector3 = -hero.yaw.global_basis.z
+	check(walk_forward.dot(hero.global_position.direction_to(boss.global_position)) > .97, "Over-shoulder framing preserves forward movement toward the opponent")
 	var screen=world.solid_box(Vector3(4,3,.2),Vector3(0,1,-.75),Color.BLACK,false)
 	await seconds(.2)
 	check(hero.target==boss,"Brief occlusion does not drop an established lock")

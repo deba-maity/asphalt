@@ -44,6 +44,8 @@ func training() -> bool:
 	return stage<WARDEN
 
 func configure(actor: Fighter) -> void:
+	var figure := actor.figure as PerformanceFigure
+	figure.regalia = EchoRegalia.fit(figure, stage)
 	if not training(): return
 	var data=entry()
 	actor.model.max_health=data.health; actor.model.health=data.health

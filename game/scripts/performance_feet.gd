@@ -4,6 +4,7 @@ extends RefCounted
 # Analytic two-bone correction of the imported skeleton. Solve in rig space and
 # convert desired global orientations back through the actual parent basis.
 var anchors: Dictionary={}
+var last_step := Vector3.ZERO
 var contact_count: int=0
 var max_correction: float=0
 var weights: Dictionary={}
@@ -92,7 +93,9 @@ func apply(rig: Skeleton3D, actor: CharacterBody3D, state: String, speed: float)
 			anchors[side]=ground
 			planted[side]=true
 			cooldowns[side]=.16
-			if speed>.3: contact_count+=1
+			if speed > .3:
+				contact_count += 1
+				last_step = ground
 		var desired_weight=1.0 if planted.get(side,false) else 0.0
 		var weight=move_toward(float(weights.get(side,0)),desired_weight,delta*(20 if desired_weight>0 else 12))
 		weights[side]=weight

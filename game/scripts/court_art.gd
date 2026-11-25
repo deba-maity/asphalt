@@ -78,6 +78,7 @@ static func dress(world: Node3D) -> void:
 			var size: Vector3=instance.mesh.size
 			instance.material_override=material("cobblestone_floor_08" if size.y<.1 or size.x>20 else "castle_brick_07",.5)
 			if size.x<10 and size.y>.1: instance.mesh=beveled_box(size)
+	set_mosaic(world)
 	var moss=load("res://assets/court/rock_moss_set_01/rock_moss_set_01.gltf") as PackedScene
 	var source=moss.instantiate()
 	var variants=source.find_children("*","MeshInstance3D",true,false)
@@ -89,8 +90,28 @@ static func dress(world: Node3D) -> void:
 		rocks.scale=Vector3.ONE*(.8+(i%3)*.3)
 		world.add_child(rocks)
 	source.free()
-	var ground=MeshInstance3D.new()
-	var plane=PlaneMesh.new(); plane.size=Vector2(90,90)
-	ground.mesh=plane; ground.position.y=-.08
-	ground.material_override=material("forest_ground_04",.35)
-	world.add_child(ground)
+
+static func set_mosaic(world: Node3D) -> void:
+	var floor := SurfaceTool.new()
+	floor.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for index in 80:
+		var a := TAU * index / 80.0
+		var b := TAU * (index + 1) / 80.0
+		for direction in [Vector2.ZERO, Vector2(cos(a), sin(a)), Vector2(cos(b), sin(b))]:
+			floor.set_normal(Vector3.UP)
+			floor.set_tangent(Plane(1, 0, 0, 1))
+			floor.set_uv(Vector2(.5, .5) + direction * .491)
+			floor.add_vertex(Vector3(direction.x * 3.45, .026, direction.y * 3.45))
+	var mosaic := MeshInstance3D.new()
+	mosaic.name = "MosaicOfTheShore"
+	mosaic.mesh = floor.commit()
+	var stone := StandardMaterial3D.new()
+	stone.albedo_texture = load("res://assets/court/shore_mosaic.webp")
+	stone.albedo_color = Color("c0c5bf")
+	stone.normal_enabled = true
+	stone.normal_texture = load("res://assets/court/shore_mosaic_normal.webp")
+	stone.normal_scale = .77
+	stone.roughness = .91
+	stone.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	mosaic.material_override = stone
+	world.add_child(mosaic)

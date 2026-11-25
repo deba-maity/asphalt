@@ -146,6 +146,9 @@ func run() -> void:
 	check(Sound.music_starts==starts and Sound.voices.size()==8,"Small zone change retains music clock and bounded effects pool")
 	Sound.context("zone_counting_shore",false,true)
 	check(Sound.current_ambience=="amb_ashes" and Sound.silence,"Realm ambience and authored quiet context are explicit")
+	Sound.context("zone_counting_shore",false,false,true)
+	var tide: AudioStreamWAV = Sound.ambience.stream
+	check(Sound.current_ambience == "amb_tide" and tide.loop_end == roundi(16 * tide.mix_rate), "Compressed shoreline ambience loops after every wave in the sixteen-second recording")
 	var clips_valid=true
 	for id in Sound.CLIPS:
 		if not Sound.resources.has(id): clips_valid=false

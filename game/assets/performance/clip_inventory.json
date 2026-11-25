@@ -40,6 +40,11 @@
     "source": "UAL1"
   },
   {
+    "name": "Idle_LookAround_Loop",
+    "seconds": 4.599999904632568,
+    "source": "UAL1"
+  },
+  {
     "name": "Idle_Loop",
     "seconds": 2.5,
     "source": "UAL1"
@@ -47,6 +52,11 @@
   {
     "name": "Idle_Talking_Loop",
     "seconds": 2.933333396911621,
+    "source": "UAL1"
+  },
+  {
+    "name": "Interact",
+    "seconds": 2.0,
     "source": "UAL1"
   },
   {
@@ -107,6 +117,16 @@
   {
     "name": "Sprint_Loop",
     "seconds": 0.6666666865348816,
+    "source": "UAL1"
+  },
+  {
+    "name": "Sword_Enter",
+    "seconds": 1.2999999523162842,
+    "source": "UAL1"
+  },
+  {
+    "name": "Sword_Exit",
+    "seconds": 1.2999999523162842,
     "source": "UAL1"
   },
   {

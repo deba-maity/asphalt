@@ -421,7 +421,10 @@ func _physics_process(delta: float) -> void:
 		weapon_sweep.sample(figure)
 		if world.can_play() and model.state=="attack": weapon_sweep.strike(self)
 	if figure.foot_placement.contact_count>contacts_before and visual_speed>.3 and model.state in ["idle","guard"]:
-		if use_performance: world.foley.event("step",global_position,lerpf(.6,1.1,clampf(visual_speed/5.7,0,1)))
+		if use_performance:
+			var foot: Vector3 = figure.contact_solver.last_step
+			world.foley.event("step", foot, lerpf(.6, 1.1, clampf(visual_speed / 5.7, 0, 1)))
+			effects.footfall(foot, velocity, visual_speed)
 		elif player: Sound.footstep(Session.data.zone)
 	if player:
 		update_camera_collision(delta)
@@ -429,8 +432,9 @@ func _physics_process(delta: float) -> void:
 	impact_ring.visible=impact_time>0 and not Preferences.reduced_effects and not use_performance
 	impact_ring.scale=Vector3.ONE*(.25+(.16-impact_time)*2)
 	if not player:
-		health_bar.visible = model.health < model.max_health and model.state != "dead"
-		health_bar.scale.x = maxf(0.01,model.health/model.max_health)
+		if not use_performance:
+			health_bar.visible = model.health < model.max_health and model.state != "dead"
+			health_bar.scale.x = maxf(0.01,model.health/model.max_health)
 		tell_ring.visible = model.state == "attack" and model.elapsed < float(model.attack.windup)
 		tell_ring.scale = Vector3.ONE*(1.0+model.elapsed*0.7)
 		var unblockable=model.state=="attack" and not model.attack.get("blockable",true)
@@ -629,7 +633,12 @@ func take_damage(amount: float, attacker: Fighter, attack_rules: Dictionary={}, 
 	if use_performance and result in ["guard","parry"]: figure.recoil(result=="parry")
 	if result in ["hit","dead","guard","parry","ash_evade"]:
 		impact_time=.16
-		if effects!=null: effects.impact(contact if contact.is_finite() else global_position+Vector3.UP*.95,(global_position-attacker.global_position).normalized(),result)
+		if effects != null:
+			var direction := global_position - attacker.global_position
+			if attacker.weapon_sweep != null and attacker.weapon_sweep.ready:
+				var blade_motion: Vector3 = attacker.weapon_sweep.tip - attacker.weapon_sweep.previous_tip
+				if blade_motion.length_squared() > .0025: direction = blade_motion
+			effects.impact(contact if contact.is_finite() else global_position + Vector3.UP * .95, direction.normalized(), result)
 		if player and Preferences.camera_shake: shake_time=.12
 		if use_performance and result in ["hit","guard","parry"]:
 			impact_pause=.05 if result=="parry" else .035

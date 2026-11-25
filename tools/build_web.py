@@ -21,11 +21,13 @@ def export(godot: Path, output: Path) -> None:
         shutil.copytree(ROOT / "game", project, ignore=shutil.ignore_patterns(".godot"))
         court = project / "assets" / "court"
         armor = project / "assets" / "performance" / "textures"
-        presets = list(court.rglob("*.import")) + list(armor.glob("*rough*.png.import"))
+        presets = list(court.rglob("*.import")) + list(armor.glob("knight-*.png.import"))
         for preset in presets:
             name = preset.name.lower()
             surface_mask = name == "arm.jpg.import" or "_arm_" in name or "_rough_" in name
-            limit = 512 if preset.is_relative_to(court) and surface_mask else 1024
+            # The full knight atlas is used natively. Browser characters occupy
+            # a fraction of a 720p frame, including on the lock-on camera.
+            limit = 512 if surface_mask else 1024
             contents = preset.read_text(encoding="utf-8")
             match = re.search(r"^process/size_limit=(\d+)$", contents, re.MULTILINE)
             if match and (int(match[1]) == 0 or int(match[1]) > limit):

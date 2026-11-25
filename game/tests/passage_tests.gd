@@ -126,7 +126,11 @@ func test_touch_lesson() -> void:
 	button_named("Accept the cost").pressed.emit()
 	await seconds(.35)
 	var controls: TrialTouch = main.ui.touch_controls
+	var figure := main.player.figure as PerformanceFigure
+	check(figure.current_clip == "Idle" and figure.sheathed_hilt.visible and not figure.weapon.visible, "A fresh arrival carries the sword and walks in a peaceful stance")
 	check(not main.ui.help_caption.visible, "Touch removes the duplicate footer menu hint")
+	main.ui.toast("The echo waits.", 1)
+	check(main.ui.toast_label.position.y > TrialTouch.BUTTONS.pause[0].y + TrialTouch.BUTTONS.pause[1], "Touch captions clear the round Menu control")
 	check(main.ui.touch_preferred and controls.is_visible_in_tree(), "Touch input enables the trial pad")
 	check("interact" not in controls.actions(), "Touch offers walking until the ember can be used")
 	var forward := TrialTouch.PAD + Vector2.UP * 63
@@ -139,6 +143,7 @@ func test_touch_lesson() -> void:
 	touch(2, use, true)
 	touch(2, use, false)
 	check(main.world.warden.visible, "Touch Listen reveals the echo")
+	check(figure.shore_stance.gesture == "Interact" and figure.shore_stance.sword_on_back, "Listen reaches toward the ember before the sword is drawn")
 	var lock: Vector2 = TrialTouch.BUTTONS.lock_on[0]
 	touch(2, lock, true)
 	touch(2, lock, false)
@@ -150,7 +155,9 @@ func test_touch_lesson() -> void:
 	var strike: Vector2 = TrialTouch.BUTTONS.light[0]
 	touch(2, strike, true)
 	touch(2, strike, false)
-	await seconds(1.4)
+	await seconds(.08)
+	check(figure.shore_stance.gesture.is_empty() and figure.weapon.visible and not figure.sheathed_hilt.visible, "The first real strike interrupts the reach and transfers the blade to the hand")
+	await seconds(1.32)
 	check(main.world.arrival.step == TrialArrival.Step.GUARD, "Touch Strike lands a real practice hit")
 	var guard: Vector2 = TrialTouch.BUTTONS.guard[0]
 	touch(1, TrialTouch.PAD + Vector2.RIGHT * 32, true)
@@ -199,6 +206,21 @@ func run() -> void:
 	var base=CombatModel.definitions().duplicate(true)
 	var attack_before=CombatModel.new(); PerformanceMotion.configure(attack_before,true)
 	check(not main.world.warden.visible and main.world.court_camera.current, "Title frames the quiet court")
+	main.budget.update_policy()
+	var prior_effects: bool = Preferences.reduced_effects
+	var prior_focus: bool = main.budget.focused
+	Preferences.reduced_effects = false
+	main.budget.focused = true
+	var menu_fire: float = main.world.title_ember.clock
+	main.world.animate_story_backdrop(.1)
+	check(main.world.title_ember.clock > menu_fire, "The title ember burns while gameplay physics sleeps")
+	main.budget.focused = false
+	menu_fire = main.world.title_ember.clock
+	var menu_weather: float = main.world.weather_time
+	main.world.animate_story_backdrop(.1)
+	check(main.world.title_ember.clock == menu_fire and main.world.weather_time == menu_weather, "An unfocused story backdrop stops animating")
+	main.budget.focused = prior_focus
+	Preferences.reduced_effects = prior_effects
 	begin_again()
 	await frames(4)
 	check(main.trial_stage==0 and main.world.passage.training(),"Begin journey opens the Counting Shore")
@@ -206,12 +228,27 @@ func run() -> void:
 	check(button_named("Accept the cost")!=null,"The return's cost has an explicit acceptance button")
 	check_layout("Opening story buttons fit the viewport")
 	var frozen_clock=main.player.figure.cape.clock
+	var original_effects := Preferences.reduced_effects
+	Preferences.reduced_effects = false
+	var still_water: float = main.world.weather_time
+	var ember_time: float = main.world.arrival.memorial.clock
 	await frames(8)
 	check(main.player.figure.cape.clock==frozen_clock,"Briefing suspends cloth and character simulation")
+	check(main.world.weather_time > still_water and main.world.arrival.memorial.clock > ember_time, "Wind, water and the offered ember move while the opening text is on screen")
+	Preferences.reduced_effects = true
+	still_water = main.world.weather_time
+	var still_camera: Vector3 = main.world.court_camera.position
+	await frames(4)
+	check(main.world.weather_time == still_water and main.world.court_camera.position == still_camera, "Reduced effects keeps the story camera and coast still")
+	Preferences.reduced_effects = original_effects
 	button_named("Accept the cost").pressed.emit()
 	await frames(5)
 	check(main.ui.objective_panel.is_visible_in_tree() and main.ui.objective_panel.is_ancestor_of(main.ui.tutorial), "Practice controls are readable within the objective panel")
 	check(not main.ui.toast_label.get_global_rect().intersects(main.ui.objective_panel.get_global_rect()), "Keeper dialogue leaves the current lesson uncovered")
+	main.ui.toast("Wait.", 1)
+	main.ui.toast("Keeper: Its blade will stay lowered until you give the word.", 2)
+	await frames(2)
+	check(is_equal_approx(main.ui.toast_label.size.y, main.ui.toast_label.get_minimum_size().y), "Caption backing fits the wrapped message after a shorter message")
 	check(main.ui.mode=="play" and not get_tree().paused and main.world.can_play(),"Accepting the story returns control to the player")
 	check(Session.shore.milestone == ShoreProgress.SHORE, "The journey begins saving after accepting the offer")
 	var arrival: TrialArrival = main.world.arrival
@@ -242,6 +279,7 @@ func run() -> void:
 	await seconds(.3)
 	trainee.toggle_target()
 	check(trainee.target==echo and arrival.step==TrialArrival.Step.STRIKE, "Lock lesson accepts an acquired target")
+	check(arrival.reach_arc.visible and arrival.chalk.get_shader_parameter("ready") < .5, "A practice arc shows the newcomer where the sword can reach")
 	trainee.try_attack("light")
 	await seconds(1.4)
 	check(arrival.step==TrialArrival.Step.STRIKE, "Swinging out of reach does not complete the lesson")
@@ -252,6 +290,7 @@ func run() -> void:
 	trainee.try_attack("light")
 	await seconds(1.8)
 	check(arrival.step==TrialArrival.Step.GUARD and echo.model.health==echo.model.max_health, "A real blade contact advances practice without harming the echo")
+	check(not arrival.reach_arc.visible and (echo.figure as PerformanceFigure).current_clip == "Sword_Block" and echo.model.swing_serial == 0, "The mentor demonstrates the guarding pose without an attack or hit window")
 	Input.action_press("guard")
 	await seconds(.55)
 	Input.action_release("guard")
@@ -305,6 +344,14 @@ func run() -> void:
 		var fallen := boss.figure as PerformanceFigure
 		fallen.drop_weapon()
 		var released_sword: WeakRef = weakref(fallen.dropped_body)
+		if stage == 0 and not Preferences.reduced_effects:
+			world.result_delay = .62
+			await frames(3)
+			var flight := world.seal_flight
+			check(is_instance_valid(flight) and flight.multimesh.instance_count == 20 and fallen.echo_appearance.departing, "The falling echo sends one bounded flight of embers to the gate")
+			if is_instance_valid(flight):
+				var landing: Vector3 = flight.glow.get_shader_parameter("travel")
+				check(flight.to_global(landing).distance_to(world.north_gate.seals[0].global_position) < .001, "The embers reach the seal actually earned")
 		world.result_delay=.001
 		await frames(4)
 		check(released_sword.get_ref() == null, "A defeated echo takes its dropped weapon out of the persistent court")

@@ -20,7 +20,7 @@
     if (windows) {
       text('build-size', (windows.size_bytes / 1048576).toFixed(1) + ' MiB · x86_64');
       text('checksum', windows.sha256);
-      text('availability', 'Local Windows candidate verified headlessly. No public release has been published.');
+      text('availability', 'The Windows build listed here passed its automated checks.');
     } else {
       text('build-size', 'No artifact snapshot');
       text('checksum', 'No packaged artifact metadata in this site build.');
@@ -39,7 +39,7 @@
       text('issue-info', 'Include BUILD.json, steps, settings and logs/godot.log. Check existing issues first.');
     }
   } catch (error) {
-    text('availability', 'Public release unavailable. Release metadata could not be loaded. See the setup guide or ask the repository owner.');
+    text('availability', 'The Windows build record could not be loaded.');
     text('version', 'Candidate · metadata unavailable');
   }
 })();

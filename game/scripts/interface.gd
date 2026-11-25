@@ -3,6 +3,7 @@ extends CanvasLayer
 
 const INK = Color("eee5cf")
 const GOLD = Color("d9b779")
+var title_font: Font = load("res://assets/type/Cinzel.ttf")
 var mode: String = "menu"
 var main: Node
 var world: ChapterWorld
@@ -103,6 +104,7 @@ func update_input_source(event: InputEvent) -> void:
 	controller_preferred = pad
 	if not main.trial_active: return
 	touch_controls.visible = touch
+	layout_court_caption()
 	help_caption.visible = not touch
 	help_caption.text = play_prompt("{journal} Trial guide · {pause} Pause")
 	if mode == "play":
@@ -163,6 +165,22 @@ func shade(alpha: float = 0.68) -> void:
 	color.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(color)
 
+func story_shade() -> void:
+	var falloff := Gradient.new()
+	falloff.offsets = PackedFloat32Array([0.0, .42, .72, 1.0])
+	falloff.colors = PackedColorArray([Color(.022,.034,.04,.64), Color(.022,.034,.04,.49), Color(.022,.034,.04,.1), Color(.022,.034,.04,.05)])
+	var texture := GradientTexture2D.new()
+	texture.width = 256
+	texture.height = 2
+	texture.gradient = falloff
+	texture.fill_from = Vector2(0, .5)
+	texture.fill_to = Vector2(1, .5)
+	var veil := TextureRect.new()
+	veil.texture = texture
+	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(veil)
+
 func build_hud() -> void:
 	hud = Control.new()
 	hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -205,6 +223,8 @@ func build_hud() -> void:
 	toast_label.size = Vector2(750,58)
 	toast_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	toast_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	toast_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	announce_label = text(hud,"",32,GOLD)
 	announce_label.position = Vector2(350,185)
 	announce_label.size = Vector2(580,60)
@@ -272,8 +292,22 @@ func trial_layout(enabled: bool) -> void:
 	var trial_ink := style(Color(.035,.045,.05,.78), Color.TRANSPARENT)
 	var archive_ink := style(Color(.055,.08,.10,.94),Color(.75,.64,.42,.35))
 	player_panel.add_theme_stylebox_override("panel", trial_ink if enabled else archive_ink)
-	toast_label.position = Vector2(333,94) if enabled else Vector2(265,594)
-	toast_label.size = Vector2(535,82) if enabled else Vector2(750,58)
+	if enabled:
+		var backing := bar_style(Color("17201ddb"))
+		backing.set_corner_radius_all(4)
+		backing.content_margin_left = 12
+		backing.content_margin_right = 12
+		backing.content_margin_top = 5
+		backing.content_margin_bottom = 5
+		toast_label.add_theme_stylebox_override("normal", backing)
+		help_caption.add_theme_stylebox_override("normal", backing)
+		layout_court_caption()
+	else:
+		toast_label.remove_theme_stylebox_override("normal")
+		help_caption.remove_theme_stylebox_override("normal")
+		toast_label.add_theme_font_size_override("font_size", 20)
+		toast_label.position = Vector2(265,594)
+		toast_label.size = Vector2(750,58)
 	tutorial.show()
 	tutorial.modulate.a = 1
 	if enabled:
@@ -300,9 +334,7 @@ func trial_layout(enabled: bool) -> void:
 func show_menu() -> void:
 	Session.running=false
 	if world is TrialWorld:
-		world.warden.hide()
-		world.hero.target = null
-		world.frame_court()
+		world.show_title_view()
 	Sound.context(Session.data.zone,false,true)
 	Session.return_to_main_save()
 	mode = "menu"
@@ -310,13 +342,11 @@ func show_menu() -> void:
 	get_tree().paused = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	clear_overlay()
-	shade(0.50)
+	story_shade()
 	var c = column(panel(overlay,Vector2(68,32),Vector2(520,650)),6)
 	text(c,"A  W A Y F A R E R ' S  S T O R Y",17,GOLD)
 	var title = text(c,"ASHEN\nVOW",48)
-	var serif = SystemFont.new()
-	serif.font_names = PackedStringArray(["Georgia","Liberation Serif"])
-	title.add_theme_font_override("font",serif)
+	title.add_theme_font_override("font",title_font)
 	text(c,"THE ASHEN TRIAL",21,GOLD)
 	text(c,"Cross the Counting Shore and carry their names home.",18)
 	var shore_label := "Begin journey · The Counting Shore"
@@ -358,7 +388,7 @@ func show_asset_credits() -> void:
 	text(c,"Modified rig, bind pose, texture packing and armor palettes.\nopengameart.org/content/knight-2\ncreativecommons.org/licenses/by/3.0/",16)
 	text(c,"Motion and original rig: Quaternius / Gonzalo Furnier · CC0\nCourtyard scans: Poly Haven artists · CC0\nFoley: Kenney · CC0\nInstrument recordings: VSCO 2 CE contributors · CC0",17)
 	text(c,"Original game, story, score and cloth: ASHEN VOW contributors\nCreated with Codex assistance · Original code: MIT\nGodot Engine contributors · MIT",17)
-	text(c,"Full artist credits and license notices accompany the game.",16,GOLD)
+	text(c,"Cinzel typeface: The Cinzel Project Authors · SIL Open Font License 1.1.",16,GOLD)
 	button(c,"Back",show_menu).grab_focus()
 
 func show_archive() -> void:
@@ -564,7 +594,27 @@ func show_ending() -> void:
 
 func toast(value: String, seconds: float = 4) -> void:
 	toast_label.text = play_prompt(value)
+	if is_instance_valid(main) and main.trial_active: layout_court_caption()
 	toast_timer = seconds
+	toast_label.modulate.a = 1
+
+func layout_court_caption() -> void:
+	# Fit the current line between the character and objective panels.
+	var pixels: int = Preferences.subtitle_size
+	toast_label.add_theme_font_size_override("font_size", pixels)
+	var font := toast_label.get_theme_font("font")
+	var line_width := font.get_string_size(toast_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, pixels).x
+	var width := clampf(ceilf(line_width) + 28, 80, 535)
+	# Width changes invalidate the wrapped text height. Resolve it at the new
+	# width before sizing the backing for this message.
+	toast_label.size.x = width
+	toast_label.update_minimum_size()
+	toast_label.size.y = toast_label.get_minimum_size().y
+	var top := 35.0
+	if touch_preferred:
+		var menu: Array = TrialTouch.BUTTONS.pause
+		top = menu[0].y + menu[1] + 10
+	toast_label.position = Vector2(roundf(601 - width * .5), top)
 
 func bar_style(color: Color) -> StyleBoxFlat:
 	var s = StyleBoxFlat.new()
@@ -669,8 +719,12 @@ func update_hud(actor: Fighter, nearby: Dictionary) -> void:
 			lock_marker.position = projected
 
 func _process(delta: float) -> void:
+	if world is TrialWorld and (mode == "menu" or mode == "dawn" or (mode == "trial_briefing" and world.arrival != null)):
+		world.animate_story_backdrop(delta)
 	toast_timer = maxf(0,toast_timer-delta)
 	toast_label.visible = toast_timer>0
+	if toast_label.visible:
+		toast_label.modulate.a = 1 if Preferences.reduced_effects else minf(1, toast_timer * 5)
 	announce_timer = maxf(0,announce_timer-delta)
 	announce_label.modulate.a = minf(1,announce_timer)
 
@@ -826,13 +880,11 @@ func show_dawn() -> void:
 	hud.hide()
 	clear_overlay()
 	if world is TrialWorld:
-		world.hero.target = null
-		world.warden.hide()
-		world.frame_court()
-	shade(.27)
+		world.frame_dawn()
+	story_shade()
 	var c = column(panel(overlay, Vector2(58, 105), Vector2(545, 490)), 18)
 	text(c, "BEYOND THE COUNTING SHORE", 16, GOLD)
-	text(c, "Vow kept", 37)
+	text(c, "Vow kept", 37).add_theme_font_override("font", title_font)
 	var story = text(c, "Rayan opens his hand. The register is still there. He reads two names into the morning light: Mira. Isha.", 22)
 	story.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var price = text(c, "He remembers what Isha said on the stair. When he tries to hear her say it, there is only the wind from the road.", 19)
@@ -870,7 +922,7 @@ func show_trial_briefing() -> void:
 		shade(.17)
 		var story = column(panel(overlay,Vector2(54,86),Vector2(458,525)),15)
 		text(story,"THE COUNTING SHORE",16,GOLD)
-		text(story,"The last ember",34)
+		text(story,"The last ember",34).add_theme_font_override("font", title_font)
 		for line in ["The last thing Rayan remembers is Avel's blade on the Copper Stair. He wakes in an empty court. An ember burns where the road should be.", "The register that names Mira and Isha's killers is still among the living. Rayan has come to carry their names home.", "KEEPER   You may take her words back with you. The sound of Isha's voice stays here."]:
 			var words = text(story,line,18)
 			words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

@@ -62,7 +62,10 @@ func run() -> void:
 	for actor in [hero,world.warden]:
 		var figure: PerformanceFigure=actor.figure
 		check(figure.body_skeleton.get_bone_count()==65,"65-bone retarget: "+figure.role)
-		check(figure.library.get_animation_list().size()==45,"45 authored clips: "+figure.role)
+		var shore_clips := ["Idle_LookAround", "Interact", "Sword_Enter", "Sword_Exit"]
+		var complete := figure.library.get_animation_list().size() == 49
+		for clip in shore_clips: complete = complete and figure.library.has_animation(clip)
+		check(complete, "Combat and shore motion library has all 49 retargeted clips: " + figure.role)
 		check(figure.library.get_animation("Jog_Fwd").loop_mode==Animation.LOOP_LINEAR,"Locomotion loops: "+figure.role)
 		check(figure.library.get_animation("Sword_Idle").loop_mode==Animation.LOOP_LINEAR,"Ready stance breathes continuously: "+figure.role)
 		var finite=true

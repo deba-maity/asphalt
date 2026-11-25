@@ -229,6 +229,8 @@ func finish(code: int = 0) -> void:
 func continue_shore() -> void:
 	var mark := Session.shore.milestone
 	if mark == ShoreProgress.DAWN:
+		if not world is TrialWorld or world.passage.stage != TrialPassage.WARDEN:
+			start_trial(TrialPassage.WARDEN, false, true)
 		ui.show_dawn()
 	elif mark == ShoreProgress.OPEN_GATE:
 		trained_on_shore = Session.shore.rehearsed

@@ -22,11 +22,11 @@ def main():
                 if not (root/info.filename).resolve().is_relative_to(root): raise SystemExit('Unsafe ZIP member path.')
             z.extractall(root)
         exe=next(root.glob('*/AshenVow.exe'))
-        required=['README.txt','BUILD.json','LICENSE','GODOT_LICENSE.txt','THIRD_PARTY_NOTICES.txt','CREDITS.txt','PERFORMANCE_ASSET_LICENSE.txt','COURT_ASSET_LICENSE.txt','TRIAL_AUDIO_LICENSE.txt']
+        required=['README.txt','BUILD.json','LICENSE','GODOT_LICENSE.txt','THIRD_PARTY_NOTICES.txt','CREDITS.txt','PERFORMANCE_ASSET_LICENSE.txt','COURT_ASSET_LICENSE.txt','TRIAL_AUDIO_LICENSE.txt','OFL.txt']
         if not all((exe.parent/n).is_file() for n in required): raise SystemExit('Incomplete portable distribution.')
         checks=[('quality',['--test-quality'],'behavior checks passed',60),('campaign',['--campaign-play'],'PLAY: PASS: all six chapters',60),('continue',['--campaign-continue'],'PLAY: Relaunch Continue restored ending, credits, memorial and exactly one canonical death/resurrection.',60)]
         for hz in [30,60]:
-            for label,mode,option,marker in [('trial','--test-trial','trial','48/48'),('motion','--test-motion-quality','motion','51/51'),('combat','--test-trial-combat','combat','18/18'),('duel','--test-trial-duel','duel','60/60'),('presentation','--test-trial-presentation','presentation','36/36'),('audit','--test-audit','audit','44/44'),('passage','--test-passage','passage','PASS: Touch Begin starts a fresh fight and remembers the rehearsal')]:
+            for label,mode,option,marker in [('trial','--test-trial','trial','48/48'),('motion','--test-motion-quality','motion','51/51'),('combat','--test-trial-combat','combat','18/18'),('duel','--test-trial-duel','duel','62/62'),('presentation','--test-trial-presentation','presentation','36/36'),('audit','--test-audit','audit','44/44'),('passage','--test-passage','passage','PASS: Touch Begin starts a fresh fight and remembers the rehearsal')]:
                 checks.append((f'{label}-{hz}',[mode,f'--{option}-hz={hz}'],marker,hz))
         for label,arguments,marker,hz in checks:
             run=subprocess.run([str(exe),'--headless','--fixed-fps',str(hz),'--']+arguments,cwd=exe.parent,capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=240,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))

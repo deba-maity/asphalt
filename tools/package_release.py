@@ -36,11 +36,11 @@ def main():
     filename=f'AshenVow-v{version}-windows-x86_64.zip'
     archive=output/filename
     if any(output.iterdir()): raise SystemExit(f'{output} is not empty. Choose a new output directory; existing candidates/releases are never silently replaced.')
-    for name in ['AshenVow.exe','LICENSE','GODOT_LICENSE.txt','THIRD_PARTY_NOTICES.txt','CREDITS.txt','PERFORMANCE_ASSET_LICENSE.txt','COURT_ASSET_LICENSE.txt','TRIAL_AUDIO_LICENSE.txt']:
+    for name in ['AshenVow.exe','LICENSE','GODOT_LICENSE.txt','THIRD_PARTY_NOTICES.txt','CREDITS.txt','PERFORMANCE_ASSET_LICENSE.txt','COURT_ASSET_LICENSE.txt','TRIAL_AUDIO_LICENSE.txt','OFL.txt']:
         if not (args.binary_dir/name).is_file(): raise SystemExit('Required package file missing: '+name)
     identity={'version':version,'source_commit':commit,'source_dirty':dirty,'runtime_sha256':fingerprint,'binary_sha256':build['binary_sha256'],'build_date_utc':date,'engine':pin['version'],'platform':'windows','architecture':'x86_64','status':'candidate','signature':'signed' if args.signed else 'unsigned','source_headless_tests':'passed','rendered_target_laptop_tests':'not_run'}
     player=(ROOT/'docs/PLAYER_README.txt').read_text(encoding='utf-8').replace('{VERSION}',version)
-    entries={name:(args.binary_dir/name).read_bytes() for name in ['AshenVow.exe','LICENSE','GODOT_LICENSE.txt','THIRD_PARTY_NOTICES.txt','CREDITS.txt','PERFORMANCE_ASSET_LICENSE.txt','COURT_ASSET_LICENSE.txt','TRIAL_AUDIO_LICENSE.txt']}
+    entries={name:(args.binary_dir/name).read_bytes() for name in ['AshenVow.exe','LICENSE','GODOT_LICENSE.txt','THIRD_PARTY_NOTICES.txt','CREDITS.txt','PERFORMANCE_ASSET_LICENSE.txt','COURT_ASSET_LICENSE.txt','TRIAL_AUDIO_LICENSE.txt','OFL.txt']}
     entries['README.txt']=player.encode('utf-8')
     entries['BUILD.json']=(json.dumps(identity,indent=2)+'\n').encode()
     folder=filename.removesuffix('.zip')

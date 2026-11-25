@@ -59,3 +59,37 @@ def score(t, combat=False):
 write("music_calm",12,lambda t,n,p: score(t))
 write("music_combat",12,lambda t,n,p: score(t,True))
 print("Generated footsteps, three ambient loops and two original synchronized music stems.")
+
+
+def write_tidal_surf():
+    """Three swells and their receding foam share a seamless sixteen-second loop."""
+    length = 16 * RATE
+    blend = RATE // 2
+    generator = random.Random(14728)
+    samples = []
+    slow = body = foam = 0.0
+    for i in range(length + blend):
+        t = (i % length) / RATE
+        wavefront = (1 + math.sin(t * math.tau / 5.333333 - .62 * math.cos(t * math.tau / 16))) * .5
+        wash = wavefront ** 2.3
+        afterwash = (1 + math.sin((t - 1.15) * math.tau / 5.333333)) * .5
+        noise = generator.uniform(-1, 1)
+        slow += .020 * (noise - slow)
+        body += .14 * (noise - body)
+        foam += .45 * (generator.uniform(-1, 1) - foam)
+        rumble = slow * (.31 + .81 * wash)
+        breakwater = (body - slow) * (.06 + .46 * wash)
+        backwash = foam * (.012 + .067 * afterwash ** 3)
+        samples.append(rumble + breakwater + backwash)
+    for i in range(blend):
+        weight = .5 - .5 * math.cos(math.pi * i / (blend - 1))
+        samples[i] = samples[i + length] * (1 - weight) + samples[i] * weight
+    pcm = bytearray()
+    for value in samples[:length]:
+        pcm.extend(struct.pack("<h", int(max(-1, min(1, value)) * 32760)))
+    with wave.open(str(OUT / "amb_tide.wav"), "wb") as stream:
+        stream.setparams((1, 2, RATE, 0, "NONE", "not compressed"))
+        stream.writeframes(pcm)
+
+
+write_tidal_surf()

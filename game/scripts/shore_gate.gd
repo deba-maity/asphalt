@@ -52,8 +52,11 @@ func route_target(walker: Vector3, exit: Vector3) -> Vector3:
 	if absf(walker.x - global_position.x) < .75: return exit
 	return to_global(Vector3(0, 0, APPROACH_DISTANCE))
 
-func unseal() -> void:
-	if open: return
+func unseal(immediate: bool = false) -> void:
+	if open:
+		if immediate:
+			for i in leaves.size(): leaves[i].rotation.y = deg_to_rad(88 if i == 0 else -88)
+		return
 	open = true
 	closed_barrier.collision_layer = 0
 	mark(seals.size())
@@ -64,5 +67,5 @@ func unseal() -> void:
 			inlay.material_override = lit
 	for i in leaves.size():
 		var angle := deg_to_rad(88 if i == 0 else -88)
-		if Preferences.reduced_effects: leaves[i].rotation.y = angle
+		if immediate or Preferences.reduced_effects: leaves[i].rotation.y = angle
 		else: create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT).tween_property(leaves[i], "rotation:y", angle, 1.1)

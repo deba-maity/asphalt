@@ -37,7 +37,6 @@ func _ready() -> void:
 	material.set_shader_parameter("trim_color",Color("9b8053") if figure.role=="rayan" else Color("a09a80"))
 	material.set_shader_parameter("cloth_map",load("res://assets/surfaces/cloth.png"))
 	material.set_shader_parameter("cloth_normal",load("res://assets/surfaces/cloth_normal.png"))
-	material.set_shader_parameter("warden",figure.role!="rayan")
 	material_override=material
 	var rig=figure.body_skeleton
 	torso=rig.find_bone("spine_03"); pelvis=rig.find_bone("pelvis"); neck=rig.find_bone("neck_01")
@@ -128,8 +127,11 @@ func step(delta: float, teleport: bool=false) -> void:
 	current=points.duplicate()
 
 func _process(_delta: float) -> void:
-	if not initialized: return
 	var fraction=Engine.get_physics_interpolation_fraction() if get_tree().is_physics_interpolation_enabled() else 1.0
+	present(fraction)
+
+func present(fraction: float) -> void:
+	if not initialized: return
 	var vertices=PackedVector3Array(); vertices.resize(COUNT)
 	var normals=PackedVector3Array(); normals.resize(COUNT)
 	for i in COUNT: vertices[i]=previous[i].lerp(current[i],fraction)
