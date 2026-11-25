@@ -3,6 +3,10 @@ from pathlib import Path
 import argparse, hashlib, json, os, re, subprocess, tempfile, zipfile
 from validation_lock import validation_lock
 
+# Minimum coverage shipped in the current candidate. Additional passing checks
+# do not invalidate a portable build when a suite gains a regression test.
+MINIMUM_CHECKS = {'trial': 48, 'motion': 51, 'combat': 18, 'duel': 62, 'presentation': 38, 'audit': 44}
+
 def main():
     p=argparse.ArgumentParser(); p.add_argument('--release-dir',type=Path,required=True); args=p.parse_args()
     directory=args.release_dir.resolve(); metadata=json.loads((directory/'release.json').read_text())
@@ -37,7 +41,8 @@ def main():
                 # Each suite prints its own current count. A partial or empty
                 # set of passing checks must still fail packaged validation.
                 count = re.search(r'^RESULT: ([1-9]\d*)/(\d+) ' + re.escape(marker) + r'\b', run.stdout, re.MULTILINE)
-                success = success and count is not None and count[1] == count[2]
+                success = (success and count is not None and count[1] == count[2]
+                           and int(count[1]) >= MINIMUM_CHECKS[label.rsplit('-', 1)[0]])
             if label.startswith('passage-'):
                 success = success and any(line.startswith('PASSAGE: ') and line.endswith(' checks, 0 failures') for line in run.stdout.splitlines())
             results.append({'name':label,'status':'passed' if success else 'failed','exit_code':run.returncode,'cwd':'fresh temporary extraction with spaces; no --path or editor invocation'})
