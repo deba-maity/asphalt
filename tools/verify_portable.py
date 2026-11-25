@@ -1,6 +1,6 @@
 """Extract into a fresh path with spaces and exercise only the packaged engine."""
 from pathlib import Path
-import argparse, hashlib, json, os, subprocess, tempfile, zipfile
+import argparse, hashlib, json, os, re, subprocess, tempfile, zipfile
 from validation_lock import validation_lock
 
 def main():
@@ -26,13 +26,18 @@ def main():
         if not all((exe.parent/n).is_file() for n in required): raise SystemExit('Incomplete portable distribution.')
         checks=[('quality',['--test-quality'],'behavior checks passed',60),('campaign',['--campaign-play'],'PLAY: PASS: all six chapters',60),('continue',['--campaign-continue'],'PLAY: Relaunch Continue restored ending, credits, memorial and exactly one canonical death/resurrection.',60)]
         for hz in [30,60]:
-            for label,mode,option,marker in [('trial','--test-trial','trial','48/48'),('motion','--test-motion-quality','motion','51/51'),('combat','--test-trial-combat','combat','18/18'),('duel','--test-trial-duel','duel','62/62'),('presentation','--test-trial-presentation','presentation','36/36'),('audit','--test-audit','audit','44/44'),('passage','--test-passage','passage','PASS: Touch Begin starts a fresh fight and remembers the rehearsal')]:
+            for label,mode,option,marker in [('trial','--test-trial','trial','trial checks passed'),('motion','--test-motion-quality','motion','motion quality checks passed'),('combat','--test-trial-combat','combat','physical combat checks passed'),('duel','--test-trial-duel','duel','duel behavior checks passed'),('presentation','--test-trial-presentation','presentation','presentation checks passed'),('audit','--test-audit','audit','audit checks passed'),('passage','--test-passage','passage','PASS: Touch Begin starts a fresh fight and remembers the rehearsal')]:
                 checks.append((f'{label}-{hz}',[mode,f'--{option}-hz={hz}'],marker,hz))
         for label,arguments,marker,hz in checks:
             run=subprocess.run([str(exe),'--headless','--fixed-fps',str(hz),'--']+arguments,cwd=exe.parent,capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=240,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
             (directory/f'portable-{label}.log').write_text(run.stdout+run.stderr,encoding='utf-8')
             output=run.stdout+run.stderr
             success=run.returncode==0 and 'FAIL:' not in output and 'ERROR:' not in output and marker in run.stdout
+            if marker.endswith('checks passed') and label != 'quality':
+                # Each suite prints its own current count. A partial or empty
+                # set of passing checks must still fail packaged validation.
+                count = re.search(r'^RESULT: ([1-9]\d*)/(\d+) ' + re.escape(marker) + r'\b', run.stdout, re.MULTILINE)
+                success = success and count is not None and count[1] == count[2]
             if label.startswith('passage-'):
                 success = success and any(line.startswith('PASSAGE: ') and line.endswith(' checks, 0 failures') for line in run.stdout.splitlines())
             results.append({'name':label,'status':'passed' if success else 'failed','exit_code':run.returncode,'cwd':'fresh temporary extraction with spaces; no --path or editor invocation'})
