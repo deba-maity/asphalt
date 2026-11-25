@@ -12,7 +12,7 @@ import { addCoastWater, isOpenWater, quayEdge } from "./coastal-water.js";
 import { paintTunnelBay } from "./tunnel-art.js";
 import { crossingTraffic } from "./crossing-traffic.js";
 import { sandstone, facadeBox, paintFrontage } from "./regional-art.js";
-import { advanceRoute, deflectVelocity } from "./route-motion.js";
+import { moveStreetTraffic, trafficSpeedLimits, deflectVelocity } from "./route-motion.js";
 import {
   createVehicle,
   animateVehicle,
@@ -4973,6 +4973,7 @@ export class World {
   }
 
   buildTraffic() {
+    this.trafficLimits = trafficSpeedLimits(this.samples);
     const count = this.map.id === "neon" ? (this.lowPower ? 6 : 9) : 6;
 
     for (let i = 0; i < count; i++) {
@@ -5024,11 +5025,16 @@ export class World {
 
       this.group.add(traffic);
 
+      const cruiseSpeed = 7.5 + (i % 4) * 1.8;
       this.traffic.push({
         mesh: traffic,
+        cruiseSpeed,
+        steering: 0,
+        acceleration: 0,
+        heading: traffic.rotation.y,
         index: routeIndex,
         progress: 0,
-        speed: 7.5 + (i % 4) * 1.8,
+        speed: Math.min(cruiseSpeed, this.trafficLimits[routeIndex]),
         lane: i % 2 ? 3.2 : -3.2,
       });
     }
@@ -5283,7 +5289,7 @@ export class World {
           (distance + sphere.radius) ** 2;
     }
     for (const traffic of this.traffic) {
-      advanceRoute(this.samples, traffic, dt * traffic.speed);
+      moveStreetTraffic(this.samples, this.trafficLimits, traffic, dt);
       traffic.mesh.position.x=traffic.x;
       traffic.mesh.position.z=traffic.z;
 
@@ -5297,17 +5303,19 @@ export class World {
       if (
         !focus ||
         traffic.mesh.position.distanceToSquared(focus) < distance * distance
-      )
+      ) {
+        traffic.mesh.userData.acceleration = traffic.acceleration;
         animateVehicle(
           traffic.mesh,
           traffic.speed,
           false,
           time,
-          0,
-          false,
+          traffic.steering,
+          traffic.acceleration < -.5,
           false,
           dt,
         );
+      }
     }
 
     for (const marker of this.markers) {

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { FixedClock, damp, spring, pixelRatioFor } from '../src/timing.js';
 import { driveStep } from '../src/driving.js';
 import { vehicles } from '../src/data.js';
-import { advanceRoute, angleDelta, deflectVelocity } from '../src/route-motion.js';
+import { advanceRoute, angleDelta, deflectVelocity, moveStreetTraffic, trafficSpeedLimits } from '../src/route-motion.js';
 
 const fresh = () => ({ speed: 0, boost: 100, heading: 0, x: 0, z: 0 });
 function replay(fps, spec = vehicles[0]) {
@@ -119,4 +119,33 @@ test('collision removes inward momentum and preserves motion along a barrier', (
   assert.equal(state.velocityX,0);assert.equal(state.velocityZ,6);
   deflectVelocity(state,0,1,0);
   assert.equal(state.velocityZ,6);
+});
+
+test('street traffic brakes before tight corners and steers its front wheels into the turn', () => {
+  // Ten-metre bends following a long straight, with a sample every two metres.
+  const route = Array.from({length: 31}, (_, i) => ({x: 0, z: -2*i}));
+  for (let i=1; i<=16; i++) {
+    const angle = i * Math.PI / 16;
+    route.push({x: 10*(1-Math.cos(angle)), z: -60-10*Math.sin(angle)});
+  }
+  for (let i=1; i<=30; i++) route.push({x:20,z:-60+2*i});
+  for (let i=1; i<16; i++) {
+    const angle = i * Math.PI / 16;
+    route.push({x: 10*(1+Math.cos(angle)), z: 10*Math.sin(angle)});
+  }
+  const limits = trafficSpeedLimits(route);
+  assert.ok(limits[12] > 13 && limits[28] < 8 && limits[33] < 5.5);
+  const car = {index: 9, progress: 0, lane: 3.2, cruiseSpeed: 13, speed: 13, steering: 0};
+  advanceRoute(route, car, 0);
+  let brakedOnStraight = false, cornerSteer = false, acceleratedAway = false;
+  for (let tick=0; tick<1300; tick++) {
+    const speed = car.speed;
+    moveStreetTraffic(route, limits, car, 1/60);
+    assert.ok(Number.isFinite(car.heading) && Math.abs(car.steering) <= 1);
+    assert.ok(car.speed >= speed - 4.2/60 - 1e-8 && car.speed <= speed + 2/60 + 1e-8);
+    if (car.index < 28 && car.acceleration < -.5) brakedOnStraight = true;
+    if (car.index > 31 && car.index < 44 && car.steering < -.3) cornerSteer = true;
+    if (car.index > 48 && car.index < 64 && car.acceleration > .5) acceleratedAway = true;
+  }
+  assert.ok(brakedOnStraight && cornerSteer && acceleratedAway);
 });

@@ -42,6 +42,43 @@ export function advanceRoute(route, state, distance) {
   state.heading=Math.atan2(-tx,-tz);
 }
 
+// Comfortable traffic speeds depend on local curvature. Carry the braking
+// distance backwards around the lap so cars slow before a bend.
+export function trafficSpeedLimits(route) {
+  const count = route.length, limits = new Float32Array(count), lengths = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    const a = route[(i + count - 1) % count], b = route[i], c = route[(i + 1) % count];
+    const x1 = b.x - a.x, z1 = b.z - a.z, x2 = c.x - b.x, z2 = c.z - b.z;
+    const turn = Math.abs(Math.atan2(x1*z2 - z1*x2, x1*x2 + z1*z2));
+    lengths[i] = Math.hypot(x2, z2);
+    const arc = .5 * (Math.hypot(x1, z1) + lengths[i]);
+    limits[i] = turn > .0001 ? clamp(Math.sqrt(2.55 * arc / turn), 4.2, 17) : 17;
+  }
+  for (let k = 2*count - 1; k >= 0; k--) {
+    const i = k % count, next = limits[(i+1) % count];
+    limits[i] = Math.min(limits[i], Math.sqrt(next*next + 2*3.1*lengths[i]));
+  }
+  return limits;
+}
+
+export function moveStreetTraffic(route, limits, car, dt) {
+  if (!(dt > 0)) { advanceRoute(route, car, 0); return; }
+  const next = (car.index + 1) % route.length;
+  const target = Math.min(car.cruiseSpeed, limits[car.index] + (limits[next] - limits[car.index]) * car.progress);
+  const previousSpeed = car.speed;
+  car.speed += clamp(target - car.speed, -4.2 * dt, 2.0 * dt);
+  car.acceleration = (car.speed - previousSpeed) / dt;
+  const distance = (car.speed + previousSpeed) * .5 * dt;
+  const previousHeading = car.heading;
+  advanceRoute(route, car, distance);
+  if (previousHeading == null || distance < .0001) return;
+  // The visible street cars are at 72% scale with a two-metre wheelbase.
+  // Positive yaw turns the wheel toward the same side as the body.
+  const curvature = angleDelta(previousHeading, car.heading) / distance;
+  const fullLock = .48 - Math.min(.24, car.speed * .004);
+  car.steering = clamp(Math.atan(2 * curvature) / fullLock, -1, 1);
+}
+
 // Remove the inward component while retaining tangential motion along a wall.
 export function deflectVelocity(state, nx, nz, restitution=.08) {
   const length=Math.hypot(nx,nz); if(length<.0001) return;
