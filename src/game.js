@@ -1,3 +1,4 @@
+import { courseFlag } from "./finish-marshal.js";
 import { storage } from "./storage.js";
 import { PaceLap } from "./pace-lap.js";
 import { PursuitHeat, breakawayDistance, breakawaySeconds } from "./pursuit-heat.js";
@@ -1773,6 +1774,7 @@ export class Game {
       this.player.mesh.position,
       QUALITY[this.qualityMode].distance,
       !this.reducedMotion,
+      courseFlag(this.config.mode.id, this.player, this.phase, this.elapsed),
     );
 
     this.effects?.update(dt);

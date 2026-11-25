@@ -1,3 +1,4 @@
+import { courseFlag } from "../src/finish-marshal.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Vector3 } from "three";
@@ -83,4 +84,23 @@ test("invalid and slower sprint records leave a usable class best", () => {
     assert.equal(timing.finish().best, Math.min(30,increasing[2]));
   }
   assert.deepEqual(raceRecord(world.map.id,"sprint","hard"),[8000,18000,28000]);
+});
+
+test('the finish marshal signals the actual race state at the timing line', () => {
+  const racer = { lap: 0, next: 1, finishedAt: null };
+  assert.equal(courseFlag('race', racer, 'countdown', 0), 'furled');
+  assert.equal(courseFlag('sprint', racer, 'play', 1), 'green');
+  assert.equal(courseFlag('race', racer, 'play', 10), 'furled');
+  racer.next = 0;
+  assert.equal(courseFlag('race', racer, 'play', 90), 'furled');
+  racer.lap = 1;
+  assert.equal(courseFlag('race', racer, 'play', 180), 'white');
+  racer.lap = 2;
+  assert.equal(courseFlag('race', racer, 'play', 270), 'checkered');
+  assert.equal(courseFlag('race', racer, 'finished', 270), 'furled');
+  racer.finishedAt = 271.85;
+  racer.next = 1;
+  assert.equal(courseFlag('race', racer, 'finished', 272), 'checkered');
+  assert.equal(courseFlag('escape', racer, 'finished', 272), 'furled');
+  assert.equal(courseFlag('cruise', racer, 'play', 272), 'furled');
 });

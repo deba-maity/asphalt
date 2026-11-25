@@ -6,7 +6,8 @@ import { nearestPointOnPath, roadProjection } from "./road-projection.js";
 import { courseCorners } from "./corner-notes.js";
 import { gatesPerSegment } from "./data.js";
 import { batchWorld } from "./rendering.js";
-import { makeDistrictLandmark, onWheelPlaza } from "./district-landmarks.js";
+import { makeDistrictLandmark, makeSceneryKit, onWheelPlaza } from "./district-landmarks.js";
+import { makeFinishMarshal } from "./finish-marshal.js";
 import { addCoastWater, isOpenWater, quayEdge } from "./coastal-water.js";
 import { paintTunnelBay } from "./tunnel-art.js";
 import { crossingTraffic } from "./crossing-traffic.js";
@@ -357,7 +358,9 @@ export class World {
     this.buildAtmosphere();
     this.buildTraffic();
     batchWorld(this);
-    this.landmark = makeDistrictLandmark(this);
+    const scenery = makeSceneryKit(this);
+    this.landmark = makeDistrictLandmark(this, scenery);
+    this.finishMarshal = makeFinishMarshal(this, scenery);
     this.addDistrictShadows();
     this.createVisibilityCells();
   }
@@ -5264,7 +5267,8 @@ export class World {
     this.visibilityTimer = 0;
   }
 
-  update(dt, time, focus, distance = 290, animateScenery = true) {
+  update(dt, time, focus, distance = 290, animateScenery = true, flag = "furled") {
+    this.finishMarshal.update(flag, time, dt, focus, distance, animateScenery);
     if (animateScenery) {
       this.landmark.update(time, focus, distance);
       if (this.tide) this.tide.value = time;

@@ -9,7 +9,7 @@ const vec = (x, y, z) => new THREE.Vector3(x, y, z);
 
 // Assemble each rigid or animated part once. A steel frame with dozens of
 // braces costs one draw per material, and rotating parts keep their own pivot.
-function kit(world) {
+export function makeSceneryKit(world) {
   const cube = world.trackGeometry(new THREE.BoxGeometry(1, 1, 1));
   const pipe = world.trackGeometry(new THREE.CylinderGeometry(1, 1, 1, 12));
   const shapes = { cube, pipe };
@@ -376,9 +376,8 @@ function meridianWheel(world, model, parent) {
   };
 }
 
-export function makeDistrictLandmark(world) {
-  const model = kit(world),
-    root = new THREE.Group();
+export function makeDistrictLandmark(world, model) {
+  const root = new THREE.Group();
   root.name = "District landmark";
   world.group.add(root);
   const builders = {
