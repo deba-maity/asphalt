@@ -102,6 +102,22 @@ try {
     const actor={mesh:car,onRoad:true},world={roadSurfaceY:0};
     skids.sample(actor,world,true);car.position.z+=.5;skids.sample(actor,world,true);skids.update(.01);
     camera.position.set(5,3,-8);camera.lookAt(0,.6,0);renderer.render(scene,camera);
+    const {captureFinishPhoto} = await import('/src/finish-photo.js');
+    const guide = new THREE.Group(); guide.name = 'instances:routeGuidanceArrows:test'; scene.add(guide);
+    const photoGame = {scene,camera,renderer,lowPower:true,player:{mesh:car,spec:vehicles[0],surfaceY:0},
+      world:{group:scene,map:{name:'Test circuit',accent:'#aceeaa'},finishForward:new THREE.Vector3(0,0,1),finishLine:new THREE.Vector3()}};
+    const originalRender = renderer.render.bind(renderer), exposures=[];
+    renderer.setDrawingBufferSize(200,350,.7);
+    const originalBuffer = [renderer.domElement.width,renderer.domElement.height,true];
+    renderer.render = (s,c) => {
+      exposures.push([renderer.domElement.width,renderer.domElement.height,guide.visible]);
+      return originalRender(s,c);
+    };
+    const print = captureFinishPhoto(photoGame,'Finished',12.3);
+    renderer.render = originalRender;
+    if(print.width!==960 || print.height!==629 || String(exposures[0])!=='1440,810,false' ||
+      String(exposures[1])!==String(originalBuffer) ||
+      renderer.getPixelRatio()!==.7) throw Error('Photo resolution, navigation overlay or restored race buffer: '+JSON.stringify(exposures));
     const shaders=renderer.info.programs.length;
     effects.dispose();skids.dispose();disposeVehicle(car);renderer.dispose();renderer.forceContextLoss();
     return {fleet:results,triangles:{near,far,closeStreet,farStreet},shaders,scope:'Software-rendered asset contracts; no desktop window, native GPU or driving acceptance'};

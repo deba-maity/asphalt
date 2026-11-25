@@ -25,12 +25,22 @@ export function captureFinishPhoto(game, title, seconds) {
   image.height = frameHeight + 89;
   const ctx = image.getContext("2d");
   if (!ctx) return null;
+  const originalSize = renderer.getSize(new THREE.Vector2());
+  const originalScale = renderer.getPixelRatio();
+  const guides = course.group.children.filter(object => object.visible &&
+    /^instances:(routeGuidanceArrows|shortcutArrows):/.test(object.name));
   try {
-    // The current buffer can be portrait. The camera and final image have the
-    // same 16:9 aspect, so the intermediate stretch cancels when copied.
+    // Expose one full-resolution frame without permanently raising race cost.
+    // This only changes the drawing buffer, preserving the canvas CSS layout.
+    renderer.setDrawingBufferSize(image.width, frameHeight, game.lowPower ? 1.5 : 2);
+    for (const guide of guides) guide.visible = false;
     renderer.render(game.scene, camera);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     ctx.drawImage(renderer.domElement, 0, 0, image.width, frameHeight);
   } finally {
+    for (const guide of guides) guide.visible = true;
+    renderer.setDrawingBufferSize(originalSize.x, originalSize.y, originalScale);
     renderer.render(game.scene, game.camera);
   }
   ctx.fillStyle = "#0c141a";
