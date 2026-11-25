@@ -1310,7 +1310,7 @@ export class World {
         points,
         laneOffsets[i],
         0.055,
-        0.12,
+        this.roadSurfaceY + .006,
         i !== 1,
       );
 
@@ -1321,9 +1321,9 @@ export class World {
       this.group.add(stripe);
     }
 
-    const edgeLeft = this.createContinuousLine(points, -9.85, 0.032, 0.13);
-
-    const edgeRight = this.createContinuousLine(points, 9.85, 0.032, 0.13);
+    const edgeHeight = this.roadSurfaceY + .007;
+    const edgeLeft = this.createContinuousLine(points, -9.85, 0.032, edgeHeight);
+    const edgeRight = this.createContinuousLine(points, 9.85, 0.032, edgeHeight);
 
     edgeLeft.material = this.edgeLineMat;
 
@@ -4629,13 +4629,24 @@ export class World {
     this.branchGate.visible = false;
     g.add(this.branchGate);
     const start = this.finishLine, yaw = this.segmentAngle(0);
-    const tiles = [this.basic({color: 0xf8fafc}), this.basic({color: 0x11151b})];
-    for (let row = 0; row < 2; row++) {
-      for (let column = 0; column < 20; column++) {
-        const tile = localPoint(start, yaw, column - 9.5, 0.21, row - 0.5);
-        mesh(g, box, tiles[(row + column) % 2], [tile.x,tile.y,tile.z], [1, 0.035, 1], [0,yaw,0]);
-      }
-    }
+    const checkers = makeCanvasTexture((ctx, width, height) => {
+      ctx.fillStyle = "#11151b";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillRect(0, 0, width / 2, height / 2);
+      ctx.fillRect(width / 2, height / 2, width / 2, height / 2);
+    }, 64, 64);
+    checkers.repeat.set(10, 1);
+    checkers.anisotropy = this.asphaltTexture.anisotropy;
+    this.textures.push(checkers);
+    const finishPaint = new THREE.Mesh(
+      this.trackGeometry(new THREE.PlaneGeometry(20, 2).rotateX(-Math.PI / 2)),
+      this.basic({map: checkers}),
+    );
+    finishPaint.name = "Finish line paint";
+    finishPaint.position.set(start.x, this.roadSurfaceY + .011, start.z);
+    finishPaint.rotation.y = yaw;
+    g.add(finishPaint);
 
     for (let i = 0; i < this.route.length; i++) {
       const point = this.gatePosition(i);

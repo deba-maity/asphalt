@@ -56,6 +56,10 @@ try {
     check(!document.querySelector('.result'), 'A late finish packet cannot replace the menu');
     for(const map of maps)for(const mode of modes){
       ui.map=map;ui.mode=mode;ui.start();g.phase='play';g.elapsed=30;
+      const paint = g.world.group.getObjectByName('Finish line paint');
+      const clearance = paint.position.y - g.world.roadSurfaceY;
+      check(paint.geometry.index.count === 6 && clearance > 0 && clearance < .015 &&
+        paint.material.map.repeat.x === 10, map.name + ': the two-row finish stripe lies flush with the racing surface');
       const competitive=['race','sprint'].includes(mode.id),required=mode.id==='race'?3:1;
       check(g.actors.length===(competitive?6:1),`${mode.id}: intended starting field`);
       if (competitive) {
