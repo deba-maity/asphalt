@@ -3,6 +3,7 @@ import { shortcutMarkerIndex } from "./shortcut-guide.js";
 import { bindMenuGamepad } from "./menu-gamepad.js";
 import { storage } from "./storage.js";
 import { raceTime as time } from "./timing.js";
+import { captureFinishPhoto, saveFinishPhoto } from "./finish-photo.js";
 import { coursePreview } from "./course-shape.js";
 import { districtBest } from "./pace-lap.js";
 import { raceRecord } from "./race-timing.js";
@@ -28,39 +29,23 @@ function esc(value) {
   );
 }
 
-function mapArt(map, large = false) {
+const districtPhotos = {
+  neon: new URL("./districts/neon.webp", import.meta.url).href,
+  coast: new URL("./districts/coast.webp", import.meta.url).href,
+  dock: new URL("./districts/dock.webp", import.meta.url).href,
+  mesa: new URL("./districts/mesa.webp", import.meta.url).href,
+};
+
+function mapArt(map) {
   const preview = coursePreview(map);
-  const palette = {
-    neon: ["#57e9ff", "#9256ff", "#161c44"],
-    coast: ["#53f1d0", "#2e8ec4", "#0e3945"],
-    dock: ["#ffae65", "#d85a52", "#3a242a"],
-    mesa: ["#ffd36a", "#d57543", "#48291f"],
-  }[map.id];
-  const buildings =
-    map.id === "neon"
-      ? '<g opacity=".92"><rect x="8" y="45" width="22" height="86" rx="2"/><rect x="35" y="70" width="16" height="61" rx="2"/><rect x="220" y="48" width="24" height="83" rx="2"/><rect x="251" y="68" width="18" height="63" rx="2"/><rect x="70" y="81" width="28" height="50" rx="2"/></g>'
-      : map.id === "dock"
-        ? '<g opacity=".9"><rect x="12" y="84" width="45" height="48"/><rect x="66" y="69" width="37" height="63"/><rect x="190" y="76" width="50" height="56"/><path d="M117 28V129M106 41h44M130 41 160 14"/></g>'
-        : map.id === "coast"
-          ? '<path d="M0 22 C50 44 50 8 102 31 S190 15 300 33V0H0Z"/><path d="M0 137 C52 120 75 143 123 126 S211 140 300 118V180H0Z"/>'
-          : '<path d="M0 109 42 55 76 95 126 30 173 90 220 48 300 111V180H0Z"/><path d="M0 147 70 101 111 132 166 83 225 133 300 87V180H0Z" opacity=".75"/>';
-  return `<div class="map-art ${large ? "large" : ""} map-art-${map.id}" style="--map-a:${palette[0]};--map-b:${palette[1]};--map-c:${palette[2]}">
-    <div class="map-art-glow"></div>
-    <svg viewBox="0 0 300 180" preserveAspectRatio="none" aria-hidden="true">
-      <defs>
-        <linearGradient id="g-${map.id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${palette[2]}"/><stop offset="1" stop-color="#05070f"/></linearGradient>
-        <filter id="blur-${map.id}"><feGaussianBlur stdDeviation="8"/></filter>
-      </defs>
-      <rect width="300" height="180" fill="url(#g-${map.id})"/>
-      ${buildings}
-      <path d="${preview.circuit}" fill="none" stroke="${palette[0]}" stroke-width="20" opacity=".12" filter="url(#blur-${map.id})"/>
-      <path d="${preview.circuit}" fill="none" stroke="#07111c" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="${preview.circuit}" fill="none" stroke="${palette[0]}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-      ${preview.cuts.map((path) => `<path d="${path}" fill="none" stroke="#ffc373" stroke-width="1.5" stroke-dasharray="3 2"/>`).join("")}
-      <circle cx="${preview.start[0]}" cy="${preview.start[1]}" r="3.6" fill="#fff" stroke="#141d26" stroke-width="1.2"/>
+  return `<div class="map-art district-photo" aria-hidden="true">
+    <img src="${districtPhotos[map.id]}" alt="" width="640" height="432" decoding="async">
+    <svg class="district-plan" viewBox="12 14 276 150" preserveAspectRatio="xMidYMid meet">
+      <path d="${preview.circuit}" fill="none" stroke="#061015" stroke-width="7" stroke-linejoin="round"/>
+      <path d="${preview.circuit}" fill="none" stroke="${map.accent}" stroke-width="3.4" stroke-linejoin="round"/>
+      ${preview.cuts.map(path => `<path d="${path}" fill="none" stroke="#ffbe77" stroke-width="2.4" stroke-dasharray="4 3"/>`).join("")}
+      <circle cx="${preview.start[0]}" cy="${preview.start[1]}" r="4" fill="white" stroke="#142326" stroke-width="1.5"/>
     </svg>
-    <div class="map-art-scan"></div>
-    <div class="map-art-label"><span>SECTOR ${String(maps.findIndex((m) => m.id === map.id) + 1).padStart(2, "0")}</span><b>${esc(map.tag)}</b></div>
   </div>`;
 }
 
@@ -83,7 +68,7 @@ export class UI {
     const savedDifficulty = storage.getItem("nightshift-difficulty");
     this.difficulty = ["easy", "medium", "hard"].includes(savedDifficulty) ? savedDifficulty : "medium";
     this.vehicleFilter = "all";
-    this.root.innerHTML = `<main id="menu-layer"></main><section id="hud" hidden><div class="hud-vignette"></div><div class="hud-top"><div class="wordmark small">NIGHTSHIFT<span>//</span></div><div class="objective-stack"><span id="objective">RACE // 3 LAPS</span><i class="route-progress"><b id="route-progress"></b></i></div><div class="race-tools"><div class="timing-stack"><div id="timer">00:00.00</div><span id="pace-note" hidden></span></div><button class="pause-button" data-action="pause" aria-label="Pause race">Ⅱ</button></div></div><div id="countdown"></div><div id="event-feed"><b id="drive-state">HOLD THE LINE</b><span id="drive-detail">CHECKPOINT LINKED</span></div><div class="hud-bottom"><div class="mini-wrap"><canvas id="minimap" width="170" height="170"></canvas><span>ROUTE LINK</span><b>MAP</b></div><div class="readouts"><div class="speed-pod"><small>SPEED</small><strong id="speed">000</strong><em>KM/H</em></div><div class="meter"><label>NITRO CORE <b id="nitro-text">100</b></label><i><b id="nitro"></b></i><label class="armor">INTEGRITY <b id="health-text">100</b></label><i class="health"><b id="health"></b></i></div></div><div class="race-state"><b id="position">LAP 1 / 3</b><span id="checkpoint">CHECKPOINT 1</span><div id="wanted"></div></div></div><div class="touch-controls" aria-label="Driving controls"><div class="touch-steering"><button data-drive="KeyA" aria-label="Steer left">❮</button><button data-drive="KeyD" aria-label="Steer right">❯</button></div><div class="touch-weapons"><button data-drive="KeyF" aria-label="Fire gun">FIRE</button><button data-drive="KeyR" aria-label="Launch rocket">ROCKET</button></div><div class="touch-pedals"><button class="touch-nitro" data-drive="ShiftLeft" aria-label="Use nitro">N₂O</button><button data-drive="Space" aria-label="Drift">DRIFT</button><button data-drive="KeyS" aria-label="Brake and reverse">BRAKE</button><button class="touch-gas" data-drive="KeyW" aria-label="Accelerate">GAS</button></div></div></section><div id="toast" role="status" aria-live="polite"></div>`;
+    this.root.innerHTML = `<main id="menu-layer"></main><section id="hud" hidden><div class="hud-vignette"></div><div class="hud-top"><div class="wordmark small">NIGHTSHIFT<span>//</span></div><div class="objective-stack"><span id="objective">RACE // 3 LAPS</span><i class="route-progress"><b id="route-progress"></b></i></div><div class="race-tools"><div class="timing-stack"><div id="timer">00:00.00</div><span id="pace-note" hidden></span></div><button class="pause-button" data-action="pause" aria-label="Pause race">Ⅱ</button></div></div><div id="countdown"></div><div id="event-feed"><b id="drive-state">HOLD THE LINE</b><span id="drive-detail">CHECKPOINT LINKED</span></div><div class="hud-bottom"><div class="mini-wrap"><canvas id="minimap" width="170" height="170"></canvas><span>ROUTE LINK</span><b>MAP</b></div><div class="readouts"><div class="speed-pod"><div class="rev-row"><span class="gear-indicator">GEAR <b id="current-gear">N</b></span><span class="shift-lights" aria-hidden="true"><i></i></span></div><span class="sr-only">Speed</span><strong id="speed">000</strong><em>KM/H</em></div><div class="meter"><label>NITRO CORE <b id="nitro-text">100</b></label><i><b id="nitro"></b></i><label class="armor">INTEGRITY <b id="health-text">100</b></label><i class="health"><b id="health"></b></i></div></div><div class="race-state"><b id="position">LAP 1 / 3</b><span id="checkpoint">CHECKPOINT 1</span><div id="wanted"></div></div></div><div class="touch-controls" aria-label="Driving controls"><div class="touch-steering"><button data-drive="KeyA" aria-label="Steer left">❮</button><button data-drive="KeyD" aria-label="Steer right">❯</button></div><div class="touch-weapons"><button data-drive="KeyF" aria-label="Fire gun">FIRE</button><button data-drive="KeyR" aria-label="Launch rocket">ROCKET</button></div><div class="touch-pedals"><button class="touch-nitro" data-drive="ShiftLeft" aria-label="Use nitro">N₂O</button><button data-drive="Space" aria-label="Drift">DRIFT</button><button data-drive="KeyS" aria-label="Brake and reverse">BRAKE</button><button class="touch-gas" data-drive="KeyW" aria-label="Accelerate">GAS</button></div></div></section><div id="toast" role="status" aria-live="polite"></div>`;
     this.layer = this.root.querySelector("#menu-layer");
     this.hud = this.root.querySelector("#hud");
     this.mini = this.root.querySelector("#minimap");
@@ -138,6 +123,10 @@ export class UI {
       this.start();
     }
     if (action === "copy-lap") this.copyChallenge();
+    if (action === "save-photo") {
+      const photo = this.layer.querySelector(".finish-photo canvas");
+      if (photo) saveFinishPhoto(photo, this.map.id);
+    }
     if (action === "quality") {
       this.game.applyQuality(data.id);
       this.showSettings();
@@ -172,7 +161,12 @@ export class UI {
     if (action === "color") {
       this.color = data.color;
       this.syncSetup();
-      this.showVehicle(this.inGarage);
+      this.game.preview?.recolor(this.color);
+      for (const swatch of this.layer.querySelectorAll('[data-action="color"]')) {
+        const selected = swatch.dataset.color === this.color;
+        swatch.classList.toggle("active", selected);
+        swatch.setAttribute("aria-pressed", String(selected));
+      }
     }
     if (action === "difficulty" && ["easy", "medium", "hard"].includes(data.id)) {
       this.difficulty = data.id;
@@ -315,7 +309,7 @@ export class UI {
     ]
       .map(
         (c) =>
-          `<button class="swatch swatch-lg ${c === this.color ? "active" : ""}" data-action="color" data-color="${c}" style="--color:${c}" aria-label="Paint ${c}"></button>`,
+          `<button class="swatch swatch-lg ${c === this.color ? "active" : ""}" data-action="color" data-color="${c}" aria-pressed="${c === this.color}" style="--color:${c}" aria-label="Paint ${c}"></button>`,
       )
       .join("");
     const rating = Math.round(
@@ -334,13 +328,8 @@ export class UI {
       `<div class="garage-modern"><div class="garage-hero"><div class="garage-hero-grid"></div><div class="preview-wrap premium-preview"><div id="vehicle-preview"></div><div class="preview-corner preview-corner-a">DRAG TO ROTATE</div><div class="preview-corner preview-corner-b">DESIGNED TO DRIVE</div><div class="vehicle-floor-lines"></div><div class="vehicle-type">${esc(vehicle.type).toUpperCase()}</div><div class="vehicle-hero-stamp"><small>RATING</small><b>${rating}</b><span>CLASS ${vehicle.kind === "heavy" ? "H" : vehicle.kind === "bike" ? "B" : "A"}</span></div></div></div><aside class="vehicle-info-modern"><div class="vehicle-id-row"><span>VEHICLE ${vehicles.indexOf(vehicle) + 1}/${vehicles.length}</span><b>${vehicle.kind === "heavy" ? "HEAVY" : vehicle.kind === "bike" ? "BIKE" : "CAR"}</b></div><h2>${esc(vehicle.name)}</h2><p class="vehicle-blurb">${esc(vehicle.type)} built for midnight routes. Tune the finish, then take the fastest line.</p><div class="stats stats-premium">${stat("MAX KM/H", maxSpeed, "cyan", vehicle.top)}${stat("ACCEL", vehicle.accel)}${stat("HANDLING", vehicle.handling)}${stat("BRAKING", vehicle.braking)}${stat("DURABILITY", vehicle.armor, "pink")}${stat("NITRO", vehicle.boost, "violet")}</div><div class="garage-control-row"><div><span>PAINT</span><div class="colors-premium">${palette}</div></div><button class="primary deploy-lg" data-action="${garage ? (this.networked ? "back" : "garage-race-setup") : "start"}">${garage ? (this.networked ? "RETURN TO CREW" : "RACE SETUP") : "DEPLOY"} <i>→</i></button></div></aside><div class="fleet-dock"><div class="fleet-head"><div><span>FLEET</span><p>Swipe, drag or use the wheel to browse.</p></div><div class="fleet-filters">${filters}</div></div><div class="vehicle-list-premium">${options}</div></div></div>`,
       garage ? (this.networked ? "back" : "home") : "map",
     );
-    requestAnimationFrame(() =>
-      this.game.mountPreview(
-        this.root.querySelector("#vehicle-preview"),
-        vehicle,
-        this.color,
-      ),
-    );
+    const host = this.root.querySelector("#vehicle-preview");
+    requestAnimationFrame(() => this.game.mountPreview(host, vehicle, this.color));
   }
 
   async joinLobby() {
@@ -627,6 +616,11 @@ export class UI {
       3,
       "0",
     );
+    const gauge = s.gearing;
+    if (gauge) {
+      this.root.querySelector("#current-gear").textContent = gauge.display;
+      this.root.querySelector(".shift-lights").style.setProperty("--revs", Math.min(1, gauge.fraction) * 100 + "%");
+    }
     this.root.querySelector("#nitro").style.width = `${s.boost}%`;
     this.root.querySelector("#nitro-text").textContent = Math.round(s.boost);
     this.root.querySelector("#health").style.width = `${s.health}%`;
@@ -816,7 +810,22 @@ export class UI {
       });
       sectorSheet = `<details class="sector-sheet"><summary>Sector times</summary><table aria-label="Sector and lap times"><thead><tr><th>Lap</th><th>S1</th><th>S2</th><th>S3</th><th>Total</th></tr></thead><tbody>${rows.join("")}</tbody></table></details>`;
     }
-    this.layer.innerHTML = `<section class="result screen"><p>${esc(this.map.name)}</p><h1>${esc(data.title)}</h1><div class="result-time">${time(data.time)}</div><span>${data.best ? `${data.race?.improved ? "NEW BEST" : "BEST"} ${time(data.best)} // ` : ""}${esc(data.mode).toUpperCase()}${data.delta != null ? " // " + signedSeconds(data.delta) + " VS BEST" : ""}</span>${challengeResult}${standings}${laps}${sectorSheet}${pursuit}${copyField}<div><button class="primary" data-action="rematch">RUN IT BACK <i>→</i></button>${copyButton}<button data-action="home">MAIN MENU</button></div></section>`;
+    const hasPhoto = this.game.player?.finishedAt != null && !this.networked;
+    const photo = hasPhoto ? '<details class="finish-photo" hidden><summary>Finish photo</summary><figure></figure><button data-action="save-photo">SAVE PHOTO</button></details>' : '';
+    this.layer.innerHTML = `<section class="result screen"><p>${esc(this.map.name)}</p><h1>${esc(data.title)}</h1><div class="result-time">${time(data.time)}</div><span>${data.best ? `${data.race?.improved ? "NEW BEST" : "BEST"} ${time(data.best)} // ` : ""}${esc(data.mode).toUpperCase()}${data.delta != null ? " // " + signedSeconds(data.delta) + " VS BEST" : ""}</span>${challengeResult}${standings}${laps}${sectorSheet}${pursuit}${copyField}${photo}<div><button class="primary" data-action="rematch">RUN IT BACK <i>→</i></button>${copyButton}<button data-action="home">MAIN MENU</button></div></section>`;
+    this.layer.querySelector('[data-action="rematch"]')?.focus({preventScroll:true});
+    if (hasPhoto) {
+      const holder = this.layer.querySelector(".finish-photo");
+      const finishedWorld = this.game.world;
+      requestAnimationFrame(() => {
+        if (!holder.isConnected || finishedWorld !== this.game.world) return;
+        const image = captureFinishPhoto(this.game, data.title, data.time);
+        if (!image) return;
+        holder.querySelector("figure").append(image);
+        holder.hidden = false;
+        holder.open = matchMedia("(min-width: 1040px) and (min-height: 490px)").matches;
+      });
+    }
   }
   pause(paused) {
     this.releaseDriving?.();

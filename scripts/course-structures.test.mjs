@@ -106,6 +106,9 @@ test("a curved tunnel has a continuous visible ceiling, side clearance, and capp
   const shape = spanGeometry(cropped,-12.75,12.75,10.8,11.5);
   const vertices=shape.getAttribute("position"), normals=shape.getAttribute("normal");
   assert.equal(vertices.count, ((cropped.length-1)*4+2)*6);
+  const uv = shape.getAttribute("uv");
+  assert.equal(uv.count, vertices.count);
+  assert.ok(Math.abs(uv.getX(7) - (cropped[1].length - cropped[0].length)) < .00001, "Panel texture follows distance around the bend");
   assert.ok(Array.from(vertices.array).every(Number.isFinite));
   assert.ok(Array.from({length:normals.count}, (_,i)=>normals.getY(i)).some(y=>y < -.99));
   const light=trimSpan(cropped,13,13);

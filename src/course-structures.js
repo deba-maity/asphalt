@@ -109,21 +109,35 @@ export function offsetStation(station, offset, height) {
 // A closed rectangular section follows every bend. Shared endpoints keep
 // curved rails, tunnel soffits and walls continuous, including on tight turns.
 export function spanGeometry(span, left, right, bottom, top) {
-  const vertices = [];
-  const face = (a, b, c, d) => {
-    for (const v of [a,b,c,a,c,d]) vertices.push(v.x,v.y,v.z);
+  const vertices = [], uvs = [];
+  const face = (corners, mapping) => {
+    for (const i of [0,1,2,0,2,3]) {
+      const v = corners[i];
+      vertices.push(v.x,v.y,v.z);
+      uvs.push(...mapping[i]);
+    }
   };
-  let previous;
+  const width = right-left, height = top-bottom;
+  const cap = [[0,0],[0,height],[width,height],[width,0]];
+  let previous, lastU = 0;
   for (const station of span) {
+    const u = station.length-span[0].length;
     const ring = [offsetStation(station,left,bottom), offsetStation(station,left,top),
       offsetStation(station,right,top), offsetStation(station,right,bottom)];
-    if (!previous) face(...ring);
-    else for (let j=0; j<4; j++) face(previous[j],ring[j],ring[(j+1)%4],previous[(j+1)%4]);
+    if (!previous) face(ring, cap);
+    else for (let j=0; j<4; j++) {
+      const next = (j+1)%4;
+      const size = j%2 === 0 ? height : width;
+      const [v0,v1] = j < 2 ? [0,size] : [size,0];
+      face([previous[j],ring[j],ring[next],previous[next]], [[lastU,v0],[u,v0],[u,v1],[lastU,v1]]);
+    }
     previous = ring;
+    lastU = u;
   }
-  if (previous) face(...previous.reverse());
+  if (previous) face(previous.reverse(), [...cap].reverse());
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position",new THREE.Float32BufferAttribute(vertices,3));
+  geometry.setAttribute("uv",new THREE.Float32BufferAttribute(uvs,2));
   geometry.computeVertexNormals();
   return geometry;
 }

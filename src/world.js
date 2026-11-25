@@ -6,11 +6,17 @@ import { nearestPointOnPath, roadProjection } from "./road-projection.js";
 import { courseCorners } from "./corner-notes.js";
 import { gatesPerSegment } from "./data.js";
 import { batchWorld } from "./rendering.js";
+import { makeDistrictLandmark, onWheelPlaza } from "./district-landmarks.js";
+import { addCoastWater, isOpenWater, quayEdge } from "./coastal-water.js";
+import { paintTunnelBay } from "./tunnel-art.js";
+import { crossingTraffic } from "./crossing-traffic.js";
+import { sandstone, facadeBox, paintFrontage } from "./regional-art.js";
 import { advanceRoute, deflectVelocity } from "./route-motion.js";
 import {
   createVehicle,
   animateVehicle,
   alignVehicleToSurface,
+  applyStreetLighting,
 } from "./vehicle.js";
 
 // Shared immutable geometry. These are intentionally never disposed by World;
@@ -25,11 +31,11 @@ const routeArrowGeo = new THREE.BufferGeometry();
 routeArrowGeo.setAttribute(
   "position",
   new THREE.Float32BufferAttribute(
-    [-0.9, 0, -1.25, 0.9, 0, -1.25, 0, 0, 1.35],
+    [-.86, 0, -.66, 0, 0, .18, .86, 0, -.66, .86, 0, -.17, 0, 0, .72, -.86, 0, -.17],
     3,
   ),
 );
-routeArrowGeo.setIndex([0, 1, 2]);
+routeArrowGeo.setIndex([0, 1, 5, 5, 1, 4, 1, 2, 4, 4, 2, 3]);
 routeArrowGeo.computeVertexNormals();
 const turnChevron = new THREE.ShapeGeometry(new THREE.Shape([
   [-.7, .46], [-.04, .46], [.7, 0], [-.04, -.46], [-.7, -.46], [.04, 0],
@@ -39,6 +45,13 @@ const vec = (p) => new THREE.Vector3(p[0], 0, p[1]);
 const seeded = (n) => {
   let v = Math.abs(Math.floor(n * 9973)) + 1;
   return () => ((v = (v * 16807) % 2147483647) - 1) / 2147483646;
+};
+
+const districtSkies = {
+  neon: new URL("./horizons/neon.webp", import.meta.url).href,
+  coast: new URL("./horizons/coast.webp", import.meta.url).href,
+  dock: new URL("./horizons/dock.webp", import.meta.url).href,
+  mesa: new URL("./horizons/mesa.webp", import.meta.url).href,
 };
 
 const clamp = THREE.MathUtils.clamp;
@@ -110,108 +123,32 @@ function sampleSmoothClosedRoute(route, count) {
   return points.map((point) => new THREE.Vector3(point.x, 0, point.z));
 }
 
-function createRibbonGeometry(points, halfWidth, y, uvScale = 14) {
-  const positions = [];
-  const uvs = [];
-  const indices = [];
-
-  const n = points.length;
-
-  for (let i = 0; i < n; i++) {
-    const p = points[i];
-
-    const t = tangentAt(points, i);
-
-    const side = new THREE.Vector3(-t.z, 0, t.x);
-
-    const left = p.clone().addScaledVector(side, halfWidth);
-    const right = p.clone().addScaledVector(side, -halfWidth);
-
-    const v = (i / Math.max(1, n - 1)) * uvScale;
-
-    const py = typeof y === "function" ? y(i, n) : Array.isArray(y) ? y[i] : y;
-
-    positions.push(left.x, py, left.z, right.x, py, right.z);
-
-    uvs.push(0, v, 1, v);
+function createRibbonGeometry(points, halfWidth, y, metresPerTile = 16, closed = true) {
+  const positions = [], uvs = [], indices = [];
+  const count = points.length, last = closed ? count : count - 1;
+  const distances = [0];
+  for (let i = 1; i <= last; i++) {
+    distances.push(distances[i-1] + points[i-1].distanceTo(points[i % count]));
   }
-
-  for (let i = 0; i < n - 1; i++) {
-    const k = i * 2;
-
-    indices.push(
-      k,
-      k + 2,
-      k + 1,
-
-      k + 1,
-      k + 2,
-      k + 3,
-    );
+  const length = distances[last];
+  const tiles = closed ? Math.max(1, Math.round(length / metresPerTile)) : length / metresPerTile;
+  for (let row = 0; row <= last; row++) {
+    const i = row % count, point = points[i], tangent = tangentAt(points, i, closed);
+    const dx = -tangent.z * halfWidth, dz = tangent.x * halfWidth;
+    const height = typeof y === "function" ? y(i,count) : Array.isArray(y) ? y[i] : y;
+    positions.push(point.x + dx, height, point.z + dz, point.x - dx, height, point.z - dz);
+    const v = distances[row] / (length || 1) * tiles;
+    uvs.push(0,v,1,v);
+    if (row < last) {
+      const k = row * 2;
+      indices.push(k, k+2, k+1, k+1, k+2, k+3);
+    }
   }
-
-  const k = (n - 1) * 2;
-
-  indices.push(
-    k,
-    0,
-    k + 1,
-
-    k + 1,
-    0,
-    1,
-  );
-
   const geometry = new THREE.BufferGeometry();
-
-  geometry.setAttribute(
-    "position",
-    new THREE.Float32BufferAttribute(positions, 3),
-  );
-
-  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
-
-  geometry.setIndex(indices);
-
-  geometry.computeVertexNormals();
-
-  return geometry;
-}
-
-function createOpenRibbonGeometry(points, halfWidth, y, uvScale = 8) {
-  const positions = [];
-  const uvs = [];
-  const indices = [];
-  const n = points.length;
-
-  for (let i = 0; i < n; i++) {
-    const p = points[i];
-    const t = tangentAt(points, i, false);
-    const side = new THREE.Vector3(-t.z, 0, t.x);
-    const left = p.clone().addScaledVector(side, halfWidth);
-    const right = p.clone().addScaledVector(side, -halfWidth);
-    const v = (i / Math.max(1, n - 1)) * uvScale;
-
-    const py = typeof y === "function" ? y(i, n) : Array.isArray(y) ? y[i] : y;
-
-    positions.push(left.x, py, left.z, right.x, py, right.z);
-    uvs.push(0, v, 1, v);
-  }
-
-  for (let i = 0; i < n - 1; i++) {
-    const k = i * 2;
-    indices.push(k, k + 2, k + 1, k + 1, k + 2, k + 3);
-  }
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute(
-    "position",
-    new THREE.Float32BufferAttribute(positions, 3),
-  );
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
   geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
-
   return geometry;
 }
 
@@ -309,6 +246,8 @@ export class World {
 
     this.markers = [];
     this.traffic = [];
+    this.crossings = [];
+    this.tunnelSpans = [];
     this.materials = [];
     this.materialCache = new Map();
     this.batchBox = box;
@@ -400,9 +339,10 @@ export class World {
       isNeon ? 0.0038 : 0.0035,
     );
 
+    this.guidanceFocus = new THREE.Vector2(1e6, 1e6);
     this.buildRoadMaterials(isNeon);
     this.buildGround(isNeon);
-    this.buildSky(isNeon);
+    this.buildSky();
 
     if (isNeon) {
       this.buildNightCity();
@@ -417,13 +357,51 @@ export class World {
     this.buildAtmosphere();
     this.buildTraffic();
     batchWorld(this);
+    this.landmark = makeDistrictLandmark(this);
+    this.addDistrictShadows();
     this.createVisibilityCells();
+  }
+
+  addDistrictShadows() {
+    const file = this.map.id + (this.lowPower ? "-compact" : "");
+    const material = this.basic({
+      color: 0x17212b,
+      transparent: true,
+      opacity: this.map.id === "neon" ? .24 : .43,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const shade = new THREE.Mesh(
+      this.trackGeometry(new THREE.PlaneGeometry(1120, 1120)),
+      material,
+    );
+    shade.name = "District ground shadows";
+    shade.visible = false;
+    shade.rotation.x = -Math.PI / 2;
+    shade.position.y = this.roadSurfaceY + .018;
+    // Compound landmark silhouettes cross sidewalks and the main road, while
+    // the real depth buffer keeps the shading underneath every flyover deck.
+    shade.renderOrder = -1;
+    this.group.add(shade);
+    const strength = { value: 0 };
+    const texture = new THREE.TextureLoader().load(
+      new URL(`./shadows/${file}.webp`, import.meta.url).href,
+      () => {
+        if (this.disposed) return;
+        shade.visible = true;
+        strength.value = this.map.id === "neon" ? .25 : .45;
+      },
+    );
+    material.alphaMap = texture;
+    this.streetLighting = { texture, strength };
+    for (const car of this.traffic) applyStreetLighting(car.mesh, this.streetLighting);
+    this.textures.push(texture);
   }
 
   buildRoadMaterials(isNeon) {
     this.asphaltTexture = makeCanvasTexture(
       (ctx, w, h) => {
-        ctx.fillStyle = "#10161c";
+        ctx.fillStyle = isNeon ? "#303943" : "#505357";
 
         ctx.fillRect(0, 0, w, h);
 
@@ -440,13 +418,25 @@ export class World {
         ctx.globalAlpha = 1;
 
         for (let i = 0; i < 9000; i++) {
-          const v = 17 + Math.floor(r() * 24);
+          const v = (isNeon ? 34 : 53) + Math.floor(r() * 35);
 
           ctx.fillStyle = `rgb(${v},${v + 2},${v + 4})`;
 
           ctx.fillRect(r() * w, r() * h, 1 + r() * 2, 1 + r() * 2);
         }
 
+        // Polished wheel paths repeat across lanes in road space.
+        for (let lane = 0; lane < 4; lane++) {
+          for (const tire of [-.055, .055]) {
+            const x = ((lane + .5) / 4 + tire) * w;
+            const wear = ctx.createLinearGradient(x - 12, 0, x + 12, 0);
+            wear.addColorStop(0, "rgba(0,0,0,0)");
+            wear.addColorStop(.5, "rgba(0,0,0,.17)");
+            wear.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.fillStyle = wear;
+            ctx.fillRect(x-12, 0, 24, h);
+          }
+        }
         ctx.globalAlpha = 0.13;
 
         for (let i = 0; i < 80; i++) {
@@ -573,18 +563,17 @@ export class World {
         ctx.fillStyle = isNeon
           ? "#080f16"
           : this.map.id === "mesa"
-            ? "#987657"
+            ? "#ac8a68"
             : this.map.id === "dock"
               ? "#41464a"
-              : "#344a3e";
+              : "#697458";
 
         ctx.fillRect(0, 0, w, h);
 
         const r = seeded(74);
 
         for (let i = 0; i < 4500; i++) {
-          const n = Math.floor(14 + r() * 25);
-          ctx.globalAlpha = isNeon ? 0.7 : 0.13;
+          ctx.globalAlpha = isNeon ? 0.09 : 0.12;
           ctx.fillStyle = i % 2 ? "#05080a" : "#e0cfb0";
 
           ctx.fillRect(r() * w, r() * h, 1 + r() * 4, 1 + r() * 4);
@@ -595,7 +584,7 @@ export class World {
       512,
     );
 
-    groundTexture.repeat.set(7, 7);
+    groundTexture.repeat.set(52, 52);
 
     const ground = mesh(
       this.group,
@@ -614,130 +603,27 @@ export class World {
     ground.receiveShadow = true;
   }
 
-  buildSky(isNeon) {
-    const texture = makeCanvasTexture(
-      (ctx, w, h) => {
-        const gradient = ctx.createLinearGradient(0, 0, 0, h);
-
-        if (isNeon) {
-          gradient.addColorStop(0, "#020308");
-
-          gradient.addColorStop(0.42, "#071220");
-
-          gradient.addColorStop(1, "#142536");
-        } else {
-          gradient.addColorStop(0, this.map.sky || "#658695");
-
-          gradient.addColorStop(
-            0.65,
-            this.map.id === "mesa"
-              ? "#d58a66"
-              : this.map.id === "coast"
-                ? "#d2c6b1"
-                : "#b98576",
-          );
-          gradient.addColorStop(1, "#5c6576");
-        }
-
-        ctx.fillStyle = gradient;
-
-        ctx.fillRect(0, 0, w, h);
-
-        const random = seeded(934);
-        if (!isNeon) {
-          const sunX = w * 0.73,
-            sunY = h * 0.48;
-          const haze = ctx.createRadialGradient(
-            sunX,
-            sunY,
-            0,
-            sunX,
-            sunY,
-            h * 0.36,
-          );
-          haze.addColorStop(0, "rgba(255,223,170,.5)");
-          haze.addColorStop(1, "rgba(255,201,150,0)");
-          ctx.fillStyle = haze;
-          ctx.fillRect(0, 0, w, h);
-          ctx.fillStyle = "rgba(255,234,195,.92)";
-          ctx.beginPath();
-          ctx.arc(sunX, sunY, h * 0.025, 0, TAU);
-          ctx.fill();
-          for (let i = 0; i < 20; i++) {
-            ctx.fillStyle = "rgba(235,221,211,.035)";
-            ctx.beginPath();
-            ctx.ellipse(
-              random() * w,
-              h * (0.23 + random() * 0.24),
-              30 + random() * 100,
-              2 + random() * 5,
-              0,
-              0,
-              TAU,
-            );
-            ctx.fill();
-          }
-          ctx.fillStyle =
-            this.map.id === "mesa"
-              ? "#987766"
-              : this.map.id === "coast"
-                ? "#7c9698"
-                : "#777b86";
-          ctx.beginPath();
-          ctx.moveTo(0, h * 0.54);
-          for (let x = 0; x <= w; x += w / 30)
-            ctx.lineTo(x, h * (0.48 + random() * 0.06));
-          ctx.lineTo(w, h * 0.59);
-          ctx.lineTo(0, h * 0.59);
-          ctx.fill();
-        } else {
-          for (let i = 0; i < 180; i++) {
-            ctx.fillStyle = `rgba(211,230,246,${0.15 + random() * 0.4})`;
-            ctx.fillRect(
-              random() * w,
-              random() * h * 0.43,
-              0.5 + random(),
-              0.5 + random(),
-            );
-          }
-        }
-        if (isNeon) {
-          const glow = ctx.createRadialGradient(
-            w * 0.5,
-            h * 0.78,
-            20,
-            w * 0.5,
-            h * 0.78,
-            w * 0.55,
-          );
-          glow.addColorStop(0, "rgba(76,145,190,.16)");
-          glow.addColorStop(1, "rgba(76,145,190,0)");
-          ctx.fillStyle = glow;
-          ctx.fillRect(0, 0, w, h);
-        }
-      },
-      1024,
-      512,
-    );
-
-    const sky = new THREE.Mesh(
-      this.trackGeometry(new THREE.SphereGeometry(600, 24, 12)),
-      this.basic({
-        map: texture,
-        side: THREE.BackSide,
-        depthWrite: false,
-      }),
-    );
-
-    this.scene.background = texture;
-    // Equirectangular background avoids clipping the sky at mobile draw distances.
+  buildSky() {
+    // A background panorama stays at infinity at every draw distance.
+    const texture = new THREE.TextureLoader().load(districtSkies[this.map.id], () => {
+      if (this.disposed) return;
+      this.scene.background = texture;
+      // A small copy is enough for paint and glass. Keep the high-resolution
+      // panorama for the sky without asking mobile GPUs to prefilter it at 2K.
+      const sky = document.createElement("canvas");
+      sky.width = 256; sky.height = 128;
+      sky.getContext("2d").drawImage(texture.image, 0, 0, sky.width, sky.height);
+      const reflection = new THREE.CanvasTexture(sky);
+      reflection.colorSpace = THREE.SRGBColorSpace;
+      reflection.mapping = THREE.EquirectangularReflectionMapping;
+      this.textures.push(reflection);
+      this.skyReflection = reflection;
+      this.scene.environment = reflection;
+      this.scene.environmentIntensity = this.map.id === "neon" ? .85 : .72;
+    });
+    texture.colorSpace = THREE.SRGBColorSpace;
     texture.mapping = THREE.EquirectangularReflectionMapping;
-    sky.visible = false;
-    sky.frustumCulled = false;
-
-    sky.userData.worldOwned = true;
-
-    this.group.add(sky);
+    this.textures.push(texture);
   }
 
   buildRoute() {
@@ -833,9 +719,10 @@ export class World {
 
     for (const shortcut of this.shortcutRoads) {
       const { points, elevated, heightProfile } = shortcut;
+      shortcut.halfWidth = shortcutHalfWidth;
       const road = new THREE.Mesh(
         this.trackGeometry(
-          createOpenRibbonGeometry(points, shortcutHalfWidth, heightProfile, 8),
+          createRibbonGeometry(points, shortcutHalfWidth, heightProfile, 15, false),
         ),
         this.roadMat,
       );
@@ -925,7 +812,7 @@ export class World {
       }
     }
     this.installInstance("shortcutArrows", routeArrowGeo,
-      this.basic({ color: 0xffc870, side: THREE.DoubleSide, toneMapped: false }),
+      this.guidanceMaterial(0xffc870, .96),
       branchArrows);
   }
 
@@ -1358,6 +1245,27 @@ export class World {
     return true;
   }
 
+  guidanceMaterial(color, opacity) {
+    const material = this.basic({ color, opacity, transparent: true, depthWrite: false, toneMapped: false, side: THREE.DoubleSide });
+    const focus = this.guidanceFocus;
+    material.onBeforeCompile = shader => {
+      shader.uniforms.driverPosition = { value: focus };
+      shader.vertexShader = "uniform vec2 driverPosition; varying float guideVisibility;\n" + shader.vertexShader;
+      shader.vertexShader = shader.vertexShader.replace("#include <project_vertex>", `
+        #include <project_vertex>
+        vec4 marker = vec4(0.0, 0.0, 0.0, 1.0);
+        #ifdef USE_INSTANCING
+          marker = instanceMatrix * marker;
+        #endif
+        float separation = distance((modelMatrix * marker).xz, driverPosition);
+        guideVisibility = smoothstep(3.3, 7.0, separation);
+      `);
+      shader.fragmentShader = "varying float guideVisibility;\n" + shader.fragmentShader;
+      shader.fragmentShader = shader.fragmentShader.replace("#include <color_fragment>", "#include <color_fragment>\n diffuseColor.a *= guideVisibility;");
+    };
+    return material;
+  }
+
   addRouteGuidanceArrows(points) {
     const matrices = [];
     const q = new THREE.Quaternion();
@@ -1365,14 +1273,7 @@ export class World {
     const yAxis = new THREE.Vector3(0, 1, 0);
     const interval = this.lowPower ? 20 : 14;
     let travelled = interval;
-    const material = this.basic({
-      color: 0x63ffd4,
-      toneMapped: false,
-      transparent: true,
-      opacity: 0.88,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    });
+    const material = this.guidanceMaterial(0x63ffd4, .88);
 
     for (let i = 0; i < points.length; i++) {
       travelled += points[i].distanceTo(points[(i + points.length - 1) % points.length]);
@@ -1385,7 +1286,7 @@ export class World {
       matrix.compose(
         new THREE.Vector3(p.x, this.roadSurfaceY + 0.13, p.z),
         q.setFromAxisAngle(yAxis, yaw),
-        new THREE.Vector3(1.55, 1, 1.85),
+        new THREE.Vector3(1.25, 1, 1.45),
       );
       matrices.push(matrix.clone());
     }
@@ -2083,6 +1984,7 @@ export class World {
     const asphalt = this.material({ color: 0x343d44, roughness: 0.9 });
     const concrete = this.material({ color: 0x687279, roughness: 0.85 });
     const paint = this.basic({ color: 0xf2d992 });
+    const girder = this.material({color:0x414c53,metalness:.46,roughness:.64});
     // Local Z runs across the race course. Both approaches meet the ground.
     const section = (x, z1, h1, z2, h2, width, height, material) => {
       const pos = localPoint(mid, yaw, x, (h1 + h2) / 2, (z1 + z2) / 2);
@@ -2090,15 +1992,27 @@ export class World {
         [width, height, Math.hypot(z2 - z1, h2 - h1) + 0.10]);
       slab.rotation.set(-Math.atan2(h2 - h1, z2 - z1), yaw, 0, "YXZ");
     };
-    for (const [z1, h1, z2, h2] of [[-60, -0.3, -22, 7.6], [-22, 7.6, 22, 7.6], [22, 7.6, 60, -0.3]]) {
+    for (const [z1, h1, z2, h2] of [[-73, -.30, -60, -.30], [-60, -.30, -22, 7.6], [-22, 7.6, 22, 7.6], [22, 7.6, 60, -.30], [60, -.30, 73, -.30]]) {
       section(0, z1, h1, z2, h2, 9.8, 0.7, asphalt);
       for (const side of [-1, 1]) section(side * 4.8, z1, h1 + 0.75, z2, h2 + 0.75, 0.3, 0.9, concrete);
       section(0, z1, h1 + 0.37, z2, h2 + 0.37, 0.12, 0.04, paint);
+      if (h1 > 0 || h2 > 0) for (const side of [-1,1]) {
+        section(side * 3.3, z1, h1-.56, z2, h2-.56, .28, .49, girder);
+        section(side * 3.3, z1, h1-.82, z2, h2-.82, .58, .12, girder);
+      }
     }
-    for (const offset of [-19, 19]) {
-      const p = localPoint(mid, yaw, 0, 3.65, offset);
-      mesh(this.group, box, concrete, [p.x, p.y, p.z], [6.8, 7.3, 1.3], [0, yaw, 0]);
+    for (const offset of [-20.1, 20.1]) {
+      const cap = localPoint(mid,yaw,0,6.31,offset);
+      mesh(this.group,box,concrete,cap.toArray(),[8.2,.9,1.55],[0,yaw,0]);
+      for (const side of [-1,1]) {
+        const p = localPoint(mid, yaw, side*2.75, 2.92, offset);
+        if (this.clearForRoadside(p, 1.2))
+          mesh(this.group, poleGeo, concrete, p.toArray(), [1.05, 6.24, 1.05]);
+      }
     }
+    const crossing = crossingTraffic(this, mid, yaw, 79 + this.crossings.length * 31);
+    crossing.update(0, null, 0);
+    this.crossings.push(crossing);
   }
 
   addCourseSlab(name, span, left, right, bottom, top, material) {
@@ -2116,20 +2030,66 @@ export class World {
     const covered = trimSpan(section, length / 2 - half, length / 2 + half);
     if (covered.length < 2) return;
 
-    const wall = this.material({color: 0x20262c, roughness: .76, metalness: .18});
-    const lamps = this.basic({color: 0x94eaff});
+    const start = covered[0].length, end = covered.at(-1).length;
+    const lights = Math.max(1, Math.round((end - start) / 11));
+    const bay = makeCanvasTexture(paintTunnelBay, 256, 256);
+    bay.repeat.set(lights / (end - start), 1 / 10.8);
+    const roof = this.material({color: 0x343d43, roughness: .84, metalness: .10});
+    const lampColor = {neon: 0x99dffa, coast: 0xe5e8d5, dock: 0xffcb93, mesa: 0xffdfb5}[this.map.id];
+    const wall = this.material({color: 0xb6c0c2, map: bay, roughness: .88, metalness: .06,
+      emissive: lampColor, emissiveMap: bay, emissiveIntensity: .23});
+    const lamps = this.basic({color: lampColor});
+    const lining = this.material({color: 0x626e70, metalness: .12, roughness: .81});
+    const reflector = this.basic({color: 0xe4ba6f});
+    const spill = this.basic({
+      map: makeCanvasTexture((ctx, w, h) => {
+        const halo = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+        halo.addColorStop(0, "rgba(255,255,255,.82)");
+        halo.addColorStop(.46, "rgba(255,255,255,.39)");
+        halo.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = halo;
+        ctx.fillRect(0, 0, w, h);
+      }, 64, 64),
+      color: lampColor, transparent: true, depthWrite: false,
+      blending: THREE.AdditiveBlending, opacity: .17
+    });
+    const pool = this.trackGeometry(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2));
     const edge = roadHalfWidth + 1.25;
     this.addCourseSlab("Underpass wall", covered, -edge - 1, -edge, 0, 10.8, wall);
     this.addCourseSlab("Underpass wall", covered, edge, edge + 1, 0, 10.8, wall);
-    this.addCourseSlab("Underpass roof", covered, -edge - 1, edge + 1, 10.8, 11.5, wall);
-    const start = covered[0].length, end = covered[covered.length - 1].length;
-    const lights = Math.max(1, Math.round((end - start) / 11));
+    this.addCourseSlab("Underpass roof", covered, -edge - 1, edge + 1, 10.8, 11.5, roof);
+    const first = Math.round(from * this.samples.length / this.controlRoute.length) % this.samples.length;
+    this.tunnelSpans.push({center: (this.sampleDistances[first] + (start + end) / 2) % this.courseLength, half});
+    for (const side of [-1, 1]) {
+      const a = side * (edge - .12), b = side * (edge + .04);
+      this.addCourseSlab("Tunnel kick rail", covered, Math.min(a,b), Math.max(a,b), .36, 1.22, lining);
+    }
+    // The mouth has a cast-concrete frame and reflective edge markings.
+    for (const portal of [covered[0], covered.at(-1)]) {
+      const yaw = Math.atan2(-portal.normal.z, portal.normal.x);
+      const lintel = offsetStation(portal, 0, 10.68);
+      mesh(this.group, box, lining, lintel.toArray(), [edge*2+2.4, .92, 1.48], [0,yaw,0]);
+      for (const side of [-1,1]) {
+        const post = offsetStation(portal, side * (edge+.22), 5.19);
+        mesh(this.group, box, lining, post.toArray(), [.95, 10.38, 1.48], [0,yaw,0]);
+        for (let band=0; band<3; band++) {
+          const tag = offsetStation(portal, side * (edge+.22), 1.18 + band*.52);
+          mesh(this.group, box, reflector, tag.toArray(), [.98,.16,1.51], [0,yaw,0]);
+        }
+      }
+    }
     for (let i = 0; i < lights; i++) {
       const at = start + (i + .5) * (end - start) / lights;
       const [station] = trimSpan(covered, at, at);
       const bulb = offsetStation(station, 0, 10.74);
       const yaw = Math.atan2(-station.normal.z, station.normal.x);
       mesh(this.group, box, lamps, bulb.toArray(), [6.8, .10, .32], [0, yaw, 0]);
+      const floor = offsetStation(station, 0, this.roadSurfaceY + .085);
+      mesh(this.group, pool, spill, floor.toArray(), [edge*1.9, 1, 15.5], [0,yaw,0]);
+      for (const side of [-1,1]) {
+        const tile = offsetStation(station, side * (edge-.15), 1.12);
+        mesh(this.group, box, lamps, tile.toArray(), [.09,.11,1.6], [0,yaw,0]);
+      }
     }
   }
 
@@ -2371,6 +2331,7 @@ export class World {
   }
 
   buildingPlacementAllowed(position, width, depth) {
+    if (onWheelPlaza(position.x, position.z, Math.hypot(width, depth) * .5)) return false;
     const roadClearance = this.distanceToRoad(position);
     const footprint = Math.max(width, depth);
 
@@ -4342,6 +4303,8 @@ export class World {
       const h = 34 + r() * 138;
 
       const w = 12 + r() * 26;
+      const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
+      if (onWheelPlaza(x, z, w * .85)) continue;
 
       this.addBuildingPart(
         "farSkyline",
@@ -4363,6 +4326,14 @@ export class World {
     const m = this.map;
 
     const r = seeded(m.id.length * 81);
+    if (m.id === "mesa") {
+      this.rockForms = [2, 9].map(seed => this.trackGeometry(sandstone(seed)));
+      this.rockFace = this.material({vertexColors:true, roughness:.98});
+    } else {
+      this.frontageBox = this.trackGeometry(facadeBox());
+      const facade = makeCanvasTexture((ctx,w,h) => paintFrontage(ctx,w,h,m.id === "coast"),256,128);
+      this.regionalFacade = this.material({map:facade, roughness:.88});
+    }
 
     const regionalMats = {
       sand: this.material({ color: 0xb99463, roughness: 0.98, metalness: 0 }),
@@ -4398,94 +4369,31 @@ export class World {
         roughness: 0.5,
         metalness: 0.54,
       }),
-      mesaA: this.material({
-        color: 0x7f4730,
-        roughness: 0.98,
-        metalness: 0.02,
-      }),
-      mesaB: this.material({
-        color: 0xa65d39,
-        roughness: 0.98,
-        metalness: 0.02,
-      }),
     };
 
     if (m.id === "coast") {
-      mesh(
-        g,
-        new THREE.PlaneGeometry(1500, 700),
-        this.material({
-          color: 0x0b586d,
-          roughness: 0.28,
-          metalness: 0.48,
-        }),
-        [0, -0.24, 550],
-        [1, 1, 1],
-        [-Math.PI / 2, 0, 0],
-      );
-
-      mesh(
-        g,
-        new THREE.PlaneGeometry(1500, 110),
-        regionalMats.sand,
-        [0, -0.19, 220],
-        [1, 1, 1],
-        [-Math.PI / 2, 0, 0],
-      );
+      this.tide = addCoastWater(this, regionalMats.sand);
 
       for (let i = 0; i < 22; i++) {
         const x = -500 + r() * 1000;
 
         const z = 100 + r() * 230;
 
-        const h = 10 + r() * 28;
-
-        mesh(
-          g,
-          this.trackGeometry(
-            new THREE.CylinderGeometry(4 + r() * 4, 7 + r() * 5, h, 7),
-          ),
-          this.material({
-            color: 0x4c626a,
-            roughness: 0.9,
-            metalness: 0.03,
-          }),
-          [x, h / 2, z],
-        );
+        const h = 5 + r() * 14, width = 10 + r() * 13;
+        if (!this.clearForRoadside(new THREE.Vector3(x,0,z), width * .75)) continue;
+        mesh(g, this.frontageBox, this.regionalFacade, [x,h/2,z], [width,h,width*.7], [0,r()*TAU,0]);
       }
 
       this.addCoastalSetPieces(regionalMats, r);
     }
 
     if (m.id === "dock") {
+      this.tide = addCoastWater(this);
       this.addDockSetPieces(regionalMats, r);
     }
 
     if (m.id === "mesa") {
-      for (let i = 0; i < 34; i++) {
-        const angle = r() * TAU;
-
-        const radius = 55 + r() * 170;
-
-        const x = Math.cos(angle) * radius;
-
-        const z = Math.sin(angle) * radius;
-
-        const h = 7 + r() * 25;
-
-        mesh(
-          g,
-          this.trackGeometry(new THREE.ConeGeometry(9 + r() * 12, h, 7)),
-          this.material({
-            color: i % 2 ? 0x75442c : 0x613827,
-            roughness: 0.95,
-            metalness: 0.02,
-          }),
-          [x, h / 2 - 0.25, z],
-        );
-      }
-
-      this.addMesaSetPieces(regionalMats, r);
+      this.addMesaSetPieces(r);
     }
 
     for (let i = 0; i < (this.lowPower ? 44 : 64); i++) {
@@ -4497,34 +4405,14 @@ export class World {
 
       const z = Math.sin(angle) * radius;
 
-      if (this.distanceToRoad(new THREE.Vector3(x, 0, z)) < 19) {
-        continue;
-      }
-
-      const w = 7 + r() * 18;
-
-      const h = m.id === "dock" ? 5 + r() * 18 : 8 + r() * 32;
-
-      const color =
-        m.id === "dock"
-          ? 0x47373a
-          : m.id === "mesa"
-            ? i % 2
-              ? 0x8a5136
-              : 0x69402d
-            : 0x38545c;
-
-      mesh(
-        g,
-        box,
-        this.material({
-          color,
-          roughness: 0.86,
-          metalness: 0.1,
-        }),
-        [x, h / 2, z],
-        [w, h, w],
-      );
+      const w = 12 + r() * 19, depth = w * (.65 + r() * .45);
+      if (m.id === "coast" && isOpenWater(x, z)) continue;
+      if (m.id === "dock" && z - depth * .72 < quayEdge(x)) continue;
+      if (!this.clearForRoadside(new THREE.Vector3(x,0,z), Math.hypot(w,depth) / 2)) continue;
+      const rock = m.id === "mesa";
+      const h = rock ? 11 + r() * 23 : m.id === "dock" ? 5 + r() * 7 : 6 + r() * 15;
+      mesh(g, rock ? this.rockForms[i % 2] : this.frontageBox,
+        rock ? this.rockFace : this.regionalFacade, [x,h/2-.09,z], [w,h,depth], [0,r()*TAU,0]);
     }
   }
 
@@ -4603,11 +4491,11 @@ export class World {
         anchor,
         yaw,
         side * (31 + row * 8 + r() * 7),
-        1.35 + (i % 3) * 1.05,
+        1.0,
         (r() - 0.5) * 18,
       );
 
-      if (this.distanceToRoad(pos) < 24) continue;
+      if (this.distanceToRoad(pos) < 24 || pos.z - 4 < quayEdge(pos.x)) continue;
 
       matrix.compose(
         pos,
@@ -4615,6 +4503,10 @@ export class World {
         new THREE.Vector3(6.6, 2.7, 2.55),
       );
       containerMatrices[i % containerMatrices.length].push(matrix.clone());
+      if (i % 4 === 2) {
+        matrix.elements[13] += 2.71;
+        containerMatrices[(i + 1) % containerMatrices.length].push(matrix.clone());
+      }
     }
 
     containerMatrices.forEach((matrices, i) =>
@@ -4626,38 +4518,10 @@ export class World {
       ),
     );
 
-    for (const index of [1, 5, 9]) {
-      if (index >= this.route.length) continue;
-      const yaw = this.segmentAngle(index);
-      const base = localPoint(this.route[index], yaw, 38, 0, 0);
-      mesh(
-        this.group,
-        box,
-        mats.crane,
-        [base.x, 10, base.z],
-        [1.2, 20, 1.2],
-        [0, yaw, 0],
-      );
-      mesh(
-        this.group,
-        box,
-        mats.crane,
-        [base.x, 20.6, base.z],
-        [19, 0.9, 0.9],
-        [0, yaw + 0.22, 0],
-      );
-      mesh(
-        this.group,
-        box,
-        mats.crane,
-        [base.x, 13.0, base.z],
-        [13, 0.42, 0.42],
-        [0.34, yaw + 0.22, 0],
-      );
-    }
+
   }
 
-  addMesaSetPieces(mats, r) {
+  addMesaSetPieces(r) {
     const wallMatrices = [];
     const gateMatrices = [];
     const q = new THREE.Quaternion();
@@ -4675,14 +4539,11 @@ export class World {
           h / 2 - 0.2,
           (r() - 0.5) * 12,
         );
-        matrix.compose(
-          pos,
-          q.setFromAxisAngle(
-            new THREE.Vector3(0, 1, 0),
-            yaw + (r() - 0.5) * 0.4,
-          ),
-          new THREE.Vector3(8 + r() * 10, h, 5 + r() * 9),
-        );
+        const width = 13 + r() * 12, depth = 9 + r() * 10;
+        if (!this.clearForRoadside(pos, Math.hypot(width,depth) * .5)) continue;
+        matrix.compose(pos, q.setFromAxisAngle(new THREE.Vector3(0,1,0), yaw + (r()-.5)*.4),
+          new THREE.Vector3(width, h * .83, depth));
+        matrix.elements[13] = h * .415 - .25;
         wallMatrices.push(matrix.clone());
       }
     }
@@ -4696,15 +4557,54 @@ export class World {
           q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw + side * 0.16),
           new THREE.Vector3(4.4, 14, 4.4),
         );
-        gateMatrices.push(matrix.clone());
+        if (this.clearForRoadside(new THREE.Vector3().setFromMatrixPosition(matrix), 3.5)) gateMatrices.push(matrix.clone());
       }
     }
 
-    this.installInstance("mesaCanyonWalls", box, mats.mesaA, wallMatrices);
-    this.installInstance("mesaRockGates", coneGeo, mats.mesaB, gateMatrices);
+    this.installInstance("mesaCanyonWalls", this.rockForms[0], this.rockFace, wallMatrices);
+    this.installInstance("mesaRockGates", this.rockForms[1], this.rockFace, gateMatrices);
+  }
+
+  buildStartingLights() {
+    const rig = new THREE.Group();
+    rig.name = "Timing gantry";
+    rig.position.copy(this.finishLine).addScaledVector(this.finishForward, 9);
+    rig.rotation.y = Math.atan2(this.finishForward.x, this.finishForward.z);
+    this.group.add(rig);
+    const steel = this.material({color:0x414b53, roughness:.62, metalness:.38});
+    const housing = this.material({color:0x171e28, roughness:.8});
+    for (const side of [-1,1]) {
+      const x=side*12.7;
+      mesh(rig,box,steel,[x,2.75,0],[.23,5.5,.55]);
+      mesh(rig,box,housing,[x,.35,0],[.75,.7,.95]);
+    }
+    mesh(rig,box,steel,[0,5.38,0],[25.6,.14,.43]);
+    mesh(rig,box,steel,[0,6.02,0],[25.6,.13,.43]);
+    for (let i=-12;i<12;i++) {
+      mesh(rig,box,steel,[i+.5,5.70,0],[1.2,.085,.15],[0,0,(i%2 ? -1 : 1)*.55]);
+    }
+    mesh(rig,box,housing,[0,5.03,-.07],[4.4,1.05,.46]);
+    this.launchLenses=[];
+    for (let i=0;i<3;i++) {
+      const x=(i-1)*1.36;
+      mesh(rig,lowCylinderGeo,steel,[x,5.03,-.34],[.40,.11,.40],[-Math.PI/2,0,0]);
+      const face=this.basic({color:0x261e24, toneMapped:false});
+      mesh(rig,lowCylinderGeo,face,[x,5.03,-.41],[.31,.065,.31],[-Math.PI/2,0,0]);
+      this.launchLenses.push(face);
+    }
+    this.setStartingLights(1);
+  }
+
+  setStartingLights(stage) {
+    if (this.launchStage === stage) return;
+    this.launchStage=stage;
+    this.launchLenses.forEach((lens,i) => {
+      lens.color.setHex(stage===4 ? 0x86ffbf : i<stage ? 0xff533f : 0x32222a);
+    });
   }
 
   buildCheckpoints() {
+    this.buildStartingLights();
     const g = this.group;
     const canvas = document.createElement("canvas");
     canvas.width = 512; canvas.height = 96;
@@ -4826,9 +4726,6 @@ export class World {
     );
     leaf.setIndex([0, 1, 2, 0, 2, 3]);
     leaf.computeVertexNormals();
-    const rock = this.trackGeometry(new THREE.CylinderGeometry(0.72, 1, 1, 7));
-    const rockMat = this.material({ color: 0xa46d4f, roughness: 1 });
-    const strata = this.material({ color: 0xcd9a6d, roughness: 1 });
     const cactus = this.material({ color: 0x486b50, roughness: 0.9 });
     const containerColors = [0x9a4f43, 0x436b7a, 0xb39b66];
     const corrugation = makeCanvasTexture(
@@ -4868,7 +4765,7 @@ export class World {
             side,
             sign * (id === "mesa" ? 24 + r() * 18 : 20 + r() * 7),
           );
-        if (this.distanceToRoad(base) < 17) continue;
+        if (this.distanceToRoad(base) < 17 || (id === "coast" && isOpenWater(base.x, base.z))) continue;
         if (id === "coast") {
           const height = 5.5 + r() * 2.8;
           put(
@@ -4889,7 +4786,8 @@ export class World {
               [0, (j / 6) * TAU + r() * 0.12, 0],
             );
         } else if (id === "dock") {
-          const color = i % 3;
+          if (base.z - 4 < quayEdge(base.x)) continue;
+          const color = (Math.floor(i / 18) + (sign > 0 ? 1 : 0)) % containers.length;
           put(
             "containers-" + color,
             box,
@@ -4910,22 +4808,10 @@ export class World {
         } else {
           const height = 6 + r() * 13,
             width = 4 + r() * 7;
-          put(
-            "mesa-rocks",
-            rock,
-            rockMat,
-            base.clone().setY(height / 2 - 0.3),
-            [width, height, width * 0.8],
-            [0, yaw, 0],
-          );
-          put(
-            "mesa-strata",
-            rock,
-            strata,
-            base.clone().setY(height * 0.58),
-            [width * 0.88, 0.3, width * 0.7],
-            [0, yaw, 0],
-          );
+          if (this.clearForRoadside(base, width)) {
+            put("mesa-rocks", this.rockForms[1], this.rockFace, base.clone().setY(height / 2 - .3),
+              [width * 1.8, height, width * 1.4], [0, yaw, 0]);
+          }
           const plant = base.clone().addScaledVector(t, 9);
           if (this.distanceToRoad(plant) > 17) {
             put(
@@ -5007,7 +4893,8 @@ export class World {
         const center = p
           .clone()
           .addScaledVector(side, direction * (29 + depth * 0.5));
-        if (this.distanceToRoad(center) < depth * 0.5 + 20) continue;
+        if (this.distanceToRoad(center) < depth * 0.5 + 20 ||
+          onWheelPlaza(center.x, center.z, Math.hypot(width, depth) * .5)) continue;
         // Keep the existing authored buildings and landmarks readable.
         if (
           this.cityBuildings.some(
@@ -5079,34 +4966,7 @@ export class World {
       matrices.push(dummy.matrix.clone());
     }
     this.installInstance("baked-street-light", geometry, pool, matrices);
-    // Distant terrain silhouettes give each region a horizon and a sense of scale.
-    if (this.map.id !== "neon") {
-      const r = seeded(144 + this.map.id.length);
-      const material = this.material({
-        color:
-          this.map.id === "mesa"
-            ? 0x995a45
-            : this.map.id === "coast"
-              ? 0x526b75
-              : 0x565360,
-        roughness: 1,
-      });
-      const mountain = this.trackGeometry(new THREE.ConeGeometry(1, 1, 9));
-      const shapes = [];
-      for (let i = 0; i < 28; i++) {
-        const a = (i / 28) * TAU;
-        dummy.position.set(
-          Math.cos(a) * (this.boundaryRadius + 140),
-          -12 + r() * 15,
-          Math.sin(a) * (this.boundaryRadius + 140),
-        );
-        dummy.rotation.set(0, r() * TAU, 0);
-        dummy.scale.set(60 + r() * 65, 35 + r() * 60, 50 + r() * 55);
-        dummy.updateMatrix();
-        shapes.push(dummy.matrix.clone());
-      }
-      this.installInstance("regional-horizon", mountain, material, shapes);
-    }
+
   }
 
   buildTraffic() {
@@ -5315,6 +5175,15 @@ export class World {
       }
     }
     actor.roadBranch = branch;
+    actor.roadSlopeX = 0;
+    actor.roadSlopeZ = 0;
+    if (branch?.elevated) {
+      const i = center.index, a = branch.points[i], b = branch.points[i + 1];
+      const dx = b.x - a.x, dz = b.z - a.z;
+      const rise = (branch.heightProfile[i + 1] - branch.heightProfile[i]) / (dx * dx + dz * dz || 1);
+      actor.roadSlopeX = dx * rise;
+      actor.roadSlopeZ = dz * rise;
+    }
     if (branch) {
       const stride = this.samples.length / this.route.length;
       const from = this.sampleDistances[this.authorSegmentToRouteIndex(branch.from) * stride];
@@ -5395,7 +5264,12 @@ export class World {
     this.visibilityTimer = 0;
   }
 
-  update(dt, time, focus, distance = 290) {
+  update(dt, time, focus, distance = 290, animateScenery = true) {
+    if (animateScenery) {
+      this.landmark.update(time, focus, distance);
+      if (this.tide) this.tide.value = time;
+    }
+    for (const crossing of this.crossings) crossing.update(animateScenery ? time : 0, focus, distance);
     this.visibilityTimer -= dt;
     if (focus && this.visibilityTimer <= 0) {
       this.visibilityTimer = 0.2;
@@ -5433,7 +5307,7 @@ export class World {
     }
 
     for (const marker of this.markers) {
-      if (marker.userData.arrow.visible) {
+      if (animateScenery && marker.userData.arrow.visible) {
         marker.userData.arrow.rotation.z = time * 2;
 
         marker.userData.arrow.position.y = 2.85 + Math.sin(time * 3) * 0.12;
@@ -5443,16 +5317,19 @@ export class World {
     for (let i = 0; i < this.cityLights.length; i++) {
       const light = this.cityLights[i];
 
-      light.intensity = 3.0 + Math.sin(time * (0.8 + i * 0.17)) * 0.14;
+      light.intensity = animateScenery ? 3.0 + Math.sin(time * (0.8 + i * 0.17)) * 0.14 : 3.0;
     }
   }
 
   dispose() {
+    this.disposed = true;
+    if (this.skyReflection && this.scene.environment === this.skyReflection) this.scene.environment = null;
     this.scene.remove(this.group);
 
     const disposed = new Set();
 
     this.group.traverse((object) => {
+      if (object.isInstancedMesh) object.dispose();
       if (
         (object.userData?.worldOwned ||
           object.geometry?.userData?.disposeWithActor) &&

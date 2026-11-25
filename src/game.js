@@ -12,7 +12,9 @@ import {
   createVehicle,
   animateVehicle,
   alignVehicleToSurface,
+  applyStreetLighting,
   getVehicleGroundOffset,
+  setVehicleColor,
   disposeVehicle,
 } from "./vehicle.js";
 import { vehicles } from "./data.js";
@@ -21,7 +23,9 @@ import { AudioEngine } from "./audio.js";
 import { QUALITY, createEnvironment } from "./rendering.js";
 import { FixedClock, damp, spring, pixelRatioFor } from "./timing.js";
 import { driveStep, engineAcceleration } from "./driving.js";
+import { Tachometer } from "./tachometer.js";
 import { SkidTrails } from "./skid-trails.js";
+import { RoadLights } from "./road-lights.js";
 import { advanceRoute, angleDelta, deflectVelocity, routeStateAt } from "./route-motion.js";
 
 const clamp = THREE.MathUtils.clamp;
@@ -94,6 +98,7 @@ export class Game {
     this.frameCallback = (stamp) => this.frame(stamp);
     this.cameraVelocity = new THREE.Vector3();
     this.cameraLook = new THREE.Vector3();
+    this.cameraAnchor = new THREE.Vector3();
     this.cameraReady = false;
     this.renderer = new THREE.WebGLRenderer({
       antialias: false,
@@ -141,6 +146,7 @@ export class Game {
       this.camera.aspect = innerWidth / innerHeight;
 
       this.camera.updateProjectionMatrix();
+      if (this.preview) return;
 
       this.applyRenderScale();
 
@@ -171,7 +177,7 @@ export class Game {
       this.keys[e.code] = true;
 
       if (
-        this.running && !this.paused &&
+        this.running && !this.paused && this.phase !== "finished" &&
         ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(
           e.code,
         )
@@ -190,39 +196,23 @@ export class Game {
   }
 
   mountPreview(host, spec, color) {
-    this.clearPreview();
+    if (!host?.isConnected || this.running) return;
+    this.clearPreview(false);
 
-    if (!host) return;
-
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true,
-      powerPreference: "low-power",
-    });
-
-    renderer.setPixelRatio(1);
-
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-
+    // The showroom and race never draw together. Moving the existing canvas
+    // keeps the graphics context, shader cache and environment probe warm.
+    const renderer = this.renderer;
     renderer.toneMappingExposure = 1.18;
-
     renderer.shadowMap.enabled = false;
-
-    renderer.shadowMap.type = this.lowPower
-      ? THREE.BasicShadowMap
-      : THREE.PCFSoftShadowMap;
-
     renderer.domElement.className = "preview-canvas";
-
+    renderer.domElement.style.removeProperty("width");
+    renderer.domElement.style.removeProperty("height");
     host.append(renderer.domElement);
 
     const scene = new THREE.Scene();
 
     scene.background = new THREE.Color(0x080c12);
-    const environment = createEnvironment(renderer);
-    scene.environment = environment.texture;
+    scene.environment = this.environment.texture;
     scene.environmentIntensity = 0.65;
 
     const camera = new THREE.PerspectiveCamera(34, 1, 0.05, 120);
@@ -502,6 +492,9 @@ export class Game {
       active,
       observer,
       scene,
+      host,
+      vehicle,
+      recolor(paint) { setVehicleColor(vehicle, paint); wake(); },
 
       dispose: () => {
         active = false;
@@ -510,7 +503,6 @@ export class Game {
         host.removeEventListener("pointerup", release);
         host.removeEventListener("lostpointercapture", release);
         document.removeEventListener("visibilitychange", visibility);
-        environment.dispose();
         observer.disconnect();
 
         scene.traverse((o) => {
@@ -531,21 +523,18 @@ export class Game {
     };
   }
 
-  clearPreview() {
-    if (this.preview) {
-      this.preview.active = false;
-
-      cancelAnimationFrame(this.previewFrame);
-      this.previewFrame = 0;
-
-      this.preview.dispose?.();
-
-      this.preview.renderer.domElement.remove();
-
-      this.preview.renderer.dispose();
-      this.preview.renderer.forceContextLoss();
-
-      this.preview = null;
+  clearPreview(restoreRaceCanvas = true) {
+    if (!this.preview) return;
+    cancelAnimationFrame(this.previewFrame);
+    this.previewFrame = 0;
+    this.preview.dispose();
+    this.preview = null;
+    if (restoreRaceCanvas) {
+      this.stage.append(this.renderer.domElement);
+      this.renderer.domElement.className = "game-canvas";
+      this.renderer.toneMappingExposure = this.lowPower ? 1.16 : 1.28;
+      this.renderer.shadowMap.enabled = this.shadowMapsEnabled;
+      this.resize();
     }
   }
 
@@ -558,6 +547,7 @@ export class Game {
 
     this.scene.clear();
     this.scene.environment = this.environment.texture;
+    this.scene.environmentIntensity = .6;
     this.lastFrameTime = 0;
     this.lastSimulationTime = 0;
     this.clock.reset();
@@ -575,6 +565,7 @@ export class Game {
 
     this.effects = new Effects(this.scene);
     this.skids = new SkidTrails(this.scene);
+    this.roadLights = new RoadLights(this.scene, config.map.id);
 
     this.actorGroup = new THREE.Group();
 
@@ -601,6 +592,8 @@ export class Game {
     });
     this.rocketMat.userData.disposeWithActor = true;
 
+    this.tachometer = new Tachometer(config.vehicle);
+    this.gridTone = "";
     this.audio.start();
 
     const hemi = new THREE.HemisphereLight(
@@ -722,6 +715,7 @@ export class Game {
     this.raceTiming = null;
     this.ghost = null;
     this.skids?.dispose(); this.skids = null;
+    this.roadLights?.dispose(); this.roadLights = null;
 
     this.projectiles.length = 0;
     this.projectileGeo?.dispose();
@@ -748,6 +742,7 @@ export class Game {
 
   makeActor(spec, color, police = false, name = "DRIVER") {
     const mesh = createVehicle(spec, color, police);
+    applyStreetLighting(mesh, this.world?.streetLighting);
 
     this.actorGroup?.add(mesh);
 
@@ -771,7 +766,7 @@ export class Game {
   }
 
   applyRenderScale() {
-    if (!this.renderer) return;
+    if (!this.renderer || this.preview) return;
 
     const profile = QUALITY[this.qualityMode];
     const ratio = pixelRatioFor(innerWidth, innerHeight, devicePixelRatio || 1,
@@ -821,7 +816,7 @@ export class Game {
     if (!actor?.mesh || !this.world) return;
 
     actor.surfaceY = actor.roadHeight ?? this.world.getRoadHeightAt(actor.mesh.position.x, actor.mesh.position.z, actor.surfaceY ?? 0);
-    alignVehicleToSurface(actor.mesh, actor.surfaceY);
+    alignVehicleToSurface(actor.mesh, actor.surfaceY, actor.roadSlopeX, actor.roadSlopeZ);
   }
 
   spawnAI(i, role = "racer") {
@@ -988,40 +983,17 @@ export class Game {
 
     this.handleWeapons(p, gun, rocket, dt);
 
-    this.audio.update(p.speed, boost);
+    this.tachometer.update(p.speed, gas, boost, dt);
+    this.audio.update(p.speed, boost, this.tachometer, drifting);
 
     this.fxTimer -= dt;
 
-    if (this.fxTimer <= 0 && (boost || drifting)) {
-      this.fxTimer = boost ? 0.028 : 0.055;
-
-      const rear = new THREE.Vector3(
-        Math.sin(p.mesh.rotation.y),
-        0.35,
-        Math.cos(p.mesh.rotation.y),
-      );
-
-      const bikeFx = p.spec.kind === "bike";
-
-      this.effects?.emit(
-        p.mesh.position.clone().addScaledVector(rear, boost ? 2.2 : 1.7),
-        boost ? 0x31dfff : 0xcbd6de,
-        bikeFx ? 1 : boost ? 2 : 1,
-        bikeFx ? 0.85 : boost ? 2.6 : 0.7,
-        bikeFx
-          ? {
-              scale: 0.07,
-              scaleJitter: 0.06,
-              spread: 0.28,
-              life: 0.12,
-              lifeJitter: 0.12,
-              lift: 0.04,
-              growth: 0.35,
-              opacity: 0.46,
-              gravity: 0.6,
-            }
-          : undefined,
-      );
+    const loose = !p.onRoad && Math.abs(p.speed) > 7;
+    const sliding = drifting || (brake && p.speed > 22);
+    if (this.fxTimer <= 0 && (boost || sliding || loose)) {
+      this.fxTimer = this.reducedMotion ? .16 : (loose ? .075 : .055);
+      if (sliding || loose) this.effects?.tireSpray(p, this.world.map.id, loose, this.reducedMotion);
+      if (boost) this.effects?.exhaust(p, this.reducedMotion);
     }
 
     this.checkProgress(p, fromX, fromZ, dt);
@@ -1587,6 +1559,7 @@ export class Game {
     const previous = mod(p.next - 1, this.world.route.length);
     p.cut = null;
     p.roadBranch = null;
+    p.roadSlopeX = p.roadSlopeZ = 0;
     p.guidedFork = null;
     p.roadHeight = this.world.roadSurfaceY;
     p.mesh.position.copy(this.world.gatePosition(previous));
@@ -1623,6 +1596,11 @@ export class Game {
   renderScene() {
     // Resizing clears WebGL's drawing buffer. Paint the road in the same frame.
     this.applyRenderScale();
+    if (this.player && this.world) {
+      const { x, z } = this.player.mesh.position;
+      this.world.guidanceFocus.set(x, z);
+      this.roadLights?.update(this.player, this.world);
+    }
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -1685,6 +1663,7 @@ export class Game {
 
     if (this.phase === "countdown") {
       this.countdown -= dt;
+      this.world.setStartingLights(this.countdown > 2 ? 1 : this.countdown > 1 ? 2 : this.countdown > 0 ? 3 : 4);
 
       const value =
         this.countdown > 2
@@ -1695,6 +1674,15 @@ export class Game {
               ? "1"
               : "GO!";
 
+      const pad = this.readGamepad();
+      const throttle = this.keys.KeyW || this.keys.ArrowUp || this.touch.KeyW ||
+        pad?.buttons[7]?.value || pad?.buttons[0]?.pressed;
+      this.tachometer.onGrid(throttle, dt);
+      this.audio.update(0, false, this.tachometer, false);
+      if (value !== this.gridTone) {
+        this.gridTone = value;
+        this.audio.blip(value === "GO!" ? 880 : 440, value === "GO!" ? .18 : .075);
+      }
       this.callbacks.countdown?.(value);
 
       if (this.countdown <= 0) {
@@ -1705,6 +1693,7 @@ export class Game {
       this.elapsed += dt;
       if (this.goUntil && this.elapsed >= this.goUntil) {
         this.goUntil = 0;
+        this.world.setStartingLights(0);
         this.callbacks.countdown?.("");
       }
 
@@ -1783,6 +1772,7 @@ export class Game {
       this.time,
       this.player.mesh.position,
       QUALITY[this.qualityMode].distance,
+      !this.reducedMotion,
     );
 
     this.effects?.update(dt);
@@ -1796,12 +1786,28 @@ export class Game {
     const player = this.player, p = player.mesh.position;
     const heading = player.mesh.rotation.y + (player.slip || 0) * .55;
     const speed = Math.abs(player.speed);
-    const back = 7.6 + Math.min(speed * .045, 2.5);
-    const desired = new THREE.Vector3(p.x + Math.sin(heading) * back,
-      p.y + 2.65 + Math.min(speed * .018, .8), p.z + Math.cos(heading) * back);
-    const look = new THREE.Vector3(p.x - Math.sin(heading) * (6 + speed * .08),
-      p.y + 1.05, p.z - Math.cos(heading) * (6 + speed * .08));
-    if (!this.cameraReady || this.camera.position.distanceToSquared(desired) > 1600) {
+    const grid = this.phase === "countdown" && !this.reducedMotion
+      ? THREE.MathUtils.smoothstep(this.countdown, .85, 3.2) : 0;
+    const back = 7.3 + Math.min(speed * .023, 1.15) - grid * 2.5;
+    const lateral = grid * 3.8;
+    const grade = THREE.MathUtils.clamp(
+      -(player.roadSlopeX || 0) * Math.sin(heading) - (player.roadSlopeZ || 0) * Math.cos(heading), -.30, .30,
+    );
+    const desired = new THREE.Vector3(p.x + Math.sin(heading) * back + Math.cos(heading) * lateral,
+      p.y + 2.55 + Math.min(speed * .009, .4) - grid * 1.15 - grade * back * .42,
+      p.z + Math.cos(heading) * back - Math.sin(heading) * lateral);
+    const lookAhead = 3.3 + Math.min(speed * .04, 2.1) - grid * 2.9;
+    const look = new THREE.Vector3(p.x - Math.sin(heading) * lookAhead,
+      p.y + 1.12 + grade * lookAhead * .72, p.z - Math.cos(heading) * lookAhead);
+    // Damp the camera boom relative to the car. World-space damping let the
+    // car recede ten metres into the distance on a fast straight.
+    const jumped = this.cameraReady && this.cameraAnchor.distanceToSquared(p) >= 144;
+    if (this.cameraReady && !jumped) {
+      this.camera.position.sub(this.cameraAnchor).add(p);
+      this.cameraLook.sub(this.cameraAnchor).add(p);
+    }
+    this.cameraAnchor.copy(p);
+    if (!this.cameraReady || jumped || this.camera.position.distanceToSquared(desired) > 1600) {
       this.camera.position.copy(desired); this.cameraLook.copy(look);
       this.cameraVelocity.set(0, 0, 0); this.cameraReady = true;
     }
@@ -1970,6 +1976,7 @@ export class Game {
 
     return {
       speed: Math.round(Math.abs(p.speed) * 5.7),
+      gearing: this.tachometer,
 
       boost: p.boost,
 

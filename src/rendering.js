@@ -88,6 +88,7 @@ export function batchWorld(world) {
     ...world.markers,
     ...world.traffic.map((t) => t.mesh),
     ...world.destructibles,
+    ...world.crossings.map(crossing => crossing.group),
   ]);
   const batches = new Map();
   world.group.updateMatrixWorld(true);

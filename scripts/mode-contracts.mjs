@@ -150,6 +150,17 @@ try {
           }
         }
         check(seenRoofs.size === roofs.length,map.id+' underpasses cover the actual road');
+        const originalDistance = p.courseDistance, originalBranch = p.roadBranch;
+        for (const tunnel of world.tunnelSpans) {
+          p.courseDistance = tunnel.center;
+          p.roadBranch = null;
+          g.roadLights.update(p, world);
+          check(g.roadLights.material.uniforms.night.value >= .99, 'Headlights illuminate the covered road');
+          p.courseDistance = (tunnel.center + tunnel.half + 20) % world.courseLength;
+          g.roadLights.update(p, world);
+          check(g.roadLights.material.uniforms.night.value === g.roadLights.ambientNight, 'Daylight returns beyond the portal');
+        }
+        p.courseDistance = originalDistance; p.roadBranch = originalBranch;
         for (const path of [world.samples, ...world.shortcutRoads.map(s => s.points)]) {
           for (const point of path) {
             pos.copy(point);

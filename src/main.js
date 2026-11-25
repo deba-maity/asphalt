@@ -26,7 +26,6 @@ async function boot() {
       import('./game.js'), import('./network.js'), import('./ui.js')
     ]);
     const { loadTouring } = await import('./touring.js');
-    await loadTouring();
     const stage = document.createElement('div');
     stage.id = 'stage';
     app.replaceChildren(stage);
@@ -41,6 +40,14 @@ async function boot() {
     ui = new UI(app, game, network);
     if (import.meta.env.DEV) globalThis.__nightshift = { game, ui, network };
     document.documentElement.classList.add('game-ready');
+    // All cars have playable geometry immediately. The larger touring models
+    // can arrive while the driver is already choosing a mode or district.
+    loadTouring().then(() => {
+      const preview = game.preview;
+      if (preview && ui.vehicle.asset === "touring" && !preview.vehicle.userData.asset) {
+        game.mountPreview(preview.host, ui.vehicle, ui.color);
+      }
+    }).catch(error => console.warn("Touring detail unavailable. Using the coupe model.", error));
   } catch (error) {
     showStartupError(error);
   }

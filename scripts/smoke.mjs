@@ -42,8 +42,34 @@ try {
   page.setDefaultTimeout(90000);
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
-  await page.goto(url);
-  await page.waitForFunction(() => window.__nightshift);
+  let releaseModels;
+  const delayedModels = new Promise(resolve => { releaseModels = resolve; });
+  const holdModel = async route => { await delayedModels; await route.continue(); };
+  await page.route("**/assets/touring/*.glb", holdModel);
+  await page.goto(url, { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => window.__nightshift?.game.preview);
+  await page.locator('[data-action="garage"]').click();
+  await page.waitForFunction(() => window.__nightshift.game.preview?.host.id === "vehicle-preview");
+  const swatch = page.locator('[data-action="color"]:not(.active)').first();
+  const paint = await swatch.getAttribute("data-color");
+  await page.evaluate(() => {
+    const g = window.__nightshift.game;
+    window.showroomProbe = { canvas: g.renderer.domElement, model: g.preview.vehicle };
+  });
+  await swatch.click();
+  assert(await page.evaluate(paint => {
+    const { game } = window.__nightshift;
+    return game.preview.vehicle === window.showroomProbe.model &&
+      game.preview.renderer === game.renderer &&
+      "#" + game.preview.vehicle.userData.paint.color.getHexString() === paint.toLowerCase();
+  }, paint), "Paint updates the available model in place even while the high-detail assets are delayed");
+  releaseModels();
+  await page.waitForFunction(() => Boolean(window.__nightshift.game.preview?.vehicle.userData.asset));
+  assert(await page.evaluate(() => window.__nightshift.game.preview.renderer.domElement === window.showroomProbe.canvas),
+    "Installing touring detail reuses the graphics context");
+  await page.unroute("**/assets/touring/*.glb", holdModel);
+  await page.locator("#menu-layer .back").click();
+  await page.waitForFunction(() => window.__nightshift.game.preview?.host.id === "home-vehicle");
   await page.waitForFunction(() => window.__nightshift.game.preview && !window.__nightshift.game.previewFrame, null, {timeout:30000});
   const previewIdle=await page.evaluate(async()=>{
     const g=window.__nightshift.game,renderer=g.preview.renderer;
