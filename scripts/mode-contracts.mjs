@@ -50,6 +50,10 @@ try {
     g.resize();
     checkRaceImage('The paused race stays visible when the viewport resizes');
     ui.exitToHome();
+    check(!g.player && !g.actors.length && !g.remotes.size && !g.scene.children.length && !g.scene.background,
+      'Returning to the garage releases the previous field and its district panorama');
+    g.remoteFinish({title:'FIRST PLACE',time:10},'departed-driver');
+    check(!document.querySelector('.result'), 'A late finish packet cannot replace the menu');
     for(const map of maps)for(const mode of modes){
       ui.map=map;ui.mode=mode;ui.start();g.phase='play';g.elapsed=30;
       const competitive=['race','sprint'].includes(mode.id),required=mode.id==='race'?3:1;

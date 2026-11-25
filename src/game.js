@@ -546,7 +546,6 @@ export class Game {
 
     this.config = config;
 
-    this.scene.clear();
     this.scene.environment = this.environment.texture;
     this.scene.environmentIntensity = .6;
     this.lastFrameTime = 0;
@@ -555,10 +554,6 @@ export class Game {
     this.lastNetwork = 0;
     this.cameraReady = false;
     this.cameraVelocity.set(0, 0, 0);
-
-    this.actors = [];
-
-    this.remotes.clear();
 
     this.world = new World(this.scene, config.map);
     this.camera.far = QUALITY[this.qualityMode].distance + 100;
@@ -736,9 +731,18 @@ export class Game {
 
     if (this.world) {
       this.world.dispose();
-
       this.world = null;
+      this.scene.clear();
+      this.scene.background = null;
+      this.scene.environment = null;
+      this.scene.fog = null;
+      // Three keeps the latest render list for each scene. Returning to the
+      // garage can leave the race scene idle indefinitely.
+      this.renderer.renderLists.dispose();
     }
+    this.actors = [];
+    this.remotes.clear();
+    this.player = null;
   }
 
   makeActor(spec, color, police = false, name = "DRIVER") {
@@ -1516,7 +1520,7 @@ export class Game {
   }
 
   remoteFinish(event, sender) {
-    if (this.phase === "finished") {
+    if (!this.running || !this.world || this.phase === "finished") {
       return;
     }
 
