@@ -14,15 +14,35 @@
     body { margin: 0; overflow: hidden; }
     #canvas { display: block; width: 100vw; height: 100vh; height: 100dvh; outline: none; touch-action: none; }
     #status {
-      position: fixed; inset: 0; display: grid; place-items: center;
-      padding: 1.5rem; text-align: center; overflow-y: auto;
-      background: radial-gradient(ellipse at 50% 85%, #483427, #202421 48%, #141717 85%);
+      position: fixed; inset: 0; isolation: isolate; display: grid; align-items: end;
+      overflow: hidden auto; padding: max(1.25rem, 7vh) max(1.5rem, 6vw);
+      background: #202527;
     }
-    #status main { width: min(25rem, 100%); margin: auto; }
-    .crest { width: clamp(3rem, 10vmin, 5rem); height: auto; }
-    h1 { margin: .65rem 0 .75rem; font-size: clamp(2.3rem, 8vmin, 4.4rem); font-weight: 400; letter-spacing: .04em; }
-    #message { margin: 0 0 1rem; line-height: 1.45; }
-    progress { display: block; width: 100%; height: .45rem; border: 0; border-radius: 2px; accent-color: #d2ad70; }
+    #status::before, #status::after {
+      content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    }
+    #status::before {
+      background: url("index.png") 67% center / cover no-repeat;
+      animation: reach-shore 9s ease-out both;
+    }
+    #status::after {
+      background: linear-gradient(90deg, #111916eb, #161b1b8f 39%, transparent 73%),
+        linear-gradient(0deg, #141916be, transparent 59%);
+    }
+    @keyframes reach-shore { from { transform: scale(1.035); } to { transform: scale(1); } }
+    #status.finished::before { animation: none; }
+    @media (prefers-reduced-motion: reduce) { #status::before { animation: none; } }
+    #status main { width: min(25rem, 100%); }
+    h1 { margin: 0 0 .8rem; font-weight: 400; font-size: clamp(3.5rem, 11vmin, 7.7rem);
+      line-height: .87; text-transform: uppercase; letter-spacing: -.045em; color: #fff4dd; }
+    h1 span { display: block; }
+    #message { margin: 1.3rem 0 .8rem; font: 1rem/1.5 system-ui, sans-serif; color: #f4e9d5; }
+    @media (orientation: portrait) {
+      #status { padding-bottom: max(4.7rem, 10vh); }
+      #status::before { background-position: 91% center; }
+      #status::after { background: linear-gradient(0deg, #101614 6%, #131916d4 30%, transparent 76%); }
+    }
+    progress { display: block; width: 100%; height: .28rem; border: 0; border-radius: 2px; accent-color: #d2ad70; }
     progress::-webkit-progress-bar { background: #454640; }
     progress::-webkit-progress-value { background: #d2ad70; }
     #amount, #rotate, #retry { font: .92rem/1.5 system-ui, sans-serif; }
@@ -41,8 +61,7 @@
   <canvas id="canvas" tabindex="0" aria-label="Ashen Vow game"></canvas>
   <section id="status">
     <main>
-      <img class="crest" src="index.png" alt="">
-      <h1>Ashen Vow</h1>
+      <h1>Ashen <span>Vow</span></h1>
       <p id="message" role="status">Opening the Counting Shore…</p>
       <progress id="status-progress" aria-label="Game download"></progress>
       <output id="amount" aria-hidden="true"></output>
@@ -53,7 +72,7 @@
   <p id="rotate">Turn your phone sideways for larger controls.</p>
   <script src="index.js"></script>
   <script>
-    const config = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":39917220,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+    const config = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":40590088,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
     const statusPanel = document.getElementById('status');
     const message = document.getElementById('message');
     const progress = document.getElementById('status-progress');
@@ -68,6 +87,7 @@
     document.addEventListener('pointerlockchange', releasePointer);
 
     function showEnd(text, button) {
+      statusPanel.classList.add('finished');
       message.textContent = text;
       progress.hidden = true;
       amount.hidden = true;
