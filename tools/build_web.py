@@ -38,6 +38,13 @@ def export(godot: Path, output: Path) -> None:
         base = [str(godot), "--headless", "--path", str(project)]
         subprocess.run(base + ["--editor", "--import", "--quit"], check=True)
         subprocess.run(base + ["--export-release", "Web", str(release / "index.html")], check=True)
+        # Godot expands indexed PNGs to truecolor when writing the web splash.
+        # Keep the artist's original palette encoding for the same pixels and
+        # a smaller first download.
+        settings = (project / "project.godot").read_text(encoding="utf-8")
+        splash = re.search(r'^boot_splash/image="res://([^"]+\.png)"$', settings, re.MULTILINE)
+        if splash:
+            shutil.copyfile(project / splash.group(1), release / "index.png")
         output.mkdir(parents=True, exist_ok=True)
         for asset in release.iterdir():
             if asset.is_file():
