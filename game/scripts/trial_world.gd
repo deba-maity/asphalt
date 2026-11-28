@@ -52,6 +52,7 @@ func _ready() -> void:
 	add_child(causeway)
 	coast = CourtCoast.new()
 	add_child(coast)
+	set_daylight(daylight_target)
 	standards = CourtStandards.new()
 	add_child(standards)
 	north_gate = ShoreGate.new()
@@ -262,7 +263,6 @@ func build_court() -> void:
 	shore_fill.light_color = Color("95b4d3")
 	add_child(shore_fill)
 	daylight_target = passage.stage / 4.0
-	set_daylight(daylight_target)
 	# One continuous paved surface lets the stone joints in the material meet
 	# exactly and keeps the shallow mosaic above the same collision plane.
 	solid_box(Vector3(30, .5, 30), Vector3(0, -.25, 0), Color("777975"))
@@ -316,6 +316,7 @@ func build_court() -> void:
 # journey the light changes over several seconds as each echo yields.
 func set_daylight(progress: float) -> void:
 	daylight = clampf(progress, 0, 1)
+	coast.water.set_shader_parameter("dawn", daylight)
 	sun.light_color = Color("e0d7c9").lerp(Color("ffcf94"), daylight)
 	sun.light_energy = lerpf(.88, 1.39, daylight)
 	shore_fill.light_energy = lerpf(.22, .30, daylight)

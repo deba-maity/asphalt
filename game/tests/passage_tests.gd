@@ -405,6 +405,11 @@ func run() -> void:
 			world.interact()
 		await frames(4)
 	check(main.ui.mode == "dawn" and button_named("Return to title") != null, "Walking through the north gate reaches the ending")
+	var ending_court := main.world as TrialWorld
+	var landing := ending_court.causeway.get_node("FarLanding") as MeshInstance3D
+	var spurs := landing.get_node("TidalOutcrops") as MultiMeshInstance3D
+	check(landing.mesh.get_surface_count() == 2 and spurs.multimesh.instance_count == 5, "The pine landing has a grass crown, exposed cliff and rocks at the waterline")
+	check(is_equal_approx(float(ending_court.coast.water.get_shader_parameter("dawn")),1.0), "The ending restores morning light on the sea")
 	check_layout("Epilogue buttons fit within the viewport")
 	var persisted := ShoreProgress.new(Session.shore.directory)
 	persisted.restore()

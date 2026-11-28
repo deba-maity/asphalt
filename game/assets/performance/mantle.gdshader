@@ -49,8 +49,9 @@ void fragment() {
 		float sun = (1.0-smoothstep(.004,.012,abs(length(p-vec2(0.,-.03))-.081)))*step(p.y,-.030);
 		emblem = max(sun, stitch) * .90;
 	}
-	float wear=.88+.12*sin(UV.y*51.0+sin(UV.x*39.0));
-	vec3 base=cloth_color.rgb*mix(vec3(.75),weave,0.55)*wear;
+	// Faded dye at the hem leaves the large folds to the actual cloth mesh.
+	float hem = smoothstep(.51, .99, UV.y);
+	vec3 base = cloth_color.rgb * mix(vec3(.77), weave, .52) * mix(vec3(1.0), vec3(1.17,1.12,1.08), hem);
 	float yoke = .15 + .065 * (1.0 - abs(UV.x * 2.0 - 1.0));
 	float braid = wayfarer ? 1.0 - smoothstep(.005,.015,abs(UV.y - yoke)) : 0.0;
 	if (wayfarer) base *= mix(.62, 1.0, smoothstep(yoke-.01,yoke+.014,UV.y));
@@ -58,6 +59,6 @@ void fragment() {
 	EMISSION=vec3(.89,.27,.055)*heat*emblem*.8;
 	ROUGHNESS=.95;
 	NORMAL_MAP=texture(cloth_normal,UV*vec2(3.0,4.0)).rgb;
-	NORMAL_MAP_DEPTH=.4;
+	NORMAL_MAP_DEPTH=.30;
 	// The geometry already carries the split hem. No alpha/transparency pass.
 }
