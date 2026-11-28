@@ -6,6 +6,10 @@ import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright";
 
 const origin = "http://127.0.0.1:5238";
+const allDistricts = ["neon", "coast", "dock", "mesa"];
+const requested = process.argv.slice(2);
+const districts = requested.length ? [...new Set(requested)] : allDistricts;
+if (districts.some(id => !allDistricts.includes(id))) throw Error("Unknown district: " + districts.join(", "));
 const server = spawn(process.execPath, ["server.js"], {
   env: {
     ...process.env,
@@ -51,7 +55,7 @@ try {
       }),
     );
     await page.goto(origin + "/baker.html");
-    for (const id of ["neon", "coast", "dock", "mesa"]) {
+    for (const id of districts) {
       const output = await page.evaluate(
         async ({ id, compact }) => {
           const THREE =

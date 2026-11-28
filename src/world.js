@@ -2,8 +2,8 @@ import { flyoverLayouts, flyoverEnd, flyoverHalfWidth, distanceToFlyover, flyove
 import { followingSpeed, modelFootprint } from "./contact.js";
 import * as THREE from "three";
 import { shortcutMarkerIndex } from "./shortcut-guide.js";
-import { sampleHybridClosedRoute, planShortcutRoads, timingGateFraction } from "./course-shape.js";
-import { courseSpan, trimSpan, offsetStation, spanGeometry, bridgeRuns, bridgeRailOffset, rampSpan, rampRailRuns, shortcutArrowPlacements } from "./course-structures.js";
+import { districtCourse, planShortcutRoads, timingGateFraction } from "./course-shape.js";
+import { courseSpan, trimSpan, offsetStation, spanGeometry, bridgeRuns, bridgeRailOffset, rampSpan, clearRailRuns, shortcutArrowPlacements } from "./course-structures.js";
 import { nearestPointOnPath, roadProjection } from "./road-projection.js";
 import { courseCorners } from "./corner-notes.js";
 import { gatesPerSegment } from "./data.js";
@@ -43,7 +43,6 @@ routeArrowGeo.computeVertexNormals();
 const turnChevron = new THREE.ShapeGeometry(new THREE.Shape([
   [-.7, .46], [-.04, .46], [.7, 0], [-.04, -.46], [-.7, -.46], [.04, 0],
 ].map(([x, y]) => new THREE.Vector2(x, y))));
-const vec = (p) => new THREE.Vector3(p[0], 0, p[1]);
 
 const seeded = (n) => {
   let v = Math.abs(Math.floor(n * 9973)) + 1;
@@ -213,24 +212,18 @@ export class World {
 
     scene.add(this.group);
 
-    this.controlRoute = map.route.map(vec);
-
-    this.route = sampleHybridClosedRoute(
-      this.controlRoute,
-      gatesPerSegment,
-      map.straightSegments || [],
-    );
-
-    this.samples = sampleHybridClosedRoute(
-      this.controlRoute,
-      map.id === "neon" ? 22 : 18,
-      map.straightSegments || [],
-    );
+    const course = districtCourse(map);
+    this.controlRoute = course.controlRoute;
+    this.route = course.route;
+    this.samples = course.samples;
     this.projectMainRoad = roadProjection(this.samples, roadHalfWidth + shoulderAllowance + 1);
     // The timing stripe sits on the opening straight, clear of the corner at route[0].
-    this.finishLine = this.route[0].clone().lerp(this.route[1], timingGateFraction);
-    this.finishSamples = Math.ceil(timingGateFraction * this.samples.length / this.route.length);
-    this.finishForward = this.route[1].clone().sub(this.route[0]).normalize();
+    const finishStation = (map.startFraction ?? timingGateFraction) * this.samples.length / this.route.length;
+    const first = Math.floor(finishStation);
+    this.finishSamples = Math.ceil(finishStation);
+    this.finishLine = this.samples[first].clone().lerp(this.samples[first + 1], finishStation - first);
+    this.finishForward = this.samples[first + 1].clone().sub(this.samples[first]).normalize();
+    this.finishYaw = Math.atan2(this.finishForward.x, this.finishForward.z);
     this.timingLines = new Map([[0, {point: this.finishLine, forward: this.finishForward}]]);
     this.sampleDistances = [0];
     for (let i = 0; i < this.samples.length; i++) {
@@ -239,7 +232,7 @@ export class World {
     }
     this.courseLength = this.sampleDistances.at(-1);
     this.corners = courseCorners(this.samples, this.sampleDistances, this.controlRoute.length);
-    this.timingOffset = this.route[0].distanceTo(this.finishLine);
+    this.timingOffset = this.sampleDistances[first] + this.samples[first].distanceTo(this.finishLine);
     this.roadSurfaceY = 0.052;
     this.shortcutRoads = planShortcutRoads(this.controlRoute, map.shortcuts || [], this.roadSurfaceY, this.projectMainRoad);
     this.flyovers = flyoverLayouts(map.id, this.samples, this.controlRoute.length);
@@ -263,6 +256,11 @@ export class World {
 
     this.cityBuildings = [];
     this.landmarkAnchors = [];
+    const park = map.environment?.park;
+    if (park) {
+      const centre = this.findCityParcel(new THREE.Vector3(park.x, 0, park.z), park.radius);
+      if (centre) this.cityPark = {x: centre.x, z: centre.z, radius: park.radius};
+    }
 
     this.citySeed = map.id.length * 131 + 314;
 
@@ -752,8 +750,18 @@ export class World {
       }
       const entrance = points[2], heading = tangentAt(points, 2, false);
       const entryYaw = Math.atan2(heading.x, heading.z);
-      const sign = localPoint(entrance, entryYaw, shortcutHalfWidth + 1.5, heightProfile[2] + 2.6, 0);
-      this.addPanel(sign, entryYaw + Math.PI, shortcut.label, "OPTIONAL SHORTCUT", 8, 2);
+      let sign;
+      for (const setback of [14, 20, 28, 36]) {
+        for (const side of [1, -1]) {
+          const candidate = localPoint(entrance, entryYaw, side * setback, heightProfile[2] + 3, 0);
+          if (this.clearForRoadside(candidate, 4.5) && !this.nearCrossStreet(candidate, 4.5)) { sign = candidate; break; }
+        }
+        if (sign) break;
+      }
+      if (sign) {
+        mesh(this.group, box, railMat, [sign.x, (sign.y - 1) / 2, sign.z], [.22, sign.y - 1, .22], [0,entryYaw,0]);
+        this.addPanel(sign, entryYaw + Math.PI, shortcut.label, "OPTIONAL SHORTCUT", 8, 2);
+      }
 
       const edges = [
         this.createContinuousLine(
@@ -801,10 +809,11 @@ export class World {
 
       if (elevated) {
         const span = rampSpan(shortcut);
-        this.addCourseSlab("Shortcut deck", span, -shortcutHalfWidth, shortcutHalfWidth, -.72, -.045, deckMat);
+        const deckEdge = shortcutHalfWidth + .65;
+        this.addCourseSlab("Shortcut deck", span, -deckEdge, deckEdge, -.72, -.045, deckMat);
         for (const side of [-1, 1]) {
-          const offset = side * (shortcutHalfWidth - .12);
-          const runs = rampRailRuns(span, offset, this.projectMainRoad, roadHalfWidth, this.roadSurfaceY);
+          const offset = side * (deckEdge - .12);
+          const runs = clearRailRuns(span, offset, edge => this.clearForRail(edge, shortcut));
           for (const run of runs) {
             this.addCourseSlab("Shortcut parapet", run, offset - .12, offset + .12, 0, .88, railMat);
           }
@@ -823,6 +832,10 @@ export class World {
                 nearestPointOnPath(foot, other.points, false).distance > shortcutHalfWidth + 2.1));
           if (!feet.length) continue;
           const capHeight = .46;
+          // A column can clear the lower road while its wider beam still overhangs it.
+          const capClear = [-7.25, -5, -2.5, 0, 2.5, 5, 7.25].every(offset =>
+            this.clearForRail(offsetStation(station, offset, -.72 - capHeight), shortcut));
+          if (!capClear) continue;
           mesh(this.group, box, railMat, [station.point.x, underside - capHeight / 2, station.point.z],
             [14.45, capHeight, 1.05], [0,yaw,0]);
           for (const foot of feet) {
@@ -917,7 +930,7 @@ export class World {
     const chevrons = [], boards = [], supports = [];
 
     const start = this.finishLine;
-    const startYaw = this.segmentAngle(0);
+    const startYaw = this.finishYaw;
 
     for (const side of [-1, 1]) {
       const post = localPoint(start, startYaw, side * 10.8, 3.6, -1.6);
@@ -1003,6 +1016,18 @@ export class World {
     if (this.projectMainRoad(position).distance <= roadHalfWidth + margin) return false;
     return this.shortcutRoads.every(road =>
       nearestPointOnPath(position, road.points, false).distance > shortcutHalfWidth + margin);
+  }
+
+  clearForRail(edge, owner) {
+    const obstructs = (distance, half, height) =>
+      distance <= half + .65 && edge.y < height + 4.3 && edge.y + 1.3 > height;
+    if (obstructs(this.projectMainRoad(edge).distance, roadHalfWidth, this.roadSurfaceY)) return false;
+    return this.shortcutRoads.every(road => {
+      if (road === owner) return true;
+      const hit = nearestPointOnPath(edge, road.points, false);
+      const h = THREE.MathUtils.lerp(road.heightProfile[hit.index], road.heightProfile[hit.index + 1], hit.fraction);
+      return !obstructs(hit.distance, shortcutHalfWidth, h);
+    });
   }
 
   installRoadside(key, geometry, material, matrices) {
@@ -1356,6 +1381,49 @@ export class World {
     edgeRight.userData.worldOwned = true;
 
     this.group.add(edgeLeft, edgeRight);
+    if (this.map.id === "neon") this.addApexPaint(points);
+  }
+
+  addApexPaint(points) {
+    const vertices = [], colors = [];
+    const pale = new THREE.Color(0xc2d5d3), teal = new THREE.Color(0x358b91);
+    for (let i = 0; i < points.length; i++) {
+      const a = points[i], b = points[(i + 1) % points.length];
+      const before = a.clone().sub(points[(i + points.length - 1) % points.length]);
+      const after = b.clone().sub(a);
+      const length = after.length();
+      const turn = Math.atan2(before.x * after.z - before.z * after.x, before.dot(after));
+      if (Math.abs(turn) < .025 || (before.length() + length) / (2 * Math.abs(turn)) > 58) continue;
+      const side = tangent => new THREE.Vector3(-tangent.z, 0, tangent.x).multiplyScalar(Math.sign(turn));
+      const near = side(tangentAt(points, i)), far = side(tangentAt(points, (i + 1) % points.length));
+      // Split each painted section by metres, so the alternating blocks keep a
+      // constant length through a corner even when the centreline samples vary.
+      let start = this.sampleDistances[i];
+      const end = start + length;
+      while (start < end - .0001) {
+        const block = Math.floor((start + .00001) / 3.6);
+        const next = Math.min(end, (block + 1) * 3.6);
+        const u = (start - this.sampleDistances[i]) / length, v = (next - this.sampleDistances[i]) / length;
+        const entry = a.clone().lerp(b, u), exit = a.clone().lerp(b, v);
+        const n0 = near.clone().lerp(far, u).normalize(), n1 = near.clone().lerp(far, v).normalize();
+        const edge = entry.clone().lerp(exit, .5).addScaledVector(n0, 9.4);
+        if (this.shortcutRoads.every(road => nearestPointOnPath(edge, road.points, false).distance > shortcutHalfWidth + 3)) {
+          const color = block % 2 ? teal : pale;
+          for (const [base, normal, offset] of [[entry,n0,8.95],[exit,n1,8.95],[exit,n1,9.78],
+            [entry,n0,8.95],[exit,n1,9.78],[entry,n0,9.78]]) {
+            vertices.push(base.x + normal.x * offset, this.roadSurfaceY + .012, base.z + normal.z * offset);
+            colors.push(color.r,color.g,color.b);
+          }
+        }
+        start = next;
+      }
+    }
+    const geometry = this.trackGeometry(new THREE.BufferGeometry());
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices,3));
+    geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors,3));
+    const paint = new THREE.Mesh(geometry, this.basic({vertexColors:true, side:THREE.DoubleSide, toneMapped:false}));
+    paint.name = "Meridian apex paint";
+    this.group.add(paint);
   }
 
   createContinuousLine(points, laneOffset, width, y, closed = true) {
@@ -2081,9 +2149,11 @@ export class World {
     const mouths = (this.map.shortcuts ?? []).flatMap(({from, to}) => [this.controlRoute[from], this.controlRoute[to]]);
     const rail = this.material({color: 0x4f5a60, roughness: .42, metalness: .84});
     const accent = this.basic({color: 0x55dfff});
-    for (const span of bridgeRuns(section, mouths)) {
-      for (const sign of [-1, 1]) {
-        const offset = sign * bridgeRailOffset;
+    const bridge = bridgeRuns(section, mouths);
+    for (const sign of [-1, 1]) {
+      const offset = sign * bridgeRailOffset;
+      const runs = bridge.flatMap(part => clearRailRuns(part, offset, edge => this.clearForRail(edge)));
+      for (const span of runs) {
         this.addCourseSlab("Bridge guardrail", span, offset - .12, offset + .12, .96, 1.16, rail);
         this.addCourseSlab("Bridge reflectors", span, offset - .07, offset + .07, 1.16, 1.21, accent);
         let nextSupport = 0;
@@ -2247,17 +2317,17 @@ export class World {
     for (let index = 0; index < limit; index++) {
       const landmark = landmarks[index];
 
-      const point = this.pointOnSegment(
+      const anchor = this.pointOnSegment(
         landmark.segment,
         landmark.distance,
         0.52,
         landmark.side,
       );
 
-      this.landmarkAnchors.push({
-        ...landmark,
-        point,
-      });
+      // Reserve the entire building, including the plaza or roof overhang.
+      const radius = landmark.plotRadius * landmark.scale;
+      const point = this.findCityParcel(anchor, radius);
+      if (point) this.landmarkAnchors.push({...landmark, point, radius});
     }
   }
 
@@ -2313,6 +2383,29 @@ export class World {
     return families[Math.floor(r() * families.length)];
   }
 
+  cityParcelClear(point, radius) {
+    if (!this.clearForRoadside(point, radius + 2) || this.nearCrossStreet(point, radius + 2) ||
+        onWheelPlaza(point.x, point.z, radius)) return false;
+    const park = this.cityPark;
+    if (park && Math.hypot(point.x - park.x, point.z - park.z) < radius + park.radius) return false;
+    if (this.landmarkAnchors.some(site => site.point.distanceTo(point) < radius + site.radius + 2)) return false;
+    return this.cityBuildings.every(b => b.center.distanceTo(point) >= radius + Math.hypot(b.w, b.d) / 2);
+  }
+
+  findCityParcel(anchor, radius) {
+    if (this.cityParcelClear(anchor, radius)) return anchor;
+    for (let distance = 8; distance <= 96; distance += 8) {
+      for (let i = 0; i < 16; i++) {
+        const angle = i * Math.PI / 8;
+        const point = anchor.clone();
+        point.x += distance * Math.cos(angle);
+        point.z += distance * Math.sin(angle);
+        if (this.cityParcelClear(point, radius)) return point;
+      }
+    }
+    return null;
+  }
+
   buildingPlacementAllowed(position, width, depth) {
     if (onWheelPlaza(position.x, position.z, Math.hypot(width, depth) * .5)) return false;
     if (this.nearCrossStreet(position, Math.hypot(width, depth) / 2)) return false;
@@ -2323,7 +2416,7 @@ export class World {
       return false;
     }
 
-    const park = this.map.environment?.park;
+    const park = this.cityPark;
 
     if (
       park &&
@@ -2336,7 +2429,7 @@ export class World {
     for (const landmark of this.landmarkAnchors) {
       if (
         position.distanceTo(landmark.point) <
-        19 + Math.max(width, depth) * 0.55
+        landmark.radius + Math.hypot(width, depth) / 2 + 2
       ) {
         return false;
       }
@@ -3878,6 +3971,7 @@ export class World {
       const yaw = this.segmentAngle(
         this.authorSegmentToRouteIndex(item.segment),
       );
+      if (!this.clearForRoadside(p, 3)) continue;
 
       const pole = new THREE.Mesh(poleGeo, metal);
 
@@ -3900,7 +3994,8 @@ export class World {
       );
     }
 
-    const service = this.pointOnSegment(8, 31, 0.45, -1);
+    const service = this.findCityParcel(this.pointOnSegment(8, 31, 0.45, -1), 3.3);
+    if (!service) return;
 
     this.addBuildingPart(
       "serviceBay",
@@ -3912,12 +4007,14 @@ export class World {
   }
 
   addStreetScene(scene, metal, dark, carMats) {
-    const center = this.pointOnSegment(
+    const anchor = this.pointOnSegment(
       scene.segment,
       scene.distance,
       scene.fraction ?? 0.52,
       scene.side,
     );
+    const center = this.findCityParcel(anchor, 6.5);
+    if (!center) return;
 
     const yaw =
       this.segmentAngle(this.authorSegmentToRouteIndex(scene.segment)) -
@@ -4125,7 +4222,7 @@ export class World {
   }
 
   buildCityPark() {
-    const park = this.map.environment?.park;
+    const park = this.cityPark;
 
     if (!park) return;
 
@@ -4287,18 +4384,20 @@ export class World {
       const h = 34 + r() * 138;
 
       const w = 12 + r() * 26;
-      const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
       const depth = w * (.7 + r() * .7);
-      if (onWheelPlaza(x, z, w * .85) || this.nearCrossStreet({x,z}, Math.hypot(w,depth) / 2)) continue;
+      const footprint = Math.hypot(w, depth) / 2;
+      const radial = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
+      const point = radial.clone().multiplyScalar(radius);
+      // The outer circuit passes through the original skyline ring. Move these
+      // towers out along their own bearing to retain the silhouette.
+      const fits = () => this.clearForRoadside(point, footprint + 45) && this.cityParcelClear(point, footprint);
+      while (!fits() && point.length() < 650) point.addScaledVector(radial, 12);
+      if (!fits()) continue;
 
       this.addBuildingPart(
         "farSkyline",
         farMat,
-        new THREE.Vector3(
-          Math.cos(angle) * radius,
-          h / 2,
-          Math.sin(angle) * radius,
-        ),
+        point.setY(h / 2),
         [w, h, depth],
         0,
       );
@@ -4610,7 +4709,7 @@ export class World {
     mesh(this.branchGate, box, branchGlow, [0, 4.2, 0], [shortcutHalfWidth * 2 - 0.4, 0.18, 0.18]);
     this.branchGate.visible = false;
     g.add(this.branchGate);
-    const start = this.finishLine, yaw = this.segmentAngle(0);
+    const start = this.finishLine, yaw = this.finishYaw;
     const checkers = makeCanvasTexture((ctx, width, height) => {
       ctx.fillStyle = "#11151b";
       ctx.fillRect(0, 0, width, height);
@@ -5163,6 +5262,7 @@ export class World {
     const position = actor.mesh.position;
     let center = this.projectMainRoad(position);
     const segment = center.index;
+    actor.courseSection = Math.floor(segment * this.controlRoute.length / this.samples.length);
     actor.courseDistance = THREE.MathUtils.lerp(this.sampleDistances[segment], this.sampleDistances[segment + 1], center.fraction);
     let pastEdge = center.distance - roadHalfWidth;
     let branch = null;
@@ -5173,6 +5273,14 @@ export class World {
       const candidate = nearestPointOnPath(position, road.points, false);
       const junction = candidate.index < 3 || candidate.index >= road.points.length - 4;
       const following = actor.roadBranch === road;
+      if (!following && !actor.cut && junction) {
+        // A shortcut mouth can pass next to an unrelated part of the loop.
+        // Only the main-road segment that actually owns the junction connects.
+        const stride = this.samples.length / this.controlRoute.length;
+        const mouth = (candidate.index < 3 ? road.from : road.to) * stride;
+        const gap = Math.abs(segment - mouth);
+        if (Math.min(gap, this.samples.length - gap) > stride) continue;
+      }
       // Neighbouring shoulders and overpasses are not junctions. Hold the
       // current surface through the middle of a shortcut even at a crossing.
       if (!following && !junction && actor.cut?.road !== road) continue;

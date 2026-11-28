@@ -23,7 +23,7 @@ export function shortcutMergeCue(world, player) {
   const braking = Math.abs(turn) > .45 && player.speed > speed + 2 && remaining < stopping + player.speed * .55;
   const label = Math.abs(turn) < .32 ? "JOIN MAIN ROAD" : "MERGE " + (turn < 0 ? "LEFT" : "RIGHT");
   return {label: (braking ? "BRAKE · " : "") + label, detail: road.label + " · " + Math.round(remaining) + "M TO MAIN ROAD",
-    braking, apex: end};
+    braking, targetKph: Math.round(speed * 5.7), apex: end};
 }
 
 // The entry junction still has to be crossed. The planned route is only advice;

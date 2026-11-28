@@ -3,9 +3,26 @@ import assert from "node:assert/strict";
 import { PaceLap, districtBest } from "../src/pace-lap.js";
 import { raceTime } from "../src/timing.js";
 import { storage } from "../src/storage.js";
+import { raceRecord } from "../src/race-timing.js";
 
 const spec = { name: "Apex GT", kind: "car" };
 const position = (x, z = 0) => ({x, z});
+
+test("historical Meridian times and ghosts stay associated with the longer track", () => {
+  storage.setItem("nightshift-best-neon", "89");
+  storage.setItem("nightshift-pace-v1-neon", JSON.stringify({duration: 89000, splits: [89000],
+    frames: [[0,0,0,0,0],[89000,0,0,0,0]], vehicle: spec.name, kind: spec.kind}));
+  storage.setItem("nightshift-race-v1-neon-sprint-normal", "[30000,60000,89000]");
+  const lap = new PaceLap("neon", 1, spec);
+  assert.equal(lap.best, null);
+  assert.equal(lap.reference, null);
+  assert.equal(raceRecord("neon", "sprint", "normal"), null);
+  lap.record(0, position(0), 0, 0);
+  lap.gate(0, 96);
+  lap.finish(96, position(100), 0, 0);
+  assert.equal(districtBest("neon"), 96);
+  assert.equal(storage.getItem("nightshift-best-neon"), "89");
+});
 
 test("reference laps preserve skipped gates and interpolate across the yaw seam", () => {
   const lap = new PaceLap("test-sector", 4, spec);

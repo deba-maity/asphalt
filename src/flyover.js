@@ -2,7 +2,7 @@ import { Vector3 } from "three";
 
 // Positions are measured along the authored racing line, in control-point intervals.
 // In Neon the transit viaduct crosses beyond the Sky Cut landing and the underpass.
-const locations = {neon: [7.23, 18.5], coast: [5.5], dock: [4], mesa: [7.5]};
+const locations = {neon: [7.23, 18.73], coast: [5.5], dock: [4], mesa: [7.5]};
 export const flyoverHalfWidth = 4.9;
 export const flyoverEnd = 83;
 const plateauEnd = 24, rampEnd = 67;

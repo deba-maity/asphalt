@@ -2,13 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "three";
 import { maps, vehicles } from "../src/data.js";
-import { sampleHybridClosedRoute } from "../src/course-shape.js";
+import { districtCourse, sampleHybridClosedRoute } from "../src/course-shape.js";
 import { courseCorners, approachingCorner } from "../src/corner-notes.js";
 
 test("each circuit warns about upcoming corners before the driver crosses a gate", () => {
   for (const map of maps) {
-    const control = map.route.map(([x,z]) => new THREE.Vector3(x,0,z));
-    const samples = sampleHybridClosedRoute(control, map.id === "neon" ? 22 : 18, map.straightSegments);
+    const {controlRoute: control, samples} = districtCourse(map);
     const distances=[0];
     samples.forEach((p,i)=>distances.push(distances.at(-1)+p.distanceTo(samples[(i+1)%samples.length])));
     const notes=courseCorners(samples,distances,control.length);

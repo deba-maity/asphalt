@@ -1,20 +1,17 @@
 import { courseFlag } from "../src/finish-marshal.js";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { Vector3 } from "three";
 import { RaceTiming, raceRecord, sectorGates } from "../src/race-timing.js";
-import { sampleHybridClosedRoute, timingGateFraction } from "../src/course-shape.js";
+import { districtCourse, timingGateFraction } from "../src/course-shape.js";
 import { gatesPerSegment, maps } from "../src/data.js";
 import { storage } from "../src/storage.js";
 
 function circuit(map) {
-  const controls = map.route.map(([x,z]) => new Vector3(x,0,z));
-  const samples = sampleHybridClosedRoute(controls, 18, map.straightSegments);
-  const route = sampleHybridClosedRoute(controls, gatesPerSegment, map.straightSegments);
+  const {route, samples} = districtCourse(map);
   const sampleDistances = [0];
   samples.forEach((p,i) => sampleDistances.push(sampleDistances.at(-1) + p.distanceTo(samples[(i+1)%samples.length])));
   return { map, route, samples, sampleDistances, courseLength: sampleDistances.at(-1),
-    timingOffset: route[0].distanceTo(route[1]) * timingGateFraction,
+    timingOffset: sampleDistances[samples.length / route.length] * (map.startFraction ?? timingGateFraction),
     shortcutRoads: map.shortcuts, authorSegmentToRouteIndex: index => index * gatesPerSegment };
 }
 

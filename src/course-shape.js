@@ -47,9 +47,61 @@ export function sampleHybridClosedRoute(route, subdivisions, straightSegments = 
   return result;
 }
 
+// Join constant-radius corners with their common tangent straights. Each
+// authored intersection keeps its gate number at the middle of its bend.
+function roundedCircuit(vertices, subdivisions, desiredRadius) {
+  const count = vertices.length;
+  const bends = vertices.map((p, i) => {
+    const before = p.clone().sub(vertices[(i + count - 1) % count]);
+    const after = vertices[(i + 1) % count].clone().sub(p);
+    const available = .46 * Math.min(before.length(), after.length());
+    before.normalize();
+    after.normalize();
+    const turn = Math.atan2(before.x * after.z - before.z * after.x, before.dot(after));
+    const tangent = Math.tan(Math.abs(turn) / 2);
+    const trim = Math.min(available, desiredRadius * tangent);
+    const radius = tangent > 1e-7 ? trim / tangent : desiredRadius;
+    const entry = p.clone().addScaledVector(before, -trim);
+    const exit = p.clone().addScaledVector(after, trim);
+    const side = Math.sign(turn);
+    const cx = entry.x - side * before.z * radius;
+    const cz = entry.z + side * before.x * radius;
+    const angle = Math.atan2(entry.z - cz, entry.x - cx);
+    const arc = t => Math.abs(turn) < 1e-7 ? p.clone() :
+      new THREE.Vector3(cx + radius * Math.cos(angle + turn * t), 0, cz + radius * Math.sin(angle + turn * t));
+    return {entry, exit, arc, half: Math.abs(turn) * radius / 2};
+  });
+  const result = [];
+  for (let i = 0; i < count; i++) {
+    const a = bends[i], b = bends[(i + 1) % count];
+    const straight = a.exit.distanceTo(b.entry);
+    for (let j = 0; j < subdivisions; j++) {
+      const distance = (a.half + straight + b.half) * j / subdivisions;
+      if (distance < a.half) result.push(a.arc(.5 + distance / (2 * a.half)));
+      else if (distance <= a.half + straight) result.push(a.exit.clone().lerp(b.entry, (distance - a.half) / straight));
+      else result.push(b.arc((distance - a.half - straight) / (2 * b.half)));
+    }
+  }
+  return result;
+}
+
+export function districtCourse(map) {
+  const vertices = map.route.map(([x,z]) => new THREE.Vector3(x, 0, z));
+  const subdivisions = map.id === "neon" || map.cornerRadius ? 22 : 18;
+  const samples = map.cornerRadius ? roundedCircuit(vertices, subdivisions, map.cornerRadius)
+    : sampleHybridClosedRoute(vertices, subdivisions, map.straightSegments);
+  const controlRoute = samples.filter((_, i) => i % subdivisions === 0);
+  const route = samples.filter((_, i) => i % (subdivisions / gatesPerSegment) === 0);
+  return {controlRoute, route, samples};
+}
+
 export function shortcutPoints(source, shortcut) {
   const from = source[shortcut.from % source.length];
   const to = source[shortcut.to % source.length];
+  if (shortcut.handles) {
+    const [a, b] = shortcut.handles.map(([x,z]) => new THREE.Vector3(x, 0, z));
+    return new THREE.CubicBezierCurve3(from, a, b, to).getPoints(18);
+  }
   const mid = from.clone().lerp(to, 0.5);
   const direct = to.clone().sub(from);
   const side = new THREE.Vector3(-direct.z, 0, direct.x).normalize();
@@ -120,9 +172,8 @@ export function mapOverpasses(samples, roads) {
 const previews = new Map();
 export function coursePreview(map) {
   if (previews.has(map.id)) return previews.get(map.id);
-  const controls = map.route.map(([x, z]) => new THREE.Vector3(x, 0, z));
-  const main = sampleHybridClosedRoute(controls, 12, map.straightSegments);
-  const cuts = (map.shortcuts ?? []).map((road) => shortcutPoints(controls, road));
+  const {controlRoute, route, samples: main} = districtCourse(map);
+  const cuts = (map.shortcuts ?? []).map((road) => shortcutPoints(controlRoute, road));
   const points = main.concat(...cuts);
   const xs = points.map((p) => p.x), zs = points.map((p) => p.z);
   const left = Math.min(...xs), right = Math.max(...xs), top = Math.min(...zs), bottom = Math.max(...zs);
@@ -130,8 +181,24 @@ export function coursePreview(map) {
   const project = (p) => [(150 + (p.x - (left + right) / 2) * scale).toFixed(1),
     (90 + (p.z - (top + bottom) / 2) * scale).toFixed(1)];
   const path = (line) => line.map((p, i) => (i ? "L" : "M") + project(p).join(",")).join(" ");
-  const line = controls[0].clone().lerp(controls[1], timingGateFraction / gatesPerSegment);
-  const preview = { circuit: path(main) + " Z", cuts: cuts.map(path), start: project(line) };
+  const station = (map.startFraction ?? timingGateFraction) * main.length / route.length;
+  const index = Math.floor(station);
+  const line = main[index].clone().lerp(main[index + 1], station - index);
+  const viaCuts = [];
+  const stride = main.length / controlRoute.length;
+  for (let segment = 0; segment < controlRoute.length;) {
+    const index = (map.shortcuts ?? []).findIndex(road => road.from === segment && road.to > segment && road.to < controlRoute.length);
+    if (index < 0) {
+      viaCuts.push(...main.slice(segment * stride, (segment + 1) * stride));
+      segment++;
+    } else {
+      viaCuts.push(...cuts[index].slice(0, -1));
+      segment = map.shortcuts[index].to;
+    }
+  }
+  const length = line => line.reduce((total, p, i) => total + p.distanceTo(line[(i + 1) % line.length]), 0);
+  const preview = { circuit: path(main) + " Z", viaCuts: path(viaCuts) + " Z", cuts: cuts.map(path),
+    start: project(line), metres: length(main), cutMetres: length(viaCuts) };
   previews.set(map.id, preview);
   return preview;
 }

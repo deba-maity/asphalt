@@ -19,3 +19,13 @@ test('incomplete, unknown or out-of-range challenges leave the home screen avail
   }
   assert.equal(lapChallengeLink('https://example.com/', 'coast', 'car0', NaN), null);
 });
+
+test('a Meridian challenge identifies its layout and an older link still opens the original car', () => {
+  const link = lapChallengeLink('https://example.com/game/', 'neon', 'car0', 96.4);
+  assert.equal(new URL(link).hash, '#lap=neon.car0.9640.r2');
+  assert.equal(readLapChallenge(new URL(link).hash).previousLayout, false);
+  const old = readLapChallenge('#lap=neon.car0.9640');
+  assert.equal(old.previousLayout, true);
+  assert.equal(old.vehicle.id, 'car0');
+  assert.equal(readLapChallenge('#lap=neon.car0.9640.r3'), null);
+});

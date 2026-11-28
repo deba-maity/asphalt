@@ -40,10 +40,13 @@ export const maps = [
       [-326, -128],
     ],
     straightSegments: [0, 1, 2, 7, 8, 15, 16],
+    cornerRadius: 42,
+    startFraction: .74,
+    layoutRevision: 2,
     shortcuts: [
       { from: 3, to: 7, side: -1, bend: 104, elevated: true, label: "SKY CUT" },
-      { from: 10, to: 14, side: 1, bend: 96, elevated: false, label: "SERVICE CUT" },
-      { from: 18, to: 23, side: -1, bend: 82, elevated: true, label: "FLYOVER" },
+      { from: 10, to: 14, handles: [[-111, 136], [-324, 101]], elevated: false, label: "SERVICE CUT" },
+      { from: 18, to: 23, handles: [[209, 49], [-247, 199]], elevated: true, label: "FLYOVER" },
     ],
 
     // Environment grammar for Neon Meridian.
@@ -187,6 +190,7 @@ export const maps = [
       landmarks: [
         {
           id: "meridianSpire",
+          plotRadius: 17,
           type: "spire",
           name: "Meridian Spire",
           segment: 2,
@@ -196,6 +200,7 @@ export const maps = [
         },
         {
           id: "glassArc",
+          plotRadius: 17,
           type: "arcTower",
           name: "Arc Meridian Tower",
           segment: 4,
@@ -205,6 +210,7 @@ export const maps = [
         },
         {
           id: "haloTransit",
+          plotRadius: 16,
           type: "transitHub",
           name: "Halo Transit Hub",
           segment: 6,
@@ -214,6 +220,7 @@ export const maps = [
         },
         {
           id: "signalPlaza",
+          plotRadius: 23,
           type: "neonPlaza",
           name: "Signal Plaza",
           segment: 11,
@@ -223,6 +230,7 @@ export const maps = [
         },
         {
           id: "grandInterchange",
+          plotRadius: 25,
           type: "interchange",
           name: "Grand Meridian Interchange",
           segment: 13,
@@ -232,6 +240,7 @@ export const maps = [
         },
         {
           id: "meridianHotel",
+          plotRadius: 19,
           type: "hotel",
           name: "Meridian Crown Hotel",
           segment: 15,
@@ -241,6 +250,7 @@ export const maps = [
         },
         {
           id: "digitalDistrict",
+          plotRadius: 14,
           type: "billboardDistrict",
           name: "Digital District",
           segment: 3,
@@ -587,6 +597,11 @@ export const vehicles = [
     color: ["#7bdc6b", "#d95545", "#5b70ff"][i],
   })),
 ];
+
+export function courseRecordId(district) {
+  const revision = maps.find(map => map.id === district)?.layoutRevision;
+  return revision ? district + "-r" + revision : district;
+}
 
 export const modes = [
   {

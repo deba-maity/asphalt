@@ -39,7 +39,7 @@ export function approachingCorner(corners, progress, length, speed, spec) {
     const grip = 3.1 + spec.handling * .055;
     const target = Math.sqrt(bend.radius * grip);
     const slowdown = Math.max(0, (velocity * velocity - target * target) / (2 * (5 + spec.braking * .12)));
-    nearest = {bend, distance, braking: bend.angle > .92 && velocity > target + 1 && distance <= slowdown + velocity * .42};
+    nearest = {bend, distance, targetSpeed: target, braking: bend.angle > .92 && velocity > target + 1 && distance <= slowdown + velocity * .42};
   }
   return nearest;
 }

@@ -247,8 +247,10 @@ try {
           }
         }
         // Beyond the overlapping return lane near the start of Dockyard.
-        const middle = world.route[1].clone().lerp(world.route[2], .5);
-        const forward = world.route[1].clone().sub(world.route[0]).normalize();
+        const sample = Math.floor(1.5 * world.samples.length / world.route.length);
+        const a = world.samples[sample], b = world.samples[sample + 1];
+        const middle = a.clone().lerp(b, .5);
+        const forward = b.clone().sub(a).normalize();
         for (const side of [-1, 1]) {
           const normal = forward.clone().set(-forward.z * side, 0, forward.x * side);
           pos.copy(middle).addScaledVector(normal, 18);

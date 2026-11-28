@@ -1,14 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Vector3 } from "three";
 import { maps } from "../src/data.js";
-import { mapOverpasses, planShortcutRoads, sampleHybridClosedRoute } from "../src/course-shape.js";
+import { districtCourse, mapOverpasses, planShortcutRoads } from "../src/course-shape.js";
 import { flyoverLayouts, flyoverHalfWidth, flyoverEnd, flyoverSurface } from "../src/flyover.js";
 import { nearestPointOnPath, roadProjection } from "../src/road-projection.js";
 
 for (const map of maps) {
-  const controls = map.route.map(([x,z]) => new Vector3(x,0,z));
-  const samples = sampleHybridClosedRoute(controls, map.id === "neon" ? 22 : 18, map.straightSegments);
+  const {controlRoute: controls, samples} = districtCourse(map);
   const main = roadProjection(samples, 23);
   const cuts = planShortcutRoads(controls, map.shortcuts, .052, main);
   const spans = flyoverLayouts(map.id, samples, controls.length);

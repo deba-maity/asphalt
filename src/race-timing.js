@@ -1,4 +1,5 @@
 import { storage } from "./storage.js";
+import { courseRecordId } from "./data.js";
 
 // Place timing gates near thirds of the driven distance. A legal shortcut
 // must pass the same timing points as a car following the main circuit.
@@ -28,7 +29,7 @@ export function sectorGates(world, includeEntries = false) {
 }
 
 function recordKey(district, mode, difficulty) {
-  return ["nightshift-race-v1", district, mode, difficulty].join("-");
+  return ["nightshift-race-v1", courseRecordId(district), mode, difficulty].join("-");
 }
 
 export function raceRecord(district, mode, difficulty) {

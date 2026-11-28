@@ -54,8 +54,8 @@ export function rampSpan(road) {
   });
 }
 
-// Keep parapets continuous except where a low ramp shares the main driving surface.
-export function rampRailRuns(span, offset, projectMainRoad, mainHalfWidth, baseY) {
+// Clip each side independently so a low bridge or ramp leaves an open junction.
+export function clearRailRuns(span, offset, isClear) {
   const runs = [];
   let start = null;
   for (let i = 1; i < span.length; i++) {
@@ -65,7 +65,7 @@ export function rampRailRuns(span, offset, projectMainRoad, mainHalfWidth, baseY
       const distance = a.length + j * length / steps;
       const station = interpolate(a, b, distance, length);
       const edge = offsetStation(station, offset, 0);
-      const clear = edge.y >= baseY + 3 || projectMainRoad(edge).distance > mainHalfWidth + .3;
+      const clear = isClear(edge);
       if (clear && start === null) start = distance;
       if (!clear && start !== null) {
         const end = distance - length / steps;

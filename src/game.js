@@ -640,8 +640,7 @@ export class Game {
     this.player.mesh.position.copy(this.world.finishLine);
     const competitive = ["race", "sprint"].includes(config.mode.id);
     if (competitive) {
-      const forward = this.world.route[1].clone().sub(this.world.route[0]).normalize();
-      this.player.mesh.position.addScaledVector(forward, -2.5);
+      this.player.mesh.position.addScaledVector(this.world.finishForward, -2.5);
     }
 
     this.alignActorToRoad(this.player);
@@ -840,11 +839,7 @@ export class Game {
       role === "police" ? `POLICE ${i + 1}` : `RIVAL ${i + 1}`,
     );
 
-    const h = this.routeAngle(0);
-
-    const forward = new THREE.Vector3(-Math.sin(h), 0, -Math.cos(h));
-
-    const side = new THREE.Vector3(Math.cos(h), 0, -Math.sin(h));
+    let h = this.routeAngle(0);
 
     if (role === "police") {
       const world = this.world;
@@ -859,16 +854,17 @@ export class Game {
       a.roadHeight = world.roadSurfaceY;
     } else {
       a.raceLane = ((i % 3) - 1) * 3.2;
-      a.mesh.position.copy(this.player.mesh.position);
 
       // Leave the center lane open for the player's launch. Racers keep their
       // starting columns until the field has room to merge onto the racing line.
       a.gridLane = i % 2 ? -5.5 : 5.5;
       const row = Math.floor(i / 2);
 
-      a.mesh.position
-        .addScaledVector(forward, -(row + 1) * gridRowSpacing)
-        .addScaledVector(side, -a.gridLane);
+      const distance = this.world.timingOffset - 2.5 - (row + 1) * gridRowSpacing;
+      const slot = routeStateAt(this.world.sampleDistances, distance, -a.gridLane);
+      advanceRoute(this.world.samples, slot, 0);
+      a.mesh.position.set(slot.x, this.world.roadSurfaceY, slot.z);
+      h = slot.heading;
     }
 
     this.alignActorToRoad(a);
@@ -891,6 +887,7 @@ export class Game {
   }
 
   routeAngle(i) {
+    if (i === 0) return Math.atan2(-this.world.finishForward.x, -this.world.finishForward.z);
     const a = this.world.route[i];
 
     const b = this.world.route[(i + 1) % this.world.route.length];
@@ -1949,14 +1946,15 @@ export class Game {
       const turn = (fork.arriving ? "FORK " : "TAKE ") + fork.side;
       const instruction = fork.arriving ? Math.round(fork.distance) + "M" : fork.road.elevated ? "CLIMB THE RAMP" : "FOLLOW THE SHORTCUT";
       return { label: (braking ? "BRAKE · " : "") + turn, braking, apex: fork.road.points[0],
-        detail: fork.road.label + " · " + instruction + (braking ? " · " + Math.round(targetSpeed*5.7) + " KM/H" : "") };
+        targetKph: Math.round(targetSpeed * 5.7), detail: fork.road.label + " · " + instruction };
     }
     if (!index && this.config.mode.id === "escape") return { label: "EXTRACTION", detail: distanceToTarget + "M TO ESCAPE THE PURSUIT" };
     if (!index) return { label: this.finalLap() ? "FINISH LINE" : "LAP LINE", detail: distanceToTarget + "M TO THE CHECKERED LINE" };
     const corner = approachingCorner(this.world.corners, courseDistance, this.world.courseLength, p.speed, p.spec);
     if (corner) {
       const distance = Math.round(corner.distance);
-      return {label: corner.bend.label, braking: corner.braking, apex: corner.bend.point, detail: (corner.braking ? "BRAKE · " : "") + distance + "M TO BEND · GATE " + index};
+      return {label: corner.bend.label, braking: corner.braking, apex: corner.bend.point,
+        targetKph: Math.round(corner.targetSpeed * 5.7), detail: (corner.braking ? "BRAKE · " : "") + distance + "M TO BEND · GATE " + index};
     }
     const incoming = here.clone().sub(prev).normalize();
     const outgoing = next.clone().sub(here).normalize();

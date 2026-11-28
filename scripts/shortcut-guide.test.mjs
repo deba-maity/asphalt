@@ -1,16 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Vector3 } from 'three';
 import { maps, gatesPerSegment } from '../src/data.js';
-import { shortcutPoints, sampleHybridClosedRoute } from '../src/course-shape.js';
+import { districtCourse, shortcutPoints } from '../src/course-shape.js';
 import { shortcutApproach, shortcutMergeCue } from '../src/shortcut-guide.js';
 
 test('all authored junctions offer a continuous shortcut guide and restore the main path if declined', () => {
   for (const map of maps) {
-    const control = map.route.map(([x,z]) => new Vector3(x,0,z));
-    const route = sampleHybridClosedRoute(control, gatesPerSegment, map.straightSegments);
+    const {controlRoute: control, route, samples} = districtCourse(map);
     const roads = map.shortcuts.map(s => ({...s, points: shortcutPoints(control,s)}));
-    const samples = sampleHybridClosedRoute(control, 18, map.straightSegments);
     const world = { route, samples, shortcutRoads: roads, authorSegmentToRouteIndex: i => i*gatesPerSegment };
     for (const road of roads) {
       const entry = world.authorSegmentToRouteIndex(road.from);
@@ -35,13 +32,12 @@ test('all authored junctions offer a continuous shortcut guide and restore the m
   }
 });
 
-test('a fast driver gets a braking and merge direction before the final flyover arch', () => {
+test('a fast driver gets a braking and merge direction before the final Sky Cut arch', () => {
   const map = maps.find(m => m.id === 'neon');
-  const control = map.route.map(([x,z]) => new Vector3(x,0,z));
-  const road = map.shortcuts.find(s => s.label === 'FLYOVER');
+  const {controlRoute: control, samples, route} = districtCourse(map);
+  const road = map.shortcuts.find(s => s.label === 'SKY CUT');
   const points = shortcutPoints(control,road);
-  const world = {samples:sampleHybridClosedRoute(control,22,map.straightSegments),
-    route:sampleHybridClosedRoute(control,gatesPerSegment,map.straightSegments), authorSegmentToRouteIndex:i=>i*gatesPerSegment};
+  const world = {samples, route, authorSegmentToRouteIndex:i=>i*gatesPerSegment};
   const player = {cut:{road:{...road,points},gate:points.length-1},speed:37,spec:{handling:75,braking:48},
     mesh:{position:points.at(-2).clone()}};
   const cue = shortcutMergeCue(world,player);

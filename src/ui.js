@@ -36,14 +36,41 @@ const districtPhotos = {
   mesa: new URL("./districts/mesa.webp", import.meta.url).href,
 };
 
+// All arrows point towards screen-right in the artwork. Flip the geometry
+// for a left call, keeping the instruction and advisory speed upright.
+const maneuverPaths = {
+  straight: "M20 34V7 M11 16l9-9 9 9",
+  easy: "M12 34v-7c0-7 4-11 9-16l6-6 M16 5h11v11",
+  turn: "M10 34V23c0-5 4-9 9-9h13 M24 6l8 8-8 8",
+  hairpin: "M9 34V16a10 10 0 0 1 20 0v10 M22 19l7 7 7-7",
+  fork: "M11 34V7 M11 26c0-5 3-8 7-11l12-8 M21 6l10 0-2 10",
+  merge: "M28 34V6 M10 32v-4c0-8 18-8 18-19 M21 13l7-7 7 7",
+  wrong: "M29 34V16a10 10 0 0 0-20 0v10 M2 19l7 7 7-7",
+  finish: "M9 35V6 M10 7c8-6 14 6 23 0v15c-9 6-15-6-23 0 M17 6v15 M25 9v14 M10 14c8-6 14 6 23 0",
+};
+function maneuverIcon(label) {
+  if (label.includes("WRONG")) return "wrong";
+  if (label.includes("HAIRPIN")) return "hairpin";
+  if (/FORK|TAKE /.test(label)) return "fork";
+  if (/MERGE|JOIN MAIN/.test(label)) return "merge";
+  if (label.includes("EASY")) return "easy";
+  if (label.includes("TURN")) return "turn";
+  if (/FINISH|LAP LINE|^EXTRACTION$/.test(label)) return "finish";
+  return "straight";
+}
+
 function mapArt(map) {
   const preview = coursePreview(map);
   return `<div class="map-art district-photo" aria-hidden="true">
     <img src="${districtPhotos[map.id]}" alt="" width="640" height="432" decoding="async">
     <svg class="district-plan" viewBox="12 14 276 150" preserveAspectRatio="xMidYMid meet">
-      <path d="${preview.circuit}" fill="none" stroke="#061015" stroke-width="7" stroke-linejoin="round"/>
-      <path d="${preview.circuit}" fill="none" stroke="${map.accent}" stroke-width="3.4" stroke-linejoin="round"/>
-      ${preview.cuts.map(path => `<path d="${path}" fill="none" stroke="#ffbe77" stroke-width="2.4" stroke-dasharray="4 3"/>`).join("")}
+      <defs><path id="circuit-${map.id}" d="${preview.circuit}"/></defs>
+      <use href="#circuit-${map.id}" fill="none" stroke="#586976" stroke-width="3.5"/>
+      ${preview.cuts.map(path => `<path d="${path}" fill="none" stroke="#ffbe77" stroke-width="2.5" stroke-dasharray="5 4"/>`).join("")}
+      <g fill="none" stroke="#65ffcb" stroke-width="3.6" stroke-linejoin="round">
+        <use class="plan-main" href="#circuit-${map.id}"/>
+        <path class="plan-shortcuts" d="${preview.viaCuts}"/>
+      </g>
       <circle cx="${preview.start[0]}" cy="${preview.start[1]}" r="4" fill="white" stroke="#142326" stroke-width="1.5"/>
     </svg>
   </div>`;
@@ -68,9 +95,14 @@ export class UI {
     const savedDifficulty = storage.getItem("nightshift-difficulty");
     this.difficulty = ["easy", "medium", "hard"].includes(savedDifficulty) ? savedDifficulty : "medium";
     this.vehicleFilter = "all";
-    this.root.innerHTML = `<main id="menu-layer"></main><section id="hud" hidden><div class="hud-vignette"></div><div class="hud-top"><div class="wordmark small">NIGHTSHIFT<span>//</span></div><div class="objective-stack"><span id="objective">RACE // 3 LAPS</span><i class="route-progress"><b id="route-progress"></b></i></div><div class="race-tools"><div class="timing-stack"><div id="timer">00:00.00</div><span id="pace-note" hidden></span></div><button class="pause-button" data-action="pause" aria-label="Pause race">Ⅱ</button></div></div><div id="countdown"></div><div id="event-feed"><b id="drive-state">HOLD THE LINE</b><span id="drive-detail">CHECKPOINT LINKED</span></div><div class="hud-bottom"><div class="mini-wrap"><canvas id="minimap" width="170" height="170"></canvas><span>ROUTE LINK</span><b>MAP</b></div><div class="readouts"><div class="speed-pod"><div class="rev-row"><span class="gear-indicator">GEAR <b id="current-gear">N</b></span><span class="shift-lights" aria-hidden="true"><i></i></span></div><span class="sr-only">Speed</span><strong id="speed">000</strong><em>KM/H</em></div><div class="meter"><label>NITRO CORE <b id="nitro-text">100</b></label><i><b id="nitro"></b></i><label class="armor">INTEGRITY <b id="health-text">100</b></label><i class="health"><b id="health"></b></i></div></div><div class="race-state"><b id="position">LAP 1 / 3</b><span id="checkpoint">CHECKPOINT 1</span><div id="wanted"></div></div></div><div class="touch-controls" aria-label="Driving controls"><div class="touch-steering"><button data-drive="KeyA" aria-label="Steer left">❮</button><button data-drive="KeyD" aria-label="Steer right">❯</button></div><div class="touch-weapons"><button data-drive="KeyF" aria-label="Fire gun">FIRE</button><button data-drive="KeyR" aria-label="Launch rocket">ROCKET</button></div><div class="touch-pedals"><button class="touch-nitro" data-drive="ShiftLeft" aria-label="Use nitro">N₂O</button><button data-drive="Space" aria-label="Drift">DRIFT</button><button data-drive="KeyS" aria-label="Brake and reverse">BRAKE</button><button class="touch-gas" data-drive="KeyW" aria-label="Accelerate">GAS</button></div></div></section><div id="toast" role="status" aria-live="polite"></div>`;
+    this.root.innerHTML = `<main id="menu-layer"></main><section id="hud" hidden><div class="hud-vignette"></div><div class="hud-top"><div class="wordmark small">NIGHTSHIFT<span>//</span></div><div class="objective-stack"><span id="objective">RACE // 3 LAPS</span><i class="route-progress"><b id="route-progress"></b></i></div><div class="race-tools"><div class="timing-stack"><div id="timer">00:00.00</div><span id="pace-note" hidden></span></div><button class="pause-button" data-action="pause" aria-label="Pause race"><svg viewBox="0 0 20 20" aria-hidden="true" width="18" height="18" fill="currentColor"><path d="M5 3h3v14H5zM12 3h3v14h-3z"/></svg></button></div></div><div id="countdown"></div><div id="event-feed"><svg class="maneuver-icon" viewBox="0 0 40 40" aria-hidden="true"><path/></svg><div class="maneuver-copy"><small id="route-location"></small><b id="drive-state">HOLD THE LINE</b><span id="drive-detail">CHECKPOINT LINKED</span></div><strong id="corner-speed" hidden></strong></div><div class="hud-bottom"><div class="mini-wrap"><canvas id="minimap" width="170" height="170"></canvas><span>ROUTE LINK</span><b>MAP</b></div><div class="readouts"><div class="speed-pod"><div class="rev-row"><span class="gear-indicator">GEAR <b id="current-gear">N</b></span><span class="shift-lights" aria-hidden="true"><i></i></span></div><span class="sr-only">Speed</span><strong id="speed">000</strong><em>KM/H</em></div><div class="meter"><label>NITRO CORE <b id="nitro-text">100</b></label><i><b id="nitro"></b></i><label class="armor">INTEGRITY <b id="health-text">100</b></label><i class="health"><b id="health"></b></i></div></div><div class="race-state"><b id="position">LAP 1 / 3</b><span id="checkpoint">CHECKPOINT 1</span><div id="wanted"></div></div></div><div class="touch-controls" aria-label="Driving controls"><div class="touch-steering"><button data-drive="KeyA" aria-label="Steer left">❮</button><button data-drive="KeyD" aria-label="Steer right">❯</button></div><div class="touch-weapons"><button data-drive="KeyF" aria-label="Fire gun">FIRE</button><button data-drive="KeyR" aria-label="Launch rocket">ROCKET</button></div><div class="touch-pedals"><button class="touch-nitro" data-drive="ShiftLeft" aria-label="Use nitro">N₂O</button><button data-drive="Space" aria-label="Drift">DRIFT</button><button data-drive="KeyS" aria-label="Brake and reverse">BRAKE</button><button class="touch-gas" data-drive="KeyW" aria-label="Accelerate">GAS</button></div></div></section><div id="toast" role="status" aria-live="polite"></div>`;
     this.layer = this.root.querySelector("#menu-layer");
     this.hud = this.root.querySelector("#hud");
+    this.raceState = this.hud.querySelector(".race-state");
+    this.navigator = this.hud.querySelector("#event-feed");
+    this.navigatorIcon = this.navigator.querySelector("path");
+    this.navigatorPlace = this.navigator.querySelector("#route-location");
+    this.advisorySpeed = this.navigator.querySelector("#corner-speed");
     this.mini = this.root.querySelector("#minimap");
     this.bind();
     this.bindDriving();
@@ -201,8 +233,9 @@ export class UI {
     this.networked = false;
     this.game.clearPreview();
     this.hud.hidden = true;
-    this.shell("TIME TRIAL", "Beat " + time(invite.ticks / 100),
-      `<div class="lap-invite"><h2>${esc(invite.map.name)}</h2><p>One lap in the ${esc(invite.vehicle.name)}. Cross the finish line before the target time.</p><button class="primary" data-action="take-challenge">RACE THIS LAP <i>→</i></button></div>`);
+    const instruction = invite.previousLayout ? "This target was set on the original circuit. Set a new time on the revised route." : "Cross the finish line before the target time.";
+    this.shell("TIME TRIAL", invite.previousLayout ? "Race the revised circuit" : "Beat " + time(invite.ticks / 100),
+      `<div class="lap-invite"><h2>${esc(invite.map.name)}</h2><p>One lap in the ${esc(invite.vehicle.name)}. ${instruction}</p><button class="primary" data-action="take-challenge">RACE THIS LAP <i>→</i></button></div>`);
   }
 
   async copyChallenge() {
@@ -250,17 +283,18 @@ export class UI {
     const selected = this.map?.id || "neon";
     const cards = maps
       .map(
-        (m, i) => {
+        (m) => {
+          const preview = coursePreview(m);
           const record = raceRecord(m.id, this.mode.id, this.difficulty);
           const best = this.mode.id === "time" ? districtBest(m.id) : record ? record.at(-1) / 1000 : null;
-          return `<button class="map-card map-${m.id} ${selected === m.id ? "selected" : ""}" data-action="choose-map" data-id="${m.id}">${mapArt(m)}<div class="map-card-copy"><span>ROUTE ${String(i + 1).padStart(2, "0")}</span><h2>${esc(m.name)}</h2><p>${esc(m.tag)}</p><div class="map-facts"><b>${m.route.length * gatesPerSegment} GATES</b><span>${m.straightSegments?.length || 0} SPRINTS</span><span>${m.shortcuts?.length || 0} CUTS</span></div>${best ? `<small class="map-best">BEST ${time(best)}</small>` : ""}</div><i class="map-arrow">↗</i></button>`;
+          return `<button class="map-card map-${m.id} ${selected === m.id ? "selected" : ""}" data-action="choose-map" data-id="${m.id}">${mapArt(m)}<div class="map-card-copy"><span>${esc(m.tag)}</span><h2>${esc(m.name)}</h2><div class="map-facts"><b class="plan-main">${(preview.metres / 1000).toFixed(2)} KM</b><b class="plan-shortcuts">${(preview.cutMetres / 1000).toFixed(2)} KM</b><span class="plan-main">${m.route.length * gatesPerSegment} GATES</span><span class="plan-shortcuts">${m.shortcuts.length} CUTS</span></div>${best ? `<small class="map-best">BEST ${time(best)}</small>` : ""}</div><i class="map-arrow">↗</i></button>`;
         },
       )
       .join("");
     this.shell(
       `${esc(this.mode.title).toUpperCase()} // ROUTE SELECT`,
       "City routes",
-      `<div class="map-selector"><div class="map-selector-head"><div><label class="route-guide-choice">ROUTE GUIDE <select id="route-guide"><option value="main" ${!this.game.guideShortcuts ? "selected" : ""}>Main circuit</option><option value="cuts" ${this.game.guideShortcuts ? "selected" : ""}>Via shortcuts</option></select></label><p>Follow the green line. You can choose either road at a fork.</p></div></div><div class="map-grid-premium">${cards}</div><div class="map-detail-strip"><div><small>SELECTED DISTRICT</small><b>${esc((maps.find((m) => m.id === selected) || maps[0]).tag).toUpperCase()}</b></div><div><small>RACE ROUTE</small><b>${(maps.find((m) => m.id === selected) || maps[0]).route.length * gatesPerSegment} GATES / ${(maps.find((m) => m.id === selected) || maps[0]).straightSegments?.length || 0} STRAIGHTS</b></div><div><small>ATMOSPHERE</small><b>${selected === "neon" ? "NEON NIGHT" : selected === "coast" ? "COASTAL DAWN" : selected === "dock" ? "INDUSTRIAL DUSK" : "DESERT SUNSET"}</b></div></div></div>`,
+      `<div class="map-selector" data-guide="${this.game.guideShortcuts ? "cuts" : "main"}"><div class="map-selector-head"><div><label class="route-guide-choice">ROUTE GUIDE <select id="route-guide"><option value="main" ${!this.game.guideShortcuts ? "selected" : ""}>Main circuit</option><option value="cuts" ${this.game.guideShortcuts ? "selected" : ""}>Via shortcuts</option></select></label><p>The green racing line follows your guide. At a fork, either road counts.</p></div></div><div class="map-grid-premium">${cards}</div><div class="course-legend" aria-label="Course map legend"><span><i></i>Your route</span><span><i></i>Optional shortcut</span><span><i></i>Start / finish</span></div></div>`,
       this.mapBack,
     );
   }
@@ -458,6 +492,11 @@ export class UI {
     this.game.clearPreview();
     this.layer.innerHTML = "";
     this.root.querySelector(".pause-overlay")?.remove();
+    this.hud.dataset.district = this.map.id;
+    this.hud.dataset.mode = this.mode.id;
+    this.hud.dataset.racing = ["race", "sprint"].includes(this.mode.id);
+    const stateParent = this.hud.querySelector(this.map.id === "neon" ? ".objective-stack" : ".hud-bottom");
+    stateParent.append(this.raceState);
     this.hud.hidden = false;
     this.root.classList.toggle("manual-gas", !this.game.autoAccelerate);
     this.game.start({
@@ -525,6 +564,7 @@ export class UI {
       if (e.target.id === "route-guide") {
         this.game.guideShortcuts = e.target.value === "cuts";
         storage.setItem("nightshift-guide-cuts", String(this.game.guideShortcuts));
+        this.layer.querySelector(".map-selector").dataset.guide = e.target.value;
       }
       if (e.target.id === "quality-mode") {
         this.game.applyQuality(e.target.value);
@@ -643,7 +683,7 @@ export class UI {
         ? "S" + sector.sector + " " + time(sector.duration) + (sector.delta == null ? "" : " · " + signedSeconds(sector.delta))
         : s.raceTiming.best != null ? "BEST " + time(s.raceTiming.best / 1000) : "";
     }
-    if (this.lapTarget) {
+    if (this.lapTarget && !this.lapTarget.previousLayout) {
       pace.hidden = false;
       if (showSplit) {
         pace.textContent = "G" + split.index + " " + signedSeconds(split.delta) + " VS YOUR BEST";
@@ -663,9 +703,30 @@ export class UI {
     const instruction = this.root.querySelector("#drive-state");
     instruction.textContent = s.cue?.label || "HOLD THE LINE";
     instruction.classList.toggle("braking-cue", Boolean(s.cue?.braking));
-    this.root.querySelector("#drive-detail").textContent =
-      s.cue?.detail || `CHECKPOINT ${s.next} / ${s.total}`;
-    this.root.querySelector("#objective").textContent = pursuit
+    const neon = s.map.id === "neon";
+    const braking = Boolean(s.cue?.braking);
+    const detail = s.cue?.detail || `CHECKPOINT ${s.next} / ${s.total}`;
+    this.root.querySelector("#drive-detail").textContent = neon
+      ? detail.replace(/ · GATE \d+$/, "").replace(/(\d+)M\b/g, "$1 m")
+      : braking && s.cue.targetKph ? detail + " · " + s.cue.targetKph + " KM/H" : detail;
+    if (neon) {
+      const label = instruction.textContent;
+      const direction = maneuverIcon(label);
+      if (this.navigator.dataset.maneuver !== direction) {
+        this.navigator.dataset.maneuver = direction;
+        this.navigatorIcon.setAttribute("d", maneuverPaths[direction]);
+      }
+      this.navigator.classList.toggle("turn-left", label.includes("LEFT"));
+      this.navigator.classList.toggle("caution", braking || direction === "wrong");
+      const author = s.player.courseSection ?? 0;
+      const district = s.map.environment.districts.find(d => author >= d.from && author <= d.to);
+      this.navigatorPlace.textContent = s.player.roadBranch?.label || district?.name || s.map.name;
+      this.advisorySpeed.hidden = !(braking && s.cue.targetKph);
+      if (!this.advisorySpeed.hidden) this.advisorySpeed.textContent = "Entry " + s.cue.targetKph + " km/h";
+    }
+    this.root.querySelector("#objective").textContent = neon
+      ? s.winnerAhead ? "LEADER FINISHED" : pursuit ? "REACH EXTRACTION" : s.map.name.toUpperCase()
+      : pursuit
       ? "REACH EXTRACTION"
       : this.mode.id === "cruise" ? "EXPLORE THE ROUTE"
       : this.mode.id === "time" ? "BEAT YOUR PERSONAL BEST"
@@ -809,7 +870,7 @@ export class UI {
     const copyButton = link ? '<button data-action="copy-lap">COPY CHALLENGE LINK</button>' : "";
     const copyField = link ? `<input id="lap-link" aria-label="Lap challenge link" readonly hidden value="${esc(link)}">` : "";
     let challengeResult = "";
-    if (completedTrial && this.lapTarget) {
+    if (completedTrial && this.lapTarget && !this.lapTarget.previousLayout) {
       const delta = Math.round(data.time * 100) - this.lapTarget.ticks;
       const result = delta === 0 ? "TARGET MATCHED" : time(Math.abs(delta) / 100) + (delta < 0 ? " UNDER TARGET" : " OVER TARGET");
       challengeResult = `<strong class="challenge-margin">${result} · TARGET ${time(this.lapTarget.ticks / 100)}</strong>`;

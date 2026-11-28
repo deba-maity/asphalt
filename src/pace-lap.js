@@ -1,12 +1,14 @@
 import { storage } from "./storage.js";
 import { angleDelta } from "./route-motion.js";
+import { courseRecordId } from "./data.js";
 
 const limit = 6000;
 const scale = 10; // decimetres
-const key = (district) => "nightshift-pace-v1-" + district;
+const key = (district) => "nightshift-pace-v1-" + courseRecordId(district);
+const bestKey = (district) => "nightshift-best-" + courseRecordId(district);
 
 export function districtBest(district) {
-  const value = Number(storage.getItem("nightshift-best-" + district));
+  const value = Number(storage.getItem(bestKey(district)));
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
@@ -82,7 +84,7 @@ export class PaceLap {
     const previous = districtBest(this.district);
     const improved = previous === null || seconds < previous;
     this.best = improved ? seconds : previous;
-    if (improved) storage.setItem("nightshift-best-" + this.district, this.best);
+    if (improved) storage.setItem(bestKey(this.district), this.best);
     const duration = Math.round(seconds * 1000);
     const saved = referenceLap(this.district, this.splits.length);
     if (this.frames.length >= 2 && (!saved || duration < saved.duration)) {

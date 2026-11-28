@@ -6,6 +6,8 @@ Racing, time trials and pursuit across four districts, on the `nightshift` branc
 
 Choose **Hit the Streets**, a mode, a district and a vehicle, then **Deploy**. Hold **W** or **Up** to accelerate and steer with **A/D** or **Left/Right**. Follow the green arrows through the numbered gates. The corner display calls bends earlier at higher speeds. An amber braking cue marks the turn on the minimap. On the district screen, choose **Via shortcuts** to have the minimap and next marker lead you onto each optional cut. Lit arches follow the deck of the selected shortcut, and the green line continues past the junction to show the exit direction. A merge cue shows which way to turn back onto the main road and when to brake. Staying on the main road restores the regular gate guidance. Cross the checkered stripe in the direction of travel to finish a lap. Sprint takes one lap and Race takes three. Solo races stay open after rivals finish. The results show your place, gap to the winner and three sector times for each lap. On a rematch, crossing a sector gate shows the time you gained or lost against your best completed run on that district, in the same mode and difficulty. Pause offers **Return to last gate** and **Restart run**.
 
+**Neon Meridian** is a 3.84 km city circuit. Switch between **Main circuit** and **Via shortcuts** on the district screen to preview the line and distance. In the race, the arrow shows the next turn and the name above it identifies the street or shortcut. An amber call gives an entry speed when you need to brake. The striped paint marks the inside of a bend. The revised track keeps its own lap records and ghosts. Older challenge links still open the same car and district.
+
 In **Police Escape**, follow the gates to extraction. The heat display shows the nearest unit ahead or behind you. Patrols follow the main road, so taking a shortcut or accelerating away after a sideswipe can open a gap. Hold a lead of 90 metres over every patrol for six seconds to lose one heat level. The breakaway countdown appears in the heat display. A stopped car under sustained contact can be busted.
 
 Complete a **Time Trial** to record a pace ghost for that district. On the next run, the violet outline follows your recorded line and the timer compares matching gates. The ghost and your best time live in the current browser. The ghost can be switched off in Settings.
@@ -77,6 +79,7 @@ npm run build
 npx playwright install chromium --only-shell
 npm run test:smoke
 node scripts/visual-contracts.mjs
+node scripts/road-clearance.mjs
 ```
 
 Browser checks use headless Chromium and SwiftShader, with no desktop window or desktop input. Their frame counts are budget checks, not native performance measurements. `node scripts/endurance.mjs 3600 LABEL` freezes runtime files, steps simulation for a real-time hour and samples software rendering at checkpoints. Results go to ignored `artifacts/`.
