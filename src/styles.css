@@ -4676,8 +4676,32 @@ html.reduced-motion *, html.reduced-motion *::before, html.reduced-motion *::aft
   background: #0c1824e8;
 }
 #hud[data-district="neon"] .mini-wrap > span { font: 500 10px/1.1 "Barlow Condensed", sans-serif; }
+#hud[data-district="neon"] .speed-pod,
+#hud[data-district="neon"] .meter {
+  border: 1px solid #92bed142;
+  border-radius: 3px;
+  background: #0c1824e8;
+}
+#hud[data-district="neon"] .speed-pod { border-bottom: 2px solid #7ddcca; }
+#hud[data-district="neon"] .rev-row,
+#hud[data-district="neon"] .readouts em { font: 600 11px/1 "Barlow Condensed", sans-serif; }
+#hud[data-district="neon"] .readouts em { color: #acdfd8; }
+#hud[data-district="neon"] .meter label {
+  font: 600 12px/1.1 "Barlow Condensed", sans-serif;
+  letter-spacing: .055em;
+  color: #dbe8ed;
+}
+#hud[data-district="neon"] .meter label b { color: #a1ecde; font-variant-numeric: tabular-nums; }
+#hud[data-district="neon"] .meter label b::after { content: "%"; }
+#hud[data-district="neon"] .meter i { height: 4px; background: #344754; }
+#hud[data-district="neon"] .meter #nitro { background: #78dccc; }
+#hud[data-district="neon"] .meter #health { background: #a7c5d1; }
+#hud[data-district="neon"].low-integrity #health-text { color: #ffb582; }
+#hud[data-district="neon"].low-integrity .meter #health { background: #ffad72; }
 .map-card:focus-visible { outline: 2px solid #c8f087; outline-offset: 2px; }
 @media (max-width: 760px), (pointer: coarse) {
+  #hud[data-district="neon"] .meter label { font-size: 11px; }
+  #hud[data-district="neon"] .rev-row, #hud[data-district="neon"] .readouts em { font-size: 10px; }
   #hud[data-district="neon"] #position { font-size: 17px; }
   #hud[data-district="neon"] #timer { font-size: 17px; padding: 5px 6px; }
   #hud[data-district="neon"] .objective-stack { gap: 2px 6px; padding: 7px 8px; min-width: 0; width: 100%; }

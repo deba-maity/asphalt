@@ -495,6 +495,10 @@ export class UI {
     this.hud.dataset.district = this.map.id;
     this.hud.dataset.mode = this.mode.id;
     this.hud.dataset.racing = ["race", "sprint"].includes(this.mode.id);
+    const mapCaption = this.hud.querySelector(".mini-wrap > span");
+    mapCaption.textContent = this.map.id === "neon"
+      ? (this.game.guideShortcuts ? "VIA SHORTCUTS" : "MAIN CIRCUIT") : "ROUTE LINK";
+    this.mini.setAttribute("aria-label", this.map.name + " course map, " + (this.game.guideShortcuts ? "via shortcuts" : "main circuit"));
     const stateParent = this.hud.querySelector(this.map.id === "neon" ? ".objective-stack" : ".hud-bottom");
     stateParent.append(this.raceState);
     this.hud.hidden = false;
@@ -665,6 +669,7 @@ export class UI {
     this.root.querySelector("#nitro-text").textContent = Math.round(s.boost);
     this.root.querySelector("#health").style.width = `${s.health}%`;
     this.root.querySelector("#health-text").textContent = Math.round(s.health);
+    this.hud.classList.toggle("low-integrity", s.health < 30);
     this.root.querySelector("#timer").textContent = time(s.time);
     const pace = this.root.querySelector("#pace-note");
     const split = s.pace?.lastSplit;
