@@ -642,6 +642,7 @@ export class World {
       this.roadMat,
     );
 
+    road.name = "Main road pavement";
     road.receiveShadow = true;
 
     road.userData.worldOwned = true;
@@ -725,12 +726,17 @@ export class World {
     for (const shortcut of this.shortcutRoads) {
       const { points, elevated, heightProfile } = shortcut;
       shortcut.halfWidth = shortcutHalfWidth;
+      // At a level fork, the main road's continuous paint must win the depth test.
+      // The branch lifts onto its own visible deck as soon as the ramp rises.
+      const asphaltHeight = heightProfile.map(h => h - .025 * (1 - THREE.MathUtils.smoothstep(h, this.roadSurfaceY, this.roadSurfaceY + .25)));
+      const edgeHeight = asphaltHeight.map(h => h + .006);
       const road = new THREE.Mesh(
         this.trackGeometry(
-          createRibbonGeometry(points, shortcutHalfWidth, heightProfile, 15, false),
+          createRibbonGeometry(points, shortcutHalfWidth, asphaltHeight, 15, false),
         ),
         this.roadMat,
       );
+      road.name = "Shortcut pavement";
       road.receiveShadow = true;
       road.userData.worldOwned = true;
       this.group.add(road);
@@ -754,18 +760,19 @@ export class World {
           points,
           -7.65,
           0.05,
-          heightProfile.map((h) => h + 0.085),
+          edgeHeight,
           false,
         ),
         this.createContinuousLine(
           points,
           7.65,
           0.05,
-          heightProfile.map((h) => h + 0.085),
+          edgeHeight,
           false,
         ),
       ];
       edges.forEach((edge) => {
+        edge.name = "Shortcut edge line";
         edge.material = glowMat;
         edge.userData.worldOwned = true;
         this.group.add(edge);

@@ -346,6 +346,24 @@ try {
           check(remote.surfaceY === world.roadSurfaceY, 'The same x/z on the lower road stays below the bridge');
           g.setRemotePlayers([]);
         }
+        // Sample the actual shortcut stripe where it crosses a shared lane. The
+        // main pavement should cover it all the way through the fork and merge.
+        const mainPavement = world.group.getObjectByName('Main road pavement');
+        const stripes = world.group.children.filter(m => m.name === 'Shortcut edge line');
+        const pavementRay = new Raycaster(new Vector3(), new Vector3(0,-1,0), 0, 2);
+        let sharedPaint = 0;
+        for (const stripe of stripes) {
+          const vertices = stripe.geometry.getAttribute('position');
+          for (let j = 0; j < vertices.count; j += 2) {
+            const point = new Vector3().fromBufferAttribute(vertices, j);
+            if (point.y > .3 || world.projectMainRoad(point).distance > 8) continue;
+            pavementRay.ray.origin.copy(point).y += 1;
+            const paintedLane = pavementRay.intersectObject(mainPavement, false)[0];
+            check(paintedLane && paintedLane.point.y > point.y + .005, 'Shortcut edge stays under main lane paint at a level junction: ' + map.id);
+            sharedPaint++;
+          }
+        }
+        check(sharedPaint > 0, 'Covered the actual shortcut paint inside a shared lane: ' + map.id);
         const decks = world.group.children.filter(m => m.name === "Cross street pavement");
         const down = new Raycaster(new Vector3(), new Vector3(0,-1,0), 0, 22);
         check(decks.length === (map.id === 'neon' ? 2 : 1), 'Complete cross streets: ' + map.id);

@@ -40,7 +40,8 @@ for (const map of maps) {
     const bridges = mapOverpasses(samples, cuts);
     assert.equal(bridges.length > 0, map.id === "neon" || map.id === "mesa");
     for (const road of cuts.filter(r => r.elevated)) {
-      assert.ok(road.heightProfile[0] < .1 && road.heightProfile.at(-1) < .1);
+      assert.equal(road.heightProfile[0], .052);
+      assert.equal(road.heightProfile.at(-1), .052);
       for (let i = 1; i < road.points.length; i++) {
         const a = road.points[i - 1], b = road.points[i];
         for (let k = 0; k <= 12; k++) {

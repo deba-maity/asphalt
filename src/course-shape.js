@@ -73,7 +73,7 @@ export function planShortcutRoads(controlRoute, shortcuts, surfaceY, projectMain
   return shortcuts.map(shortcut => {
     const points = shortcutPoints(controlRoute, shortcut);
     const elevated = Boolean(shortcut.elevated);
-    const heightProfile = points.map(() => surfaceY + .043);
+    const heightProfile = points.map(() => surfaceY);
     if (elevated) {
       const distance = [0];
       for (let i = 1; i < points.length; i++) distance.push(distance[i - 1] + points[i].distanceTo(points[i - 1]));
