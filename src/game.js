@@ -4,7 +4,7 @@ import { storage } from "./storage.js";
 import { PaceLap } from "./pace-lap.js";
 import { PursuitHeat, breakawayDistance, breakawaySeconds } from "./pursuit-heat.js";
 import { nearestPointOnPath } from "./road-projection.js";
-import { shortcutApproach, shortcutMarkerIndex } from "./shortcut-guide.js";
+import { shortcutApproach, shortcutMarkerIndex, shortcutMergeCue } from "./shortcut-guide.js";
 import { RaceTiming } from "./race-timing.js";
 import { paceGhost } from "./pace-ghost.js";
 import { approachingCorner } from "./corner-notes.js";
@@ -1374,8 +1374,10 @@ export class Game {
     if (p.cut) {
       const { road, gate } = p.cut;
       const target = road.points[gate];
-      if (near(target, 12)) {
-        if (gate === road.points.length - 1) {
+      const finalGate = gate === road.points.length - 1;
+      // Inside and outside lanes join the circuit on different sides of the arch.
+      if (near(target, 12) || (finalGate && world.hasMergedFromShortcut(road, p, fromX, fromZ))) {
+        if (finalGate) {
           hit = world.authorSegmentToRouteIndex(road.to);
           p.cut = null;
         } else {
@@ -1934,6 +1936,8 @@ export class Game {
     if (distanceToTarget > 16 && facing < -0.55 * Math.hypot(dx, dz))
       return { label: "WRONG WAY", detail: "TURN BACK TOWARD THE GREEN GATE" };
     if (p.cut) {
+      const merge = shortcutMergeCue(this.world, p);
+      if (merge) return merge;
       const marker = p.cut.road.points[shortcutMarkerIndex(p.cut.road, p.cut.gate)];
       return { label: p.cut.road.label, detail: Math.round(Math.hypot(marker.x - pos.x, marker.z - pos.z)) + "M TO THE NEXT ARCH" };
     }

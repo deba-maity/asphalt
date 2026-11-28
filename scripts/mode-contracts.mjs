@@ -115,6 +115,24 @@ try {
         check(finisher.lap === 3 && finisher.finishedAt != null, 'A contact nudge across the finish is scored on the same step');
         ui.start(); g.phase = 'play';
       }
+      if (map.id === 'neon' && mode.id === 'time') {
+        const p = g.player, w = g.world, road = w.shortcutRoads.find(r => r.label === 'FLYOVER');
+        const merge = w.authorSegmentToRouteIndex(road.to) * w.samples.length / w.route.length;
+        const inside = w.samples[merge + 5], forward = w.samples[merge + 6].clone().sub(inside).normalize();
+        p.next = w.authorSegmentToRouteIndex(road.from) + 1;
+        p.cut = {road, gate: road.points.length - 1};
+        p.mesh.position.copy(inside); p.surfaceY = w.roadSurfaceY;
+        check(inside.distanceTo(road.points.at(-1)) > 12, 'Inside lane clears the old point target');
+        check(!w.hasMergedFromShortcut(road,p,inside.x + forward.x,inside.z + forward.z),'Driving backward cannot finish a merge');
+        p.surfaceY += 6.65;
+        check(!w.hasMergedFromShortcut(road,p,inside.x - forward.x,inside.z - forward.z),'An upper deck cannot claim a lower road merge');
+        p.surfaceY = w.roadSurfaceY;
+        w.constrainToRoad(p);
+        check(!p.roadBranch || p.roadBranch === road,'A near-parallel shortcut cannot take over a scored exit');
+        g.checkProgress(p,inside.x - forward.x,inside.z - forward.z,1/60);
+        check(!p.cut && p.next === w.authorSegmentToRouteIndex(road.to) + 1,'A forward merge onto the outgoing lane releases the last shortcut gate');
+        ui.start(); g.phase = 'play'; g.elapsed = 30;
+      }
       if (competitive) {
         g.elapsed = 0;
         const referenceLaunch = { speed: 0, heading: g.player.heading, boost: 100 };

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { Vector3 } from 'three';
 import { maps, gatesPerSegment } from '../src/data.js';
 import { shortcutPoints, sampleHybridClosedRoute } from '../src/course-shape.js';
-import { shortcutApproach } from '../src/shortcut-guide.js';
+import { shortcutApproach, shortcutMergeCue } from '../src/shortcut-guide.js';
 
 test('all authored junctions offer a continuous shortcut guide and restore the main path if declined', () => {
   for (const map of maps) {
@@ -33,4 +33,22 @@ test('all authored junctions offer a continuous shortcut guide and restore the m
       assert.equal(shortcutApproach(world,player), null);
     }
   }
+});
+
+test('a fast driver gets a braking and merge direction before the final flyover arch', () => {
+  const map = maps.find(m => m.id === 'neon');
+  const control = map.route.map(([x,z]) => new Vector3(x,0,z));
+  const road = map.shortcuts.find(s => s.label === 'FLYOVER');
+  const points = shortcutPoints(control,road);
+  const world = {samples:sampleHybridClosedRoute(control,22,map.straightSegments),
+    route:sampleHybridClosedRoute(control,gatesPerSegment,map.straightSegments), authorSegmentToRouteIndex:i=>i*gatesPerSegment};
+  const player = {cut:{road:{...road,points},gate:points.length-1},speed:37,spec:{handling:75,braking:48},
+    mesh:{position:points.at(-2).clone()}};
+  const cue = shortcutMergeCue(world,player);
+  assert.equal(cue.label,'BRAKE · MERGE RIGHT');
+  assert.equal(cue.apex,points.at(-1));
+  player.speed = 6;
+  assert.equal(shortcutMergeCue(world,player).label,'MERGE RIGHT');
+  player.cut.gate = 4;
+  assert.equal(shortcutMergeCue(world,player),null);
 });

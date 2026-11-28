@@ -4,6 +4,28 @@ export function shortcutMarkerIndex(road, gate) {
   return Math.min(road.points.length - 1, Math.max(3, Math.ceil(gate / 3) * 3));
 }
 
+export function shortcutMergeCue(world, player) {
+  const {road, gate} = player.cut, points = road.points;
+  if (gate < points.length - 4) return null;
+  const end = points.at(-1), before = points.at(-2);
+  const index = world.authorSegmentToRouteIndex(road.to) * world.samples.length / world.route.length;
+  const after = world.samples[(index + 2) % world.samples.length];
+  const ax = end.x - before.x, az = end.z - before.z;
+  const bx = after.x - end.x, bz = after.z - end.z;
+  const turn = Math.atan2(ax * bz - az * bx, ax * bx + az * bz);
+  const grip = 3.1 + player.spec.handling * .055;
+  const speed = Math.sqrt(20 * grip / Math.max(.25, Math.abs(turn)));
+  const stopping = Math.max(0, (player.speed ** 2 - speed ** 2) / (2 * (5 + player.spec.braking * .12)));
+  const pos = player.mesh.position;
+  let remaining = Math.hypot(points[gate].x - pos.x, points[gate].z - pos.z);
+  for (let i = gate + 1; i < points.length; i++) remaining += points[i].distanceTo(points[i - 1]);
+  if (remaining > Math.max(40, stopping + player.speed * .9)) return null;
+  const braking = Math.abs(turn) > .45 && player.speed > speed + 2 && remaining < stopping + player.speed * .55;
+  const label = Math.abs(turn) < .32 ? "JOIN MAIN ROAD" : "MERGE " + (turn < 0 ? "LEFT" : "RIGHT");
+  return {label: (braking ? "BRAKE · " : "") + label, detail: road.label + " · " + Math.round(remaining) + "M TO MAIN ROAD",
+    braking, apex: end};
+}
+
 // The entry junction still has to be crossed. The planned route is only advice;
 // the race accepts a shortcut after the car physically reaches its first marker.
 export function shortcutApproach(world, player) {

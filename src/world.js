@@ -5160,7 +5160,9 @@ export class World {
     let pastEdge = center.distance - roadHalfWidth;
     let branch = null;
     for (const road of this.shortcutRoads) {
-      if (actor.role === "race" || (actor.roadBranch && actor.roadBranch !== road)) continue;
+      if (actor.role === "race") continue;
+      const activeRoad = actor.cut?.road ?? actor.roadBranch;
+      if (activeRoad && activeRoad !== road) continue;
       const candidate = nearestPointOnPath(position, road.points, false);
       const junction = candidate.index < 3 || candidate.index >= road.points.length - 4;
       const following = actor.roadBranch === road;
@@ -5190,6 +5192,19 @@ export class World {
       deflectVelocity(actor, nx, nz, 0);
     }
     return pastEdge <= 0;
+  }
+
+  hasMergedFromShortcut(road, actor, fromX, fromZ) {
+    const pos = actor.mesh.position, end = road.points.at(-1);
+    if (Math.hypot(pos.x - end.x, pos.z - end.z) > 44 || actor.surfaceY > this.roadSurfaceY + .55) return false;
+    const location = this.projectMainRoad(pos);
+    if (location.distance > roadHalfWidth) return false;
+    const stride = this.samples.length / this.route.length;
+    const merge = this.authorSegmentToRouteIndex(road.to) * stride;
+    const relative = (location.index - merge + this.samples.length) % this.samples.length;
+    if (relative >= stride) return false;
+    const a = this.samples[location.index], b = this.samples[(location.index + 1) % this.samples.length];
+    return (pos.x - fromX) * (b.x - a.x) + (pos.z - fromZ) * (b.z - a.z) > 0;
   }
 
   alignRoadSurface(actor, branch, center) {
