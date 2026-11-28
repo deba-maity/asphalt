@@ -1,6 +1,10 @@
+import { realpathSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { createServer as createViteServer } from 'vite';
 import { installLobby } from './server/lobby.js';
+
+// Node's Windows file watcher expects the long path even when launched from an 8.3 alias.
+if (process.platform === 'win32') process.chdir(realpathSync.native(process.cwd()));
 
 const port=Number(process.env.PORT||5173);
 const hmrPort=Number(process.env.HMR_PORT||24678);
