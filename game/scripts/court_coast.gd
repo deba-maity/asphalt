@@ -2,6 +2,7 @@ class_name CourtCoast
 extends Node3D
 
 var water := ShaderMaterial.new()
+var watch := ShoreWatch.new()
 
 func _ready() -> void:
 	var bank := MeshInstance3D.new()
@@ -23,6 +24,8 @@ func _ready() -> void:
 	sea.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(sea)
 	sea_stacks()
+	watch.position = Vector3(-25.5, 0, -46)
+	add_child(watch)
 
 static func coastline(angle: float) -> float:
 	return 21.7 + 1.5 * sin(3.0 * angle + .2) + 1.1 * cos(5.0 * angle) + .52 * sin(9.0 * angle)
@@ -89,3 +92,4 @@ func sea_stacks() -> void:
 
 func set_tide(time: float) -> void:
 	water.set_shader_parameter("tide_time", time)
+	watch.set_wind(time)

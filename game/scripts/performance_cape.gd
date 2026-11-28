@@ -33,8 +33,9 @@ func _ready() -> void:
 	mesh=surface
 	var material=ShaderMaterial.new()
 	material.shader=preload("res://assets/performance/mantle.gdshader")
-	material.set_shader_parameter("cloth_color",Color("56342c") if figure.role=="rayan" else Color("303d3b"))
-	material.set_shader_parameter("trim_color",Color("9b8053") if figure.role=="rayan" else Color("a09a80"))
+	material.set_shader_parameter("wayfarer", figure.role == "rayan")
+	material.set_shader_parameter("cloth_color",Color("744437") if figure.role=="rayan" else Color("303d3b"))
+	material.set_shader_parameter("trim_color",Color("d2b380") if figure.role=="rayan" else Color("a09a80"))
 	material.set_shader_parameter("cloth_map",load("res://assets/surfaces/cloth.png"))
 	material.set_shader_parameter("cloth_normal",load("res://assets/surfaces/cloth_normal.png"))
 	material_override=material
@@ -48,13 +49,18 @@ func _ready() -> void:
 			var u=float(column)/(COLUMNS-1); var v=float(row)/(ROWS-1)
 			var hem=(.025*sin(column*2.7)+.07*pow(1-absf(u-.5)*2,4))*pow(v,6)
 			var pleat=.024*cos(u*PI*6)*(1-.4*v)
-			var length=.88 if figure.role!="rayan" else .76-.18*u
-			var width=lerpf(.60,.76 if figure.role!="rayan" else .68,v)
+			var length := .88
+			var width := lerpf(.60, .76, v)
+			if figure.role == "rayan":
+				# A narrow sword-side hem, with two short tails clear of the elbows.
+				length = .70 + .115 * sin(PI * u) - .19 * u
+				hem += (.084 * exp(-pow((u - .51) * 8.0, 2)) + .028 * u) * pow(v, 4)
+				width = lerpf(.62, .59, v) + .12 * sin(PI * v)
 			rest.append(Vector3((u-.5)*width+.035*v,.18-v*length+hem,-.245-v*.08+pleat))
 	for row in ROWS:
 		for column in COLUMNS:
 			var i=row*COLUMNS+column
-			var split=figure.role!="rayan" and row>=7
+			var split := row >= (8 if figure.role == "rayan" else 7)
 			if column<COLUMNS-1 and not (split and column==2): link(i,i+1,.000002)
 			if row<ROWS-1: link(i,i+COLUMNS,.000002)
 			if column<COLUMNS-1 and row<ROWS-1:
@@ -62,7 +68,7 @@ func _ready() -> void:
 					link(i,i+COLUMNS+1,.00002); link(i+1,i+COLUMNS,.00002)
 				# Open the lower center seam without adding particles or tearing
 				# constraints at runtime. Both tails remain physically bounded.
-				if not (figure.role!="rayan" and column==2 and row>=7):
+				if not (split and column == 2):
 					triangles.append_array(PackedInt32Array([i,i+COLUMNS+1,i+1,i,i+COLUMNS,i+COLUMNS+1]))
 			if column<COLUMNS-2 and not (split and column in [1,2]): link(i,i+2,.001)
 			if row<ROWS-2: link(i,i+COLUMNS*2,.001)

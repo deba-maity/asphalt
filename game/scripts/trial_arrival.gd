@@ -33,6 +33,7 @@ var guard_time: float = 0
 var reach_arc: MeshInstance3D
 var chalk := ShaderMaterial.new()
 var practice_swing := -1
+var footwork_origin := Vector3.INF
 
 func _ready() -> void:
 	(world.hero.figure as PerformanceFigure).settle_on_shore()
@@ -85,7 +86,7 @@ func create_reach_arc() -> void:
 	reach_arc = MeshInstance3D.new()
 	reach_arc.name = "PracticeReach"
 	var floor_mark := PlaneMesh.new()
-	floor_mark.size = Vector2(3.6, 3.6)
+	floor_mark.size = Vector2(4.8, 4.8)
 	reach_arc.mesh = floor_mark
 	reach_arc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	chalk.shader = preload("res://assets/court/practice_reach.gdshader")
@@ -95,10 +96,20 @@ func create_reach_arc() -> void:
 
 func update_demonstration() -> void:
 	if reach_arc == null: return
-	reach_arc.visible = step == Step.STRIKE
+	reach_arc.visible = step in [Step.STRIKE, Step.DODGE]
 	(world.warden.figure as PerformanceFigure).shore_stance.demonstrating_guard = step == Step.GUARD
 	if not reach_arc.visible: return
+	chalk.set_shader_parameter("footwork", step == Step.DODGE)
 	var foe := world.warden.position
+	if step == Step.DODGE:
+		# Leave the chalk where the lesson began so a roll can visibly cross it.
+		var feet := world.hero.position
+		if not footwork_origin.is_finite() or feet.distance_to(footwork_origin) > 2.3:
+			footwork_origin = feet
+			var forward := Vector2(foe.x - feet.x, foe.z - feet.z).normalized()
+			chalk.set_shader_parameter("approach", forward if not forward.is_zero_approx() else Vector2.UP)
+		reach_arc.position = Vector3(footwork_origin.x, .038, footwork_origin.z)
+		return
 	reach_arc.position = Vector3(foe.x, .038, foe.z)
 	var approach := Vector2(world.hero.position.x - foe.x, world.hero.position.z - foe.z)
 	if approach.length_squared() > .002: chalk.set_shader_parameter("approach", approach.normalized())
@@ -185,6 +196,8 @@ func refresh_hud() -> void:
 	elif step in [Step.LOCK, Step.STRIKE]:
 		ui.objective_text.text += "\n" + ShoreEmber.bearing(world.hero, world.warden.global_position)
 	ui.tutorial.text = TOUCH_HINTS[step] if ui.touch_preferred else ui.play_prompt(lesson[2])
+	if step == Step.DODGE:
+		ui.objective_text.text = "Roll clear of the echo. The chalk shows two open steps."
 	ui.tutorial.show()
 	ui.tutorial.modulate.a = 1
 	ui.help_caption.text = "Menu · Trial guide and settings" if ui.touch_preferred else ui.play_prompt("{journal} Trial guide · {pause} Pause")

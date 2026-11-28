@@ -644,7 +644,7 @@ func show_practice_cue(value: String) -> void:
 	practice_cue.position = Vector2((get_viewport().get_visible_rect().size.x - practice_cue.size.x) * .5, 246)
 	practice_cue.show()
 
-func track_destination(camera: Camera3D, point: Vector3, title: String) -> void:
+func track_destination(camera: Camera3D, point: Vector3, title: String, offscreen_only := false) -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
 	var safe := Rect2(Vector2(100, viewport_size.y * .27), Vector2(viewport_size.x - 200, viewport_size.y * .46))
 	var center := safe.get_center()
@@ -652,6 +652,9 @@ func track_destination(camera: Camera3D, point: Vector3, title: String) -> void:
 	var at := center
 	if not behind: at = camera.unproject_position(point)
 	var on_screen := not behind and safe.has_point(at)
+	if offscreen_only and on_screen:
+		destination_label.hide()
+		return
 	destination_label.text = title
 	destination_diamond.visible = on_screen
 	destination_arrow.visible = not on_screen

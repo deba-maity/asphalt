@@ -32,7 +32,7 @@ Rico Cilliers (ground adjustment), Andreas Mischok (forest panorama).
 See COURT_ASSET_LICENSE.txt and game/assets/court/provenance.json.
 
 The Counting Shore's dawn panorama, sun-and-waves embroidery, headland pine
-and stone mosaic are original artwork created with image generation assistance.
+stone mosaic and three bronze shore reliefs are original artwork created with image generation assistance.
 The standards, tides, watchfires and causeway are rendered in the game.
 The original shoreline ambience layers three synthesized breaking waves.
 Cinzel typeface: Copyright 2020 The Cinzel Project Authors.

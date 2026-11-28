@@ -6,6 +6,7 @@ uniform vec4 trim_color : source_color = vec4(.42,.32,.17,1.0);
 uniform sampler2D cloth_map : source_color, filter_linear_mipmap_anisotropic;
 uniform sampler2D cloth_normal : hint_normal, filter_linear_mipmap_anisotropic;
 uniform int oath = -1;
+uniform bool wayfarer = false;
 uniform float heat : hint_range(0.0,1.0) = 0.0;
 
 float line_segment(vec2 p, vec2 a, vec2 b, float width) {
@@ -25,6 +26,17 @@ void fragment() {
 	ring*=step(.025,abs(p.x+.018));
 	float stroke=line_segment(p,vec2(-.035,-.14),vec2(.035,.14),.005);
 	float emblem=max(ring,stroke)*.6;
+	if (wayfarer) {
+		// A beacon under a rising sun; the broad bars survive at chase-camera distance.
+		vec2 crest = (UV - vec2(.48,.42)) * vec2(1.0,1.22);
+		float sail = line_segment(crest,vec2(-.085,.075),vec2(-.023,-.066),.010);
+		sail = max(sail,line_segment(crest,vec2(.073,.075),vec2(.021,-.066),.010));
+		sail = max(sail,line_segment(crest,vec2(-.095,.075),vec2(.087,.075),.010));
+		sail = max(sail,line_segment(crest,vec2(-.047,-.068),vec2(.047,-.068),.010));
+		float sunrise = (1.0 - smoothstep(.007,.014,abs(length(crest - vec2(0.,-.055)) - .115))) * step(crest.y,-.068);
+		float sea = (1.0-smoothstep(.006,.013,abs(crest.y-.112-.012*cos(crest.x*47.0)))) * (1.0-smoothstep(.085,.126,abs(crest.x)));
+		emblem = max(max(sail,sunrise),sea);
+	}
 	if (oath >= 0) {
 		// Each teaching echo wears another bar of the shore's device.
 		float stitch = 0.0;
@@ -39,7 +51,10 @@ void fragment() {
 	}
 	float wear=.88+.12*sin(UV.y*51.0+sin(UV.x*39.0));
 	vec3 base=cloth_color.rgb*mix(vec3(.75),weave,0.55)*wear;
-	ALBEDO=mix(base,trim_color.rgb*weave,max(max(border,seam*.65),emblem));
+	float yoke = .15 + .065 * (1.0 - abs(UV.x * 2.0 - 1.0));
+	float braid = wayfarer ? 1.0 - smoothstep(.005,.015,abs(UV.y - yoke)) : 0.0;
+	if (wayfarer) base *= mix(.62, 1.0, smoothstep(yoke-.01,yoke+.014,UV.y));
+	ALBEDO=mix(base,trim_color.rgb*mix(vec3(.85),weave,.48),max(max(border,seam*.65),max(emblem,braid*.83)));
 	EMISSION=vec3(.89,.27,.055)*heat*emblem*.8;
 	ROUGHNESS=.95;
 	NORMAL_MAP=texture(cloth_normal,UV*vec2(3.0,4.0)).rgb;

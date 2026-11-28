@@ -4,34 +4,61 @@ Current source: **0.8.0-rc.1 — The Ashen Trial**. Offline single-player sword 
 
 [Play Ashen Vow in a browser](https://deba-maity.github.io/asphalt/ashen-vow/play/)
 
-Choose **Begin journey · The Counting Shore**. Follow the gold ember marker with **WASD**, then press **E** to listen. An edge arrow points back toward the destination when it leaves view. A quiet echo lets you practice locking on (**Q**), landing a light strike (left mouse), guarding (**Ctrl**) and rolling (**Space**). Use **Spar** (right mouse or **Y** on a controller) for an optional timing lesson. Guard a moving blade, roll clear of the raised cleave, then land a counterstrike. The echo pulls its blows. Press **E**, **A** on a controller, or **Begin** on touch when you want to start the encounter. After a defeat, **Practice guard and dodge** returns to the drill and keeps your current opponent. Three echoes prepare you for the Cinder Warden. Each completed lesson saves a checkpoint. After a victory, return to the lit ember and call the next opponent when you are ready. Health, stamina and draughts refill. Each echo lights a seal above the north gate. Defeat the Warden and walk through that gate to reach dawn. At the ending, **Revisit a duel** lets you choose any of the three echoes or the Warden for a fresh fight. You can retry or choose another opponent while your ending stays saved. On touchscreens, move with the left pad and swipe the court to look around. Push beyond the pad rim during combat to sprint. Prompts follow the last keyboard, controller or touch input. The on-screen controls change with each lesson. Use **Continue** on the same browser or device to return to your next lesson or encounter. **Warden duel · skip lessons** is a separate practice fight.
+Choose **Begin journey · The Counting Shore**. Follow the gold ember marker with **WASD**, then press **E** to listen. An edge arrow points back toward the destination when it leaves view. A quiet echo lets you practice locking on (**Q**), landing a light strike (left mouse), guarding (**Ctrl**) and rolling (**Space**). Use **Spar** (right mouse or **Y** on a controller) for an optional timing lesson. Guard a moving blade, roll clear of the raised cleave, then land a counterstrike. The echo pulls its blows. Press **E**, **A** on a controller, or **Begin** on touch when you want to start the encounter. After a defeat, **Practice guard and dodge** returns to the drill and keeps your current opponent. Three echoes prepare you for the Cinder Warden. Each completed lesson saves a checkpoint. After a victory, return to the lit ember and call the next opponent when you are ready. Health, stamina and draughts refill. Each echo rekindles a carving on the western parapet and part of the bronze sunrise on the north gate. After the second echo, the offshore beacon shines through the cloister. Defeat the Warden and walk through that gate to reach dawn. At the ending, **Revisit a duel** lets you choose any of the three echoes or the Warden for a fresh fight. You can retry or choose another opponent while your ending stays saved. On touchscreens, move with the left pad and swipe the court to look around. Push beyond the pad rim during combat to sprint. Prompts follow the last keyboard, controller or touch input. The on-screen controls change with each lesson. Use **Continue** on the same browser or device to return to your next lesson or encounter. **Warden duel · skip lessons** is a separate practice fight.
 
 The trial uses artist-made plate armor, retargeted authored motion, physical sword sweeps, simulated cloth, a ruined courtyard and adaptive orchestral score. The earlier six-chapter campaign remains in its archive with its existing visuals and saves.
 
-This is a substantial animation-pipeline replacement, **not God of War or Black Myth: Wukong quality**. The current trial replaces the ranger figures with detailed, licensed armor, but still lacks the custom animation and environment production of those games. Headless tests and isolated CPU asset inspection cannot establish rendered quality, input feel or laptop GPU performance. No graphical game was opened on the Remote Desktop.
-
 [Current changes and evidence](docs/passage-and-power.md) | [Armor revision](docs/armored-trial.md) | [Previous motion revision](docs/motion-amplification.md) | [Credits](docs/CREDITS.txt) | [Source provenance](game/assets/performance/provenance.json)
 
-## Pull, build and open on your Windows PC
+## Get the source and start Ashen Vow on Windows
 
-Run in **PowerShell**, from your existing checkout:
+Install Git. In PowerShell, open the folder where you want to keep the game. For a first checkout, run:
 
 ```powershell
-Set-Location 'C:\Users\Dmaity\Desktop\asphalt'
-git switch ashen-vow
+git clone --single-branch --branch ashen-vow https://github.com/deba-maity/asphalt.git ashen-vow
+Set-Location .\ashen-vow
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\setup.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\launch.ps1
+```
+
+Setup downloads the pinned Godot 4.7.2 engine and imports the art. The first import can take several minutes. The launch command opens the game from source. Choose **Begin journey · The Counting Shore** for the story and tutorial. For later launches from this folder, run just the last command.
+
+### Pull the latest version
+
+Close the running game. Open PowerShell in the existing **ashen-vow** folder (the one containing `game` and `tools`), then run:
+
+```powershell
+git branch --show-current
 git pull --ff-only origin ashen-vow
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\setup.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\launch.ps1
+```
+
+The first command should print `ashen-vow`. This also works in a branch worktree. The public play link above opens directly on another person's computer or phone.
+
+### Build a standalone Windows executable
+
+Install Python 3.11 or newer. From the same folder, run:
+
+```powershell
+python --version
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\setup.ps1 -Templates -ReleaseTools
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\build.ps1
 .\exports\windows\AshenVow.exe
 ```
 
-The final command opens the game on your PC. **Play · The Ashen Trial** shows the new work; **Earlier campaign · prototype archive** contains the older campaign and its Continue save. Setup downloads missing pinned tools; the compiled character and motion assets are committed. The first import can take several minutes while the higher-resolution textures are prepared. No Blender or asset account is required.
+The executable embeds the game data and runs offline. Keep the accompanying notices with it when sharing the Windows build.
 
-For a new checkout, first run `git clone --branch ashen-vow https://github.com/deba-maity/asphalt.git`, then `Set-Location asphalt`, followed by setup/build/open above. Python 3.11 or newer is required by build tools; check `python --version` in the same PowerShell session. The exported executable embeds its data and needs neither Godot, Python nor internet. Keep the accompanying notices with it.
+### Build and serve the browser game locally
 
-This is an unsigned Windows candidate. Android remains experimental and was not built for this revision. No new release binary has been published; old 0.4.0 archives do not contain the trial.
+Install Python 3.11 or newer and the standard Godot 4.7.2 Web export template. From the game repository, run:
 
-For the browser build, install the matching Godot 4.7.2 Web export template and run `python tools/build_web.py` from the repository root. The exporter uses a temporary project copy. Court color and normal textures use up to 1024 pixels. Court material masks use 512 pixels, and the armor metalness/roughness map uses 1024. Character color and normal maps retain their source detail. Serve `exports/web/` over HTTP to play locally. The player shows download progress and offers replay after quitting.
+```powershell
+python tools/build_web.py
+python -m http.server 8000 --bind 127.0.0.1 --directory exports/web
+```
+
+Open [Ashen Vow on your PC](http://127.0.0.1:8000/). Press Ctrl+C in the terminal to stop serving it. The web exporter uses a temporary copy of the project to prepare its textures.
 
 ## Controls
 

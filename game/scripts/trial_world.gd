@@ -10,6 +10,7 @@ var daylight_target := 0.0
 var causeway: ShoreCauseway
 var coast: CourtCoast
 var standards: CourtStandards
+var remembrances: ShoreRemembrances
 var arrival: TrialArrival
 var title_ember: ShoreEmber
 var court_camera: Camera3D
@@ -44,6 +45,8 @@ func _ready() -> void:
 	build_court()
 	CourtArt.dress(self)
 	CourtArchitecture.dress(self)
+	remembrances = ShoreRemembrances.new()
+	add_child(remembrances)
 	batch_scenery()
 	causeway = ShoreCauseway.new()
 	add_child(causeway)
@@ -54,6 +57,8 @@ func _ready() -> void:
 	north_gate = ShoreGate.new()
 	north_gate.position = Vector3(0, 0, -11.3)
 	add_child(north_gate)
+	north_gate.marked.connect(remembrances.remember)
+	north_gate.marked.connect(coast.watch.remember)
 	north_gate.mark(passage.stage if ui.main.journey else 0)
 	foley=TrialAudio.new(); add_child(foley)
 	score=TrialScore.new(); add_child(score)
@@ -258,14 +263,9 @@ func build_court() -> void:
 	add_child(shore_fill)
 	daylight_target = passage.stage / 4.0
 	set_daylight(daylight_target)
-	var floor=solid_box(Vector3(30,.5,30),Vector3(0,-.26,0),Color("777975"))
-	for mesh in floor.get_children():
-		if mesh is MeshInstance3D: SurfaceLibrary.apply(mesh,"stone",Color("777975"),.65)
-	# Closely fitted stone slabs, with a level collision surface for readable feet.
-	for x in range(-5,6):
-		for z in range(-5,6):
-			var tile=Figure.box(self,Vector3(1.97,.025,1.97),Vector3(x*2,.002,z*2),Color("85867d").darkened(rng.randf_range(0,.14)))
-			SurfaceLibrary.apply(tile,"stone",tile.material_override.albedo_color,.8)
+	# One continuous paved surface lets the stone joints in the material meet
+	# exactly and keeps the shallow mosaic above the same collision plane.
+	solid_box(Vector3(30, .5, 30), Vector3(0, -.25, 0), Color("777975"))
 	for i in 40:
 		if i == 20: continue # The openable north gate occupies this section.
 		var angle=TAU*i/40
@@ -369,6 +369,8 @@ func _process(delta: float) -> void:
 	if arrival != null and ui.mode == "play":
 		if arrival.step == TrialArrival.Step.EMBER and not arrival.near_ember():
 			ui.track_destination(hero.camera, arrival.memorial.global_position + Vector3.UP * 1.15, "EMBER")
+		elif arrival.step in [TrialArrival.Step.LOCK, TrialArrival.Step.STRIKE] and hero.target == null:
+			ui.track_destination(hero.camera, warden.global_position + Vector3.UP * 1.6, "ECHO", true)
 		else: ui.destination_label.hide()
 		ui.update_hud(hero, {})
 		if arrival.sparring != null:

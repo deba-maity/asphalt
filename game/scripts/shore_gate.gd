@@ -2,19 +2,25 @@ class_name ShoreGate
 extends Node3D
 
 # The central section of the north wall opens onto the path after the duel.
+signal marked(earned: int)
+
 var leaves: Array[Node3D] = []
 var seals: Array[MeshInstance3D] = []
 var closed_barrier: StaticBody3D
 var lit: StandardMaterial3D
 var unlit: StandardMaterial3D
+var inlay := ShaderMaterial.new()
 var open := false
 
 func _ready() -> void:
 	var portal := preload("res://assets/court/large_castle_door/large_castle_door.gltf").instantiate() as Node3D
 	portal.scale = Vector3.ONE * 1.6
 	add_child(portal)
+	inlay.shader = preload("res://assets/court/gate_bronze.gdshader")
 	for side in ["left", "right"]:
-		leaves.append(portal.find_child("large_castle_door_" + side, true, false) as Node3D)
+		var leaf := portal.find_child("large_castle_door_" + side, true, false) as Node3D
+		leaves.append(leaf)
+		GateInlay.mount(leaf, -1.0 if side == "left" else 1.0, inlay)
 	var bronze := SurfaceLibrary.material("steel", Color("9a7852"), 1.4)
 	unlit = SurfaceLibrary.material("stone", Color("443d38"), 1.2)
 	lit = StandardMaterial3D.new()
@@ -41,6 +47,8 @@ func _ready() -> void:
 	add_child(closed_barrier)
 
 func mark(earned: int) -> void:
+	inlay.set_shader_parameter("remembered", float(clampi(earned, 0, seals.size())))
+	marked.emit(clampi(earned, 0, seals.size()))
 	for i in seals.size():
 		seals[i].material_override = lit if i < earned else unlit
 
@@ -62,9 +70,9 @@ func unseal(immediate: bool = false) -> void:
 	mark(seals.size())
 	for z in [APPROACH_DISTANCE, 2.05, .95]:
 		for side in [-1, 1]:
-			var inlay := Figure.box(self, Vector3(.10, .024, .52), Vector3(side * .15, .045, z), Color.WHITE)
-			inlay.rotation.y = side * .57
-			inlay.material_override = lit
+			var guide_mark := Figure.box(self, Vector3(.10, .024, .52), Vector3(side * .15, .045, z), Color.WHITE)
+			guide_mark.rotation.y = side * .57
+			guide_mark.material_override = lit
 	for i in leaves.size():
 		var angle := deg_to_rad(88 if i == 0 else -88)
 		if immediate or Preferences.reduced_effects: leaves[i].rotation.y = angle

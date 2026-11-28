@@ -4,6 +4,14 @@ extends RefCounted
 static var materials: Dictionary={}
 static var bevels: Dictionary={}
 
+static func tidal_paving() -> ShaderMaterial:
+	var floor_material := ShaderMaterial.new()
+	floor_material.shader = preload("res://assets/court/tidal_paving.gdshader")
+	floor_material.set_shader_parameter("stone_color", load("res://assets/court/cobblestone_floor_08/Diffuse.jpg"))
+	floor_material.set_shader_parameter("stone_normals", load("res://assets/court/cobblestone_floor_08/nor_gl.jpg"))
+	floor_material.set_shader_parameter("stone_arm", load("res://assets/court/cobblestone_floor_08/arm.jpg"))
+	return floor_material
+
 static func material(id: String, scale: float) -> StandardMaterial3D:
 	var key=id+str(scale)
 	if materials.has(key): return materials[key]
@@ -73,10 +81,11 @@ static func beveled_box(size: Vector3) -> ArrayMesh:
 	return mesh
 
 static func dress(world: Node3D) -> void:
+	var paving := tidal_paving()
 	for instance in world.find_children("*","MeshInstance3D",true,false):
 		if instance.mesh is BoxMesh:
 			var size: Vector3=instance.mesh.size
-			instance.material_override=material("cobblestone_floor_08" if size.y<.1 or size.x>20 else "castle_brick_07",.5)
+			instance.material_override = paving if size.y < .1 or size.x > 20 else material("castle_brick_07", .5)
 			if size.x<10 and size.y>.1: instance.mesh=beveled_box(size)
 	set_mosaic(world)
 	var moss=load("res://assets/court/rock_moss_set_01/rock_moss_set_01.gltf") as PackedScene
