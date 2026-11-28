@@ -1,4 +1,5 @@
 import { maps, vehicles } from "./data.js";
+import { raceHundredths } from "./timing.js";
 
 export function readLapChallenge(hash) {
   const parts = /^#lap=([a-z0-9]+)\.([a-z0-9]+)\.([1-9]\d{0,7})(?:\.r([1-9]\d?))?$/.exec(hash);
@@ -12,7 +13,7 @@ export function readLapChallenge(hash) {
 }
 
 export function lapChallengeLink(address, map, vehicle, seconds) {
-  const ticks = Math.round(seconds * 100);
+  const ticks = raceHundredths(seconds);
   const revision = maps.find(item => item.id === map)?.layoutRevision;
   const hash = "#lap=" + map + "." + vehicle + "." + ticks + (revision ? ".r" + revision : "");
   if (!readLapChallenge(hash)) return null;

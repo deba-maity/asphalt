@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readLapChallenge, lapChallengeLink} from '../src/lap-challenge.js';
+import {raceTime} from '../src/timing.js';
 
 test('a shared lap uses the displayed hundredth, the original road and the same vehicle', () => {
   const address = 'https://example.com/games/nightshift/?preview=1#old';
@@ -28,4 +29,13 @@ test('a Meridian challenge identifies its layout and an older link still opens t
   assert.equal(old.previousLayout, true);
   assert.equal(old.vehicle.id, 'car0');
   assert.equal(readLapChallenge('#lap=neon.car0.9640.r3'), null);
+});
+
+test('the displayed finish, stored millisecond record and challenge agree at a rounding boundary', () => {
+  const crossing = 92.15479;
+  const record = Math.round(crossing * 1000) / 1000;
+  const link = lapChallengeLink('https://example.com/', 'neon', 'car0', crossing);
+  assert.equal(raceTime(crossing), '01:32.16');
+  assert.equal(raceTime(record), raceTime(crossing));
+  assert.equal(readLapChallenge(new URL(link).hash).ticks, 9216);
 });

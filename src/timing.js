@@ -47,8 +47,14 @@ export function pixelRatioFor(width, height, dpr, scale, maxPixels, maxHeight) {
   return Math.max(0.1, Math.min(dpr, scale, Math.sqrt(maxPixels / (width * height)), maxHeight / height));
 }
 
+// Split records keep milliseconds. Use the same precision at the finish, in
+// the standings and in shared targets, including a half-centisecond tie.
+export function raceHundredths(seconds) {
+  return Math.max(0, Math.round(Math.round(seconds * 1000) / 10));
+}
+
 export function raceTime(seconds) {
-  const ticks = Math.max(0, Math.round(seconds * 100));
+  const ticks = raceHundredths(seconds);
   const minutes = String(Math.floor(ticks / 6000)).padStart(2, '0');
   const wholeSeconds = String(Math.floor(ticks / 100) % 60).padStart(2, '0');
   return minutes + ':' + wholeSeconds + '.' + String(ticks % 100).padStart(2, '0');

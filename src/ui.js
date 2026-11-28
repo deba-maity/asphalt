@@ -2,7 +2,7 @@ import { lapChallengeLink, readLapChallenge } from "./lap-challenge.js";
 import { shortcutMarkerIndex } from "./shortcut-guide.js";
 import { bindMenuGamepad } from "./menu-gamepad.js";
 import { storage } from "./storage.js";
-import { raceTime as time } from "./timing.js";
+import { raceHundredths, raceTime as time } from "./timing.js";
 import { captureFinishPhoto, saveFinishPhoto } from "./finish-photo.js";
 import { coursePreview, mapOverpasses } from "./course-shape.js";
 import { districtBest } from "./pace-lap.js";
@@ -871,7 +871,7 @@ export class UI {
     const copyField = link ? `<input id="lap-link" aria-label="Lap challenge link" readonly hidden value="${esc(link)}">` : "";
     let challengeResult = "";
     if (completedTrial && this.lapTarget && !this.lapTarget.previousLayout) {
-      const delta = Math.round(data.time * 100) - this.lapTarget.ticks;
+      const delta = raceHundredths(data.time) - this.lapTarget.ticks;
       const result = delta === 0 ? "TARGET MATCHED" : time(Math.abs(delta) / 100) + (delta < 0 ? " UNDER TARGET" : " OVER TARGET");
       challengeResult = `<strong class="challenge-margin">${result} · TARGET ${time(this.lapTarget.ticks / 100)}</strong>`;
     }
