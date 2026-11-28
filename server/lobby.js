@@ -4,6 +4,7 @@ import { maps, modes, vehicles } from '../src/data.js';
 const vehicleNames=new Set(vehicles.map(v=>v.name));
 const mapNames=new Set(maps.map(m=>m.id));
 const modeNames=new Set(modes.map(m=>m.id));
+const surfaceCount = Math.max(...maps.map(map => map.shortcuts.length));
 const text=(value,fallback,max)=>typeof value==='string'?value.replace(/[\x00-\x1f\x7f]/g,'').trim().slice(0,max)||fallback:fallback;
 const color=(value)=>typeof value==='string'&&/^#[0-9a-f]{6}$/i.test(value)?value:'#ff4b63';
 const number=(value,min,max)=>typeof value==='number'&&Number.isFinite(value)&&value>=min&&value<=max;
@@ -12,7 +13,8 @@ const vehicle=(value)=>vehicleNames.has(value)?value:vehicles[0].name;
 export function cleanPosition(data) {
   if(!data || typeof data!=='object' || Array.isArray(data)) return null;
   if(!number(data.x,-2500,2500)||!number(data.z,-2500,2500)||!number(data.rotation,-1e6,1e6)||!number(data.speed,-150,150)) return null;
-  return {x:data.x,z:data.z,rotation:Math.atan2(Math.sin(data.rotation),Math.cos(data.rotation)),speed:data.speed,
+  const surface = Number.isInteger(data.surface) && number(data.surface,0,surfaceCount) ? {surface:data.surface} : {};
+  return {...surface,x:data.x,z:data.z,rotation:Math.atan2(Math.sin(data.rotation),Math.cos(data.rotation)),speed:data.speed,
     vehicle:vehicle(data.vehicle),color:color(data.color),next:Math.floor(number(data.next,0,200)?data.next:0),lap:Math.floor(number(data.lap,0,4)?data.lap:0)};
 }
 

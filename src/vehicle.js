@@ -1,3 +1,4 @@
+import { modelFootprint } from "./contact.js";
 import * as THREE from "three";
 import { consolidateVehicle } from "./rendering.js";
 import { createTouring } from "./touring.js";
@@ -928,6 +929,8 @@ function addPoliceBar(root, data, w) {
   data.police = [blue, red];
 }
 
+const vehicleFootprints = new Map();
+
 export function createVehicle(
   spec,
   color = spec.color || "#ff4b63",
@@ -954,7 +957,8 @@ export function createVehicle(
   const paint = paintMaterial(color);
   data.paint = paint;
 
-  if (spec.asset === 'touring' && createTouring(root, data, paint, police)) {
+  const touringBody = spec.asset === "touring" && createTouring(root, data, paint, police);
+  if (touringBody) {
     addNitro(root,data,-.62,2.25); addNitro(root,data,.62,2.25);
     if(police) addPoliceBar(root,data,2.05);
   }
@@ -964,6 +968,10 @@ export function createVehicle(
   else if (spec.kind === "monster")
     buildMonster(root, spec, paint, data, police);
   else buildCar(root, spec, paint, data, police);
+
+  const footprintKey = [spec.kind, spec.profile, spec.asset, !!touringBody, police].join("/");
+  if (!vehicleFootprints.has(footprintKey)) vehicleFootprints.set(footprintKey, modelFootprint(root));
+  data.footprint = vehicleFootprints.get(footprintKey);
 
   const contactShadow = part(
     root,

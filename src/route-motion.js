@@ -61,10 +61,10 @@ export function trafficSpeedLimits(route) {
   return limits;
 }
 
-export function moveStreetTraffic(route, limits, car, dt) {
+export function moveStreetTraffic(route, limits, car, dt, followingLimit = Infinity) {
   if (!(dt > 0)) { advanceRoute(route, car, 0); return; }
   const next = (car.index + 1) % route.length;
-  const target = Math.min(car.cruiseSpeed, limits[car.index] + (limits[next] - limits[car.index]) * car.progress);
+  const target = Math.min(followingLimit, car.cruiseSpeed, limits[car.index] + (limits[next] - limits[car.index]) * car.progress);
   const previousSpeed = car.speed;
   car.speed += clamp(target - car.speed, -4.2 * dt, 2.0 * dt);
   car.acceleration = (car.speed - previousSpeed) / dt;

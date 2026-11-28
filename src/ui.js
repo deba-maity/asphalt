@@ -4,7 +4,7 @@ import { bindMenuGamepad } from "./menu-gamepad.js";
 import { storage } from "./storage.js";
 import { raceTime as time } from "./timing.js";
 import { captureFinishPhoto, saveFinishPhoto } from "./finish-photo.js";
-import { coursePreview } from "./course-shape.js";
+import { coursePreview, mapOverpasses } from "./course-shape.js";
 import { districtBest } from "./pace-lap.js";
 import { raceRecord } from "./race-timing.js";
 import { gatesPerSegment, maps, modes, vehicles } from "./data.js";
@@ -704,6 +704,19 @@ export class UI {
       ctx.setLineDash(index ? [2, 3] : []);
       ctx.lineWidth = index ? 1.2 : 3; ctx.strokeStyle = index ? "#a6adba" : "#63788b"; ctx.stroke();
     });
+    // A short cased span breaks the lower road on the map. Flat junctions
+    // retain their connected lines, so a crossing never advertises a turn.
+    ctx.setLineDash([]);
+    for (const bridge of mapOverpasses(world.samples, world.shortcutRoads)) {
+      ctx.save();
+      ctx.translate(width / 2 + bridge.x * scale, height / 2 + bridge.z * scale);
+      ctx.rotate(bridge.angle);
+      ctx.fillStyle = "#101720";
+      ctx.fillRect(-3.5,-2.5,7,5);
+      ctx.fillStyle = "#b3bfcb";
+      ctx.fillRect(-3.5,-1.25,7,2.5);
+      ctx.restore();
+    }
     this.routeMap = { world, canvas, scale };
     return this.routeMap;
   }

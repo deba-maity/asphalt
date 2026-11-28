@@ -69,17 +69,52 @@ export function shortcutPoints(source, shortcut) {
   return points;
 }
 
-export function planShortcutRoads(controlRoute, shortcuts, surfaceY) {
+export function planShortcutRoads(controlRoute, shortcuts, surfaceY, projectMainRoad) {
   return shortcuts.map(shortcut => {
     const points = shortcutPoints(controlRoute, shortcut);
     const elevated = Boolean(shortcut.elevated);
-    const heightProfile = points.map((_, i) => {
-      if (!elevated) return surfaceY + .043;
-      const ramp = Math.sin(Math.PI * i / (points.length - 1));
-      return surfaceY + .08 + Math.pow(Math.max(0, ramp), .62) * 5.75;
-    });
+    const heightProfile = points.map(() => surfaceY + .043);
+    if (elevated) {
+      const distance = [0];
+      for (let i = 1; i < points.length; i++) distance.push(distance[i - 1] + points[i].distanceTo(points[i - 1]));
+      // Both roads share level asphalt until the whole ramp has cleared the
+      // racing lane. At a later crossing the shortcut is already at full height.
+      let first = 0, last = points.length - 1;
+      while (first < last && projectMainRoad(points[first]).distance < 21) first++;
+      while (last > first && projectMainRoad(points[last]).distance < 21) last--;
+      for (let i = first; i <= last; i++) {
+        const run = Math.min(distance[i] - distance[first], distance[last] - distance[i]);
+        const t = Math.min(1, run / 64);
+        heightProfile[i] += 6.65 * t * t * (3 - 2 * t);
+      }
+    }
     return { ...shortcut, points, elevated, heightProfile };
   });
+}
+
+// Find grade-separated intersections, excluding the flat junctions at either end.
+export function mapOverpasses(samples, roads) {
+  const crossings = [];
+  for (const road of roads) {
+    if (!road.elevated) continue;
+    for (let j = 1; j < road.points.length; j++) {
+      const a = road.points[j - 1], b = road.points[j];
+      const dx = b.x - a.x, dz = b.z - a.z;
+      for (let i = 0; i < samples.length; i++) {
+        const c = samples[i], d = samples[(i + 1) % samples.length];
+        const ex = d.x - c.x, ez = d.z - c.z;
+        const cross = dx * ez - dz * ex;
+        if (Math.abs(cross) < .001) continue;
+        const px = c.x - a.x, pz = c.z - a.z;
+        const t = (px * ez - pz * ex) / cross;
+        const u = (px * dz - pz * dx) / cross;
+        if (t < 0 || t >= 1 || u < 0 || u >= 1) continue;
+        const height = road.heightProfile[j - 1] * (1 - t) + road.heightProfile[j] * t;
+        if (height > 4.5) crossings.push({x:a.x+t*dx, z:a.z+t*dz, angle:Math.atan2(dz,dx)});
+      }
+    }
+  }
+  return crossings;
 }
 
 const previews = new Map();

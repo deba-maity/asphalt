@@ -1,13 +1,14 @@
+import { flyoverSurface } from "./flyover.js";
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 function commuterMesh(world, bus) {
-  const boxes = [],
+  const boxes = [], lamps = [],
     transform = new THREE.Matrix4(),
     q = new THREE.Quaternion();
   const block = new THREE.BoxGeometry(1, 1, 1),
     tyre = new THREE.CylinderGeometry(1, 1, 1, 10);
-  const add = (geometry, x, y, z, w, h, l, color, axle = false) => {
+  const add = (geometry, x, y, z, w, h, l, color, axle = false, lit = false) => {
     q.setFromEuler(new THREE.Euler(0, 0, axle ? Math.PI / 2 : 0));
     transform.compose(
       new THREE.Vector3(x, y, z),
@@ -20,7 +21,7 @@ function commuterMesh(world, bus) {
     for (let i = 0; i < part.attributes.position.count; i++)
       colors.push(paint.r, paint.g, paint.b);
     part.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
-    boxes.push(part);
+    (lit ? lamps : boxes).push(part);
   };
   const w = bus ? 2.24 : 1.92,
     l = bus ? 7.8 : 4.36,
@@ -32,7 +33,16 @@ function commuterMesh(world, bus) {
   const top = bus ? 2.35 : 1.55,
     cabin = bus ? l * 0.96 : l * 0.64;
   add(block, 0, (top + 0.78) * 0.5, 0.1, w * 0.91, top - 0.78, cabin, body);
+  if (bus) {
+    // Roof vent and a narrow route display keep the bus legible above the parapet.
+    add(block, 0, top + .085, .65, 1.22, .17, 2.1, 0x939b99);
+    add(block, 0, top - .10, .077 - cabin * .5, w * .67, .13, .05, 0xe3aa60, false, true);
+  }
   for (const side of [-1, 1]) {
+    if (bus) {
+      add(block, side * w * .503, 1.02, 0, .025, .21, l * .97, 0x347775);
+      add(block, side * w * .459, top - .09, .35 - cabin * .5, .035, .105, .51, 0xf4ad5c, false, true);
+    }
     const n = bus ? 6 : 3,
       cell = cabin / n;
     for (let i = 0; i < n; i++)
@@ -44,7 +54,9 @@ function commuterMesh(world, bus) {
         0.031,
         bus ? 0.57 : 0.35,
         cell * 0.79,
-        windows,
+        bus ? [0x77776a, 0xa29376, 0x6d7777][i % 3] : windows,
+        false,
+        bus,
       );
     for (const z of [-l * 0.297, l * 0.297]) {
       add(tyre, side * w * 0.443, r, z, r, 0.29, r, 0x20282b, true);
@@ -68,7 +80,7 @@ function commuterMesh(world, bus) {
       w * 0.19,
       0.12,
       0.04,
-      0xffe9c4,
+      0xffe9c4, false, true,
     );
     add(
       block,
@@ -78,7 +90,7 @@ function commuterMesh(world, bus) {
       w * 0.15,
       0.13,
       0.04,
-      0xdc6958,
+      0xdc6958, false, true,
     );
   }
   add(
@@ -102,22 +114,25 @@ function commuterMesh(world, bus) {
     windows,
   );
   add(block, 0, r + 0.01, 0, w * 1.01, 0.12, l * 0.985, trim);
-  const merged = world.trackGeometry(mergeGeometries(boxes));
-  for (const shape of boxes) shape.dispose();
+  const solid = mergeGeometries(boxes), glassAndLights = mergeGeometries(lamps);
+  const merged = world.trackGeometry(mergeGeometries([solid, glassAndLights], true));
+  for (const shape of [...boxes, ...lamps, solid, glassAndLights]) shape.dispose();
   block.dispose();
   tyre.dispose();
   return merged;
 }
 
-export function crossingTraffic(world, mid, yaw, phase) {
+export function crossingTraffic(world, layout, phase) {
+  const {mid, yaw} = layout;
   if (!world.commuters) {
     world.commuters = [commuterMesh(world, false), commuterMesh(world, true)];
   }
-  const material = world.material({
+  const paint = world.material({
     vertexColors: true,
     roughness: 0.72,
     metalness: 0.22,
   });
+  const material = [paint, world.basic({vertexColors: true})];
   const group = new THREE.Group();
   group.name = "Cross-street traffic";
   world.group.add(group);
@@ -140,26 +155,21 @@ export function crossingTraffic(world, mid, yaw, phase) {
           direction;
         const vehicle = riders[i];
         // Waiting vehicles re-enter from the far ends of the approaches.
-        vehicle.visible = Math.abs(station) < 70;
+        vehicle.visible = Math.abs(station) < 80;
         if (!vehicle.visible) continue;
-        const s = Math.abs(station);
-        const height =
-          THREE.MathUtils.lerp(
-            7.6,
-            -0.3,
-            THREE.MathUtils.clamp((s - 22) / 38, 0, 1),
-          ) + 0.355;
+        // Sample each axle. A long bus straddling a crest has a different pitch
+        // from a short sedan at the same station.
+        const wheelbase = (i === 0 ? 4.36 : 7.8) * .594;
+        const back = flyoverSurface(station - wheelbase / 2);
+        const front = flyoverSurface(station + wheelbase / 2);
+        const height = (front + back) / 2;
+        const slope = (front - back) / wheelbase;
         const lane = -direction * 2.23;
         vehicle.position.set(
           mid.x + lane * cs + station * sn,
           height,
           mid.z - lane * sn + station * cs,
         );
-        const slope =
-          -Math.sign(station) *
-          0.208 *
-          THREE.MathUtils.smoothstep(s, 21, 24) *
-          (1 - THREE.MathUtils.smoothstep(s, 58, 61));
         vehicle.rotation.set(
           Math.atan(slope) * direction,
           yaw + (direction > 0 ? Math.PI : 0),

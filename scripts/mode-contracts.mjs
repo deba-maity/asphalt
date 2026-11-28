@@ -18,7 +18,9 @@ try {
   const result=await page.evaluate(async()=>{
     const {maps,modes,vehicles}=await import('/src/data.js');
     const {driveStep}=await import('/src/driving.js');
-    const {Raycaster, Vector3}=await import('/node_modules/three/build/three.module.js');
+    const {flyoverSurface}=await import('/src/flyover.js');
+    const {mapOverpasses}=await import('/src/course-shape.js');
+    const {Matrix4, Raycaster, Vector3}=await import('/node_modules/three/build/three.module.js');
     const {game:g,ui}=window.__nightshift;const results=[];
     const check=(condition,label)=>{if(!condition)throw Error(label);};
     const renderFrame=g.frame.bind(g);
@@ -60,8 +62,59 @@ try {
       const clearance = paint.position.y - g.world.roadSurfaceY;
       check(paint.geometry.index.count === 6 && clearance > 0 && clearance < .015 &&
         paint.material.map.repeat.x === 10, map.name + ': the two-row finish stripe lies flush with the racing surface');
+      if (mode.id === 'race') {
+        const matrix = new Matrix4(), point = new Vector3();
+        const drains = g.world.group.children.filter(o => o.name.startsWith('instances:drains:'));
+        check(drains.length > 0, map.name + ': missing curb drains');
+        for (const batch of drains) for (let i = 0; i < batch.count; i++) {
+          batch.getMatrixAt(i,matrix);
+          point.setFromMatrixPosition(matrix);
+          const top = point.y + matrix.elements[5] * .5;
+          check(top > g.world.roadSurfaceY && top < g.world.roadSurfaceY + .02,
+            map.name + ': drain protrudes above the driving surface');
+          check(g.world.projectMainRoad(point).distance > 9.69, map.name + ': drain inside a driving lane');
+        }
+      }
       const competitive=['race','sprint'].includes(mode.id),required=mode.id==='race'?3:1;
       check(g.actors.length===(competitive?6:1),`${mode.id}: intended starting field`);
+      if (mode.id === 'race' && map.id === 'neon') {
+        // Measure the visible touring body after its garage placeholder has loaded.
+        // A model swap must not leave its wider placeholder collider behind.
+        const hero = g.player, rival = g.actors[1], vertex = new Vector3();
+        function extent(actor, sign) {
+          const root = actor.mesh;
+          root.position.set(0,0,0); root.rotation.set(0,0,0);
+          root.traverse(o => { if (o.isLOD) o.levels.forEach((level,i) => { level.object.visible = i === 0; }); });
+          root.updateMatrixWorld(true);
+          let bound = -Infinity;
+          root.traverseVisible(o => {
+            if (!o.isMesh || o.material.transparent) return;
+            const pos = o.geometry.attributes.position;
+            for (let i=0;i<pos.count;i++) bound = Math.max(bound, sign * vertex.fromBufferAttribute(pos,i).applyMatrix4(o.matrixWorld).x);
+          });
+          return bound;
+        }
+        const width = extent(hero,1) + extent(rival,-1);
+        for (const clearance of [1,.1,.02,-.05]) {
+          hero.mesh.position.set(1000,0,1000);
+          rival.mesh.position.set(1000+width+clearance,0,1000);
+          check(g.collisions(hero) === (clearance < 0), 'Rendered paint clearance ' + clearance + 'm');
+        }
+        ui.start(); g.phase = 'play'; g.elapsed = 40;
+        const finisher = g.player, follower = g.actors[1];
+        const line = g.world.finishLine, forward = g.world.finishForward;
+        finisher.next = 0; finisher.lap = 2;
+        for (const [driver, behind, speed] of [[finisher,.08,0],[follower,3.65,8]]) {
+          driver.mesh.position.copy(line).addScaledVector(forward,-behind);
+          driver.mesh.rotation.y = Math.atan2(-forward.x,-forward.z);
+          driver.speed = speed;
+          driver.velocityX = forward.x * speed; driver.velocityZ = forward.z * speed;
+          g.world.constrainToRoad(driver); g.alignActorToRoad(driver);
+        }
+        g.simulate(1/60);
+        check(finisher.lap === 3 && finisher.finishedAt != null, 'A contact nudge across the finish is scored on the same step');
+        ui.start(); g.phase = 'play';
+      }
       if (competitive) {
         g.elapsed = 0;
         const referenceLaunch = { speed: 0, heading: g.player.heading, boost: 100 };
@@ -222,10 +275,12 @@ try {
           mid.y += 6;
           check(Math.abs(world.lapFraction(probeActor) - groundProgress) < 1e-10, 'Timing progress is independent of deck height');
           if (road.elevated) {
-            const a = road.points[1], b = road.points[2];
+            const uphill = road.heightProfile.findIndex((height, i, all) => i > 0 && height > all[i - 1] + .3);
+            check(uphill > 0, 'A level fork leads to a climb');
+            const a = road.points[uphill - 1], b = road.points[uphill];
             probeActor.mesh.position = a.clone().lerp(b, .5);
             probeActor.mesh.rotation = {y: Math.atan2(a.x - b.x, a.z - b.z)};
-            probeActor.surfaceY = (road.heightProfile[1] + road.heightProfile[2]) / 2;
+            probeActor.surfaceY = (road.heightProfile[uphill - 1] + road.heightProfile[uphill]) / 2;
             probeActor.roadBranch = road;
             g.fireProjectile(probeActor, 'bullet');
             const bullet = g.projectiles.at(-1);
@@ -259,18 +314,47 @@ try {
             }
           }
         }
-        const crossings = {neon:[[5,6],[18,19]], coast:[[5,6]], dock:[[3,5]], mesa:[[7,8]]};
-        const decks = world.group.children.filter((m) => m.material?.color?.getHex() === 0x343d44);
-        const down = new Raycaster(new Vector3(), new Vector3(0,-1,0), 0, 20);
-        for (const [a,b] of crossings[map.id]) {
-          const center = Math.round((a+b)/2 * world.samples.length/world.controlRoute.length);
-          const mid = world.samples[center];
-          const tangent = world.samples[center+1].clone().sub(world.samples[center-1]).normalize();
-          for (const offset of [-55,-34,-16,0,16,34,55]) {
-            down.ray.origin.set(mid.x + tangent.z*offset, 14, mid.z - tangent.x*offset);
-            const height = 7.95 - Math.max(0, Math.abs(offset)-22)*7.9/38;
-            check(down.intersectObjects(decks,false).some(hit => Math.abs(hit.point.y-height)<.15),
-              'Flyover spans the spline and both sloping approaches: ' + map.id + ' / ' + offset);
+        for (const [i, road] of world.shortcutRoads.entries()) {
+          const crossing = mapOverpasses(world.samples,[road])[0];
+          if (!crossing) continue;
+          const packet = {x:crossing.x,z:crossing.z,rotation:0,speed:0};
+          g.remotePosition('bridge-fixture',{...packet,surface:i+1});
+          const remote = g.remotes.get('bridge-fixture');
+          remote.mesh.position.copy(remote.target.position);
+          g.updateRemote(remote,1/60);
+          check(remote.surfaceY > 4.5, 'An arriving LAN peer stays on the upper road');
+          g.remotePosition('bridge-fixture',{...packet,surface:0});
+          g.updateRemote(remote,1/60);
+          check(remote.surfaceY === world.roadSurfaceY, 'The same x/z on the lower road stays below the bridge');
+          g.setRemotePlayers([]);
+        }
+        const decks = world.group.children.filter(m => m.name === "Cross street pavement");
+        const down = new Raycaster(new Vector3(), new Vector3(0,-1,0), 0, 22);
+        check(decks.length === (map.id === 'neon' ? 2 : 1), 'Complete cross streets: ' + map.id);
+        for (const {mid,forward,normal} of world.flyovers) {
+          for (const along of [-82,-66,-55,-34,-16,0,16,34,55,66,82]) {
+            for (const across of [-4.8,0,4.8]) {
+              down.ray.origin.copy(mid).addScaledVector(forward,along).addScaledVector(normal,across).y = 15;
+              const height = flyoverSurface(along);
+              check(down.intersectObjects(decks,false).some(hit => Math.abs(hit.point.y-height)<.025),
+                'Continuous pavement across the full width: ' + [map.id,along,across]);
+            }
+          }
+        }
+        for (const crossing of world.crossings) {
+          for (let time=0; time<29; time+=1.25) {
+            crossing.update(time,null,0);
+            crossing.group.updateMatrixWorld(true);
+            for (const [i,car] of crossing.group.children.entries()) {
+              if (!car.visible) continue;
+              const length = i ? 7.8 : 4.36, width = i ? 2.24 : 1.92;
+              for (const side of [-1,1]) for (const axle of [-1,1]) {
+                const tyre = car.localToWorld(new Vector3(side * width * .443,0,axle * length * .297));
+                down.ray.origin.copy(tyre).y += 2;
+                check(down.intersectObjects(decks,false).some(hit => Math.abs(hit.point.y - tyre.y) < .035),
+                  'Bus and sedan tyres meet the rendered deck through both changes of grade: ' + map.id);
+              }
+            }
           }
         }
         p.next = initialGate; p.cut = null; p.mesh.rotation.y = initialHeading;

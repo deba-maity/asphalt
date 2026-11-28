@@ -1,3 +1,5 @@
+import { flyoverLayouts, flyoverEnd, flyoverHalfWidth, distanceToFlyover, flyoverSurface } from "./flyover.js";
+import { followingSpeed, modelFootprint } from "./contact.js";
 import * as THREE from "three";
 import { shortcutMarkerIndex } from "./shortcut-guide.js";
 import { sampleHybridClosedRoute, planShortcutRoads, timingGateFraction } from "./course-shape.js";
@@ -239,7 +241,8 @@ export class World {
     this.corners = courseCorners(this.samples, this.sampleDistances, this.controlRoute.length);
     this.timingOffset = this.route[0].distanceTo(this.finishLine);
     this.roadSurfaceY = 0.052;
-    this.shortcutRoads = planShortcutRoads(this.controlRoute, map.shortcuts || [], this.roadSurfaceY);
+    this.shortcutRoads = planShortcutRoads(this.controlRoute, map.shortcuts || [], this.roadSurfaceY, this.projectMainRoad);
+    this.flyovers = flyoverLayouts(map.id, this.samples, this.controlRoute.length);
     this.destructibles = [];
 
     this.boundaryRadius =
@@ -678,13 +681,12 @@ export class World {
     if (this.map.id === "neon") {
       this.buildSelectedIntersections();
 
-      this.buildFlyover(5, 6);
-
       this.buildUnderpass(9 / gatesPerSegment, 10 / gatesPerSegment);
 
       this.buildBridgeRails(13 / gatesPerSegment, 14 / gatesPerSegment);
     }
 
+    for (const layout of this.flyovers) this.buildFlyover(layout);
     this.buildMapSetPieces();
 
     this.buildShortcutRoads();
@@ -734,6 +736,8 @@ export class World {
       this.group.add(road);
 
       for (const arrow of shortcutArrowPlacements(shortcut, this.lowPower ? 20 : 14)) {
+        // Keep the first gold arrow off the green centre line in a shared junction.
+        if (arrow.y < this.roadSurfaceY + .5 && this.projectMainRoad(arrow).distance < 3.25) continue;
         arrowTransform.rotation.set(arrow.pitch, arrow.yaw, 0, "YXZ");
         arrowTransform.position.set(arrow.x, arrow.y + .15, arrow.z);
         arrowTransform.scale.set(1.55, 1, 1.85);
@@ -798,19 +802,26 @@ export class World {
             this.addCourseSlab("Shortcut parapet", run, offset - .12, offset + .12, 0, .88, railMat);
           }
         }
-        for (const step of [.32, .5, .68]) {
-          const station = span[Math.floor(step * (span.length - 1))];
-          const h = station.point.y;
-          const p = [0, -6, 6].map(offset => offsetStation(station, offset, 0))
-            .find(point => this.projectMainRoad(point).distance > roadHalfWidth + 1.1);
-          if (!p) continue;
-          mesh(
-            this.group,
-            box,
-            deckMat,
-            [p.x, Math.max(1.6, h * 0.5), p.z],
-            [1.4, Math.max(2.2, h), 1.4],
-          );
+        const length = span.at(-1).length;
+        for (let distance = 32; distance < length - 16; distance += 32) {
+          const [station] = trimSpan(span, distance, distance);
+          const underside = station.point.y - .72;
+          if (underside < 1.3) continue;
+          const yaw = Math.atan2(-station.normal.z, station.normal.x);
+          // A full-width cap on one or both columns supports the span.
+          // Leave every part of a lower driving lane and its shoulder free.
+          const feet = [-5.75, 5.75].map(x => offsetStation(station, x, 0))
+            .filter(foot => this.projectMainRoad(foot).distance > roadHalfWidth + 2.1 &&
+              this.shortcutRoads.every(other => other === shortcut ||
+                nearestPointOnPath(foot, other.points, false).distance > shortcutHalfWidth + 2.1));
+          if (!feet.length) continue;
+          const capHeight = .46;
+          mesh(this.group, box, railMat, [station.point.x, underside - capHeight / 2, station.point.z],
+            [14.45, capHeight, 1.05], [0,yaw,0]);
+          for (const foot of feet) {
+            mesh(this.group, box, deckMat, [foot.x,(underside - capHeight)/2,foot.z],
+              [1.02,underside - capHeight,1.15], [0,yaw,0]);
+          }
         }
       }
     }
@@ -940,6 +951,7 @@ export class World {
       const yaw = this.segmentAngle(index);
       const label = i % 3 === 0 ? "NITRO" : i % 3 === 1 ? "APEX" : "TOUCHDRIVE";
       const pos = localPoint(this.route[index], yaw, side * 22.5, 5.2, 0);
+      if (this.nearCrossStreet(pos, 5)) continue;
 
       mesh(
         this.group,
@@ -1229,6 +1241,9 @@ export class World {
 
       this.group.add(barrier);
       barrier.userData.topY = new THREE.Box3().setFromObject(barrier).max.y;
+      barrier.userData.footprints = barrier.children
+        .filter(piece => piece.isMesh && !piece.material.transparent && piece.material !== stripeMat)
+        .map(piece => modelFootprint(piece, barrier));
       this.destructibles.push(barrier);
     }
   }
@@ -1394,17 +1409,18 @@ export class World {
     const verts = [];
     const inds = [];
 
-    for (let i = 0; i < points.length - 1; i++) {
+    for (let i = 0; i < points.length; i++) {
       if (dashed && i % 8 >= 4) {
         continue;
       }
 
       const a = points[i];
-      const b = points[i + 1];
+      const next = (i + 1) % points.length;
+      const b = points[next];
 
       const ta = tangentAt(points, i);
 
-      const tb = tangentAt(points, i + 1);
+      const tb = tangentAt(points, next);
 
       const sa = new THREE.Vector3(-ta.z, 0, ta.x);
 
@@ -1463,60 +1479,6 @@ export class World {
     return new THREE.Mesh(geometry, this.lineMat);
   }
 
-  createSideStrip(points, innerOffset, outerOffset, y, material) {
-    const verts = [];
-    const inds = [];
-
-    for (let i = 0; i < points.length; i++) {
-      const p = points[i];
-
-      const t = tangentAt(points, i);
-
-      const side = new THREE.Vector3(-t.z, 0, t.x);
-
-      const a = p.clone().addScaledVector(side, innerOffset);
-
-      const b = p.clone().addScaledVector(side, outerOffset);
-
-      verts.push(
-        a.x,
-        y,
-        a.z,
-
-        b.x,
-        y,
-        b.z,
-      );
-    }
-
-    for (let i = 0; i < points.length - 1; i++) {
-      const k = i * 2;
-
-      inds.push(
-        k,
-        k + 2,
-        k + 1,
-
-        k + 1,
-        k + 2,
-        k + 3,
-      );
-    }
-
-    const geometry = this.trackGeometry(new THREE.BufferGeometry());
-
-    geometry.setAttribute(
-      "position",
-      new THREE.Float32BufferAttribute(verts, 3),
-    );
-
-    geometry.setIndex(inds);
-
-    geometry.computeVertexNormals();
-
-    return new THREE.Mesh(geometry, material);
-  }
-
   addRoadSurfaceDetails() {
     const r = seeded(1201);
 
@@ -1527,31 +1489,34 @@ export class World {
     const matrix = new THREE.Matrix4();
 
     const q = new THREE.Quaternion();
+    const up = new THREE.Vector3(0, 1, 0);
+    const surface = this.roadSurfaceY;
+    const sampleIndex = i => Math.round(i * this.samples.length / this.route.length) % this.samples.length;
 
     for (let i = 1; i < this.route.length; i += 3) {
-      const p = this.route[i];
+      const p = this.samples[sampleIndex(i)];
 
-      const t = tangentAt(this.route, i);
+      const t = tangentAt(this.samples, sampleIndex(i));
 
       const yaw = Math.atan2(t.x, t.z);
 
-      q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+      q.setFromAxisAngle(up, yaw);
 
       matrix.compose(
         p
           .clone()
-          .add(new THREE.Vector3((r() - 0.5) * 5, 0.075, (r() - 0.5) * 3)),
+          .add(new THREE.Vector3((r() - 0.5) * 5, surface + .002, (r() - 0.5) * 3)),
         q,
-        new THREE.Vector3(1, 1, 1),
+        new THREE.Vector3(.42, .20, .42),
       );
 
       manholeMatrices.push(matrix.clone());
 
       if (i % 2 === 1) {
         matrix.compose(
-          p.clone().addScaledVector(new THREE.Vector3(-t.z, 0, t.x), -3.5),
+          p.clone().addScaledVector(new THREE.Vector3(-t.z, 0, t.x), -3.5).setY(surface + .001),
           q,
-          new THREE.Vector3(4.2, 0.035, 0.16),
+          new THREE.Vector3(4.2, .008, .16),
         );
 
         patchMatrices.push(matrix.clone());
@@ -1559,19 +1524,20 @@ export class World {
     }
 
     for (let i = 0; i < this.route.length; i += this.quality.streetStride) {
-      const p = this.route[i];
+      const p = this.samples[sampleIndex(i)];
 
-      const t = tangentAt(this.route, i);
+      const t = tangentAt(this.samples, sampleIndex(i));
 
       const side = new THREE.Vector3(-t.z, 0, t.x);
 
       for (const sign of [-1, 1]) {
-        const pos = p.clone().addScaledVector(side, sign * 10.95);
+        const pos = p.clone().addScaledVector(side, sign * 10.2);
+        if (this.projectMainRoad(pos).distance < 9.7) continue;
 
         matrix.compose(
-          pos.clone().setY(0.12),
-          q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(t.x, t.z)),
-          new THREE.Vector3(0.28, 1, 1.1),
+          pos.setY(surface + .002),
+          q.setFromAxisAngle(up, Math.atan2(t.x, t.z)),
+          new THREE.Vector3(.37, .014, 1.05),
         );
 
         drainMatrices.push(matrix.clone());
@@ -1585,14 +1551,8 @@ export class World {
     this.installInstance("drains", box, this.drainMat, drainMatrices);
 
     for (const sign of [-1, 1]) {
-      const strip = this.createSideStrip(
-        this.samples,
-        sign * 10.72,
-        sign * 10.88,
-        0.15,
-        this.drainMat,
-      );
-
+      const strip = this.createContinuousLine(this.samples, sign * 10.8, .08, -.008);
+      strip.material = this.drainMat;
       strip.userData.worldOwned = true;
 
       this.group.add(strip);
@@ -1601,9 +1561,9 @@ export class World {
     const rumbleSegments = this.map.id === "neon" ? [3, 6, 12] : [];
 
     for (const i of rumbleSegments) {
-      const p = this.route[i];
+      const p = this.samples[sampleIndex(i)];
 
-      const t = tangentAt(this.route, i);
+      const t = tangentAt(this.samples, sampleIndex(i));
 
       const side = new THREE.Vector3(-t.z, 0, t.x);
 
@@ -1620,8 +1580,8 @@ export class World {
           this.group,
           box,
           this.rumbleMat,
-          [left.x, 0.16, left.z],
-          [0.48, 0.035, 0.6],
+          [left.x, surface + .012, left.z],
+          [.48, .028, .6],
           [0, yaw, 0],
         );
 
@@ -1629,8 +1589,8 @@ export class World {
           this.group,
           box,
           this.rumbleMat,
-          [right.x, 0.16, right.z],
-          [0.48, 0.035, 0.6],
+          [right.x, surface + .012, right.z],
+          [.48, .028, .6],
           [0, yaw, 0],
         );
       }
@@ -1646,9 +1606,9 @@ export class World {
           continue;
         }
 
-        const p = this.route[i];
+        const p = this.samples[sampleIndex(i)];
 
-        const t = tangentAt(this.route, i);
+        const t = tangentAt(this.samples, sampleIndex(i));
 
         const side = new THREE.Vector3(-t.z, 0, t.x);
 
@@ -1663,9 +1623,9 @@ export class World {
             p
               .clone()
               .addScaledVector(side, sign * (7.9 + r() * 0.6))
-              .setY(0.145),
-            q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw),
-            new THREE.Vector3(3.4 + r() * 2.4, 0.018, 0.18),
+              .setY(surface + .01),
+            q.setFromAxisAngle(up, yaw),
+            new THREE.Vector3(3.4 + r() * 2.4, .006, .18),
           );
 
           spillMatrices.push(matrix.clone());
@@ -1948,21 +1908,21 @@ export class World {
     const plans = {
       neon: [
         ["bridge", 1, 2],
-        ["flyover", 18, 19],
+
       ],
       coast: [
         ["bridge", 2, 5],
-        ["flyover", 5, 6],
+
         ["underpass", 14, 15],
       ],
       dock: [
-        ["flyover", 3, 5],
+
         ["underpass", 11, 12],
         ["bridge", 15, 16],
       ],
       mesa: [
         ["bridge", 3, 5],
-        ["flyover", 7, 8],
+
         ["underpass", 13, 14],
       ],
     };
@@ -1970,50 +1930,63 @@ export class World {
     const entries = plans[this.map.id] || [];
 
     for (const [type, ai, bi] of entries) {
-      if (type === "flyover") this.buildFlyover(ai, bi);
-      else if (type === "underpass") this.buildUnderpass(ai, bi);
+      if (type === "underpass") this.buildUnderpass(ai, bi);
       else this.buildBridgeRails(ai, bi);
     }
   }
 
-  buildFlyover(from, to) {
-    // The middle of a chord can be far outside a hairpin. Cross the actual lane.
-    const stride = this.samples.length / this.controlRoute.length;
-    const first = from * stride;
-    const span = ((to - from + this.controlRoute.length) % this.controlRoute.length) * stride;
-    const index = Math.round(first + span / 2) % this.samples.length;
-    const mid = this.samples[index], tangent = tangentAt(this.samples, index);
-    const yaw = Math.atan2(tangent.x, tangent.z) + Math.PI / 2;
-    const asphalt = this.material({ color: 0x343d44, roughness: 0.9 });
-    const concrete = this.material({ color: 0x687279, roughness: 0.85 });
-    const paint = this.basic({ color: 0xf2d992 });
-    const girder = this.material({color:0x414c53,metalness:.46,roughness:.64});
-    // Local Z runs across the race course. Both approaches meet the ground.
-    const section = (x, z1, h1, z2, h2, width, height, material) => {
-      const pos = localPoint(mid, yaw, x, (h1 + h2) / 2, (z1 + z2) / 2);
-      const slab = mesh(this.group, box, material, [pos.x, pos.y, pos.z],
-        [width, height, Math.hypot(z2 - z1, h2 - h1) + 0.10]);
-      slab.rotation.set(-Math.atan2(h2 - h1, z2 - z1), yaw, 0, "YXZ");
-    };
-    for (const [z1, h1, z2, h2] of [[-73, -.30, -60, -.30], [-60, -.30, -22, 7.6], [-22, 7.6, 22, 7.6], [22, 7.6, 60, -.30], [60, -.30, 73, -.30]]) {
-      section(0, z1, h1, z2, h2, 9.8, 0.7, asphalt);
-      for (const side of [-1, 1]) section(side * 4.8, z1, h1 + 0.75, z2, h2 + 0.75, 0.3, 0.9, concrete);
-      section(0, z1, h1 + 0.37, z2, h2 + 0.37, 0.12, 0.04, paint);
-      if (h1 > 0 || h2 > 0) for (const side of [-1,1]) {
-        section(side * 3.3, z1, h1-.56, z2, h2-.56, .28, .49, girder);
-        section(side * 3.3, z1, h1-.82, z2, h2-.82, .58, .12, girder);
+  buildFlyover(layout) {
+    const {mid, yaw, span, stationIndex} = layout;
+    const asphalt = this.material({color: 0x383f46, roughness: .88});
+    const concrete = this.material({color: 0x777f81, roughness: .9});
+    const steel = this.material({color: 0x435663, metalness: .40, roughness: .67});
+    const cream = this.basic({color: 0xe3d1a4});
+    const reflector = this.basic({color: 0xeab266});
+    const dark = this.material({color: 0x151e24, roughness: .93});
+    const slab = (name, path, l, r, low, high, mat) =>
+      this.addCourseSlab(name, path, l, r, low, high, mat);
+    const block = (across, up, along, size, mat) =>
+      mesh(this.group, box, mat, localPoint(mid, yaw, across, up, along).toArray(), size, [0,yaw,0]);
+    slab("Cross street pavement", span, -flyoverHalfWidth, flyoverHalfWidth, -.55, 0, asphalt);
+    for (const side of [-1,1]) {
+      const strip = (name, offset, half, bottom, top, mat, path = span) =>
+        slab(name, path, side * offset - half, side * offset + half, bottom, top, mat);
+      strip("Edge line", 4.35, .065, .009, .022, cream);
+      strip("Concrete parapet", 4.79, .17, -.10, .78, concrete);
+      strip("Parapet coping", 4.79, .22, .78, .88, steel);
+      const raised = trimSpan(span, flyoverEnd - 55, flyoverEnd + 55);
+      strip("Bridge beam", 3.30, .13, -1.20, -.54, steel, raised);
+      strip("Bridge flange", 3.30, .32, -1.32, -1.20, steel, raised);
+    }
+    for (let z = -70; z < 72; z += 7) {
+      const segment = trimSpan(span, z + flyoverEnd, z + flyoverEnd + 2.7);
+      slab("Cross street lane marking", segment, -.065, .065, .009, .022, cream);
+      for (const side of [-1,1])
+        block(side * 4.975, flyoverSurface(z) + .48, z, [.055,.12,.35], reflector);
+    }
+    for (const direction of [-1,1]) {
+      // Portal mouths conceal the recycling traffic at the ends of both approaches.
+      const portal = direction * 77;
+      for (const side of [-1,1]) block(side * 5.15, 2.26, portal, [.65,4.52,12.0], concrete);
+      block(0, 4.66, portal, [10.96,.55,12], concrete);
+      block(0, 2.24, direction * 82.85, [10.1,4.5,.22], dark);
+      block(0, 4.29, direction * 72.5, [4.0,.09,.24], cream);
+      for (const offset of [21, 41]) {
+        let at = direction * offset;
+        // Place the whole bent beyond every driveable shoulder on a curved course.
+        while (Math.abs(at) < offset + 7 &&
+            ![-3,0,3].every(x => this.clearForRoadside(localPoint(mid,yaw,x,0,at), 2.3))) at += direction;
+        if (![-3,0,3].every(x => this.clearForRoadside(localPoint(mid,yaw,x,0,at), 2.3))) continue;
+        const h = flyoverSurface(at) - 1.31;
+        block(0, h - .29, at, [8.2,.58,1.1], concrete);
+        for (const side of [-1,1]) {
+          block(side * 2.95, (h - .58)/2, at, [1.04,h-.58,1.05], concrete);
+          block(side * 2.95, .18, at, [1.5,.4,1.5], concrete);
+        }
       }
     }
-    for (const offset of [-20.1, 20.1]) {
-      const cap = localPoint(mid,yaw,0,6.31,offset);
-      mesh(this.group,box,concrete,cap.toArray(),[8.2,.9,1.55],[0,yaw,0]);
-      for (const side of [-1,1]) {
-        const p = localPoint(mid, yaw, side*2.75, 2.92, offset);
-        if (this.clearForRoadside(p, 1.2))
-          mesh(this.group, poleGeo, concrete, p.toArray(), [1.05, 6.24, 1.05]);
-      }
-    }
-    const crossing = crossingTraffic(this, mid, yaw, 79 + this.crossings.length * 31);
+    const crossing = crossingTraffic(this, layout, 79 + this.crossings.length * 31);
+    crossing.stationIndex = stationIndex;
     crossing.update(0, null, 0);
     this.crossings.push(crossing);
   }
@@ -2335,6 +2308,7 @@ export class World {
 
   buildingPlacementAllowed(position, width, depth) {
     if (onWheelPlaza(position.x, position.z, Math.hypot(width, depth) * .5)) return false;
+    if (this.nearCrossStreet(position, Math.hypot(width, depth) / 2)) return false;
     const roadClearance = this.distanceToRoad(position);
     const footprint = Math.max(width, depth);
 
@@ -4307,7 +4281,8 @@ export class World {
 
       const w = 12 + r() * 26;
       const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
-      if (onWheelPlaza(x, z, w * .85)) continue;
+      const depth = w * (.7 + r() * .7);
+      if (onWheelPlaza(x, z, w * .85) || this.nearCrossStreet({x,z}, Math.hypot(w,depth) / 2)) continue;
 
       this.addBuildingPart(
         "farSkyline",
@@ -4317,7 +4292,7 @@ export class World {
           h / 2,
           Math.sin(angle) * radius,
         ),
-        [w, h, w * (0.7 + r() * 0.7)],
+        [w, h, depth],
         0,
       );
     }
@@ -4432,7 +4407,7 @@ export class World {
         -145 + (i / Math.max(1, palmCount - 1)) * 290 + (r() - 0.5) * 14;
       const z = 55 + r() * 28;
 
-      if (this.distanceToRoad(new THREE.Vector3(x, 0, z)) < 21) continue;
+      if (this.nearCrossStreet({x,z}, 4) || this.distanceToRoad({x,z}) < 21) continue;
 
       matrix.compose(
         new THREE.Vector3(x, 3.1, z),
@@ -4460,7 +4435,7 @@ export class World {
       const z = 122 + r() * 68;
       const h = 10 + r() * 26;
 
-      if (this.distanceToRoad(new THREE.Vector3(x, 0, z)) < 26) continue;
+      if (this.nearCrossStreet({x,z}, 12) || this.distanceToRoad({x,z}) < 26) continue;
 
       matrix.compose(
         new THREE.Vector3(x, h / 2, z),
@@ -4498,7 +4473,7 @@ export class World {
         (r() - 0.5) * 18,
       );
 
-      if (this.distanceToRoad(pos) < 24 || pos.z - 4 < quayEdge(pos.x)) continue;
+      if (this.nearCrossStreet(pos, 8) || this.distanceToRoad(pos) < 24 || pos.z - 4 < quayEdge(pos.x)) continue;
 
       matrix.compose(
         pos,
@@ -4779,7 +4754,7 @@ export class World {
             side,
             sign * (id === "mesa" ? 24 + r() * 18 : 20 + r() * 7),
           );
-        if (this.distanceToRoad(base) < 17 || (id === "coast" && isOpenWater(base.x, base.z))) continue;
+        if (this.nearCrossStreet(base, id === "coast" ? 4 : 6) || this.distanceToRoad(base) < 17 || (id === "coast" && isOpenWater(base.x, base.z))) continue;
         if (id === "coast") {
           const height = 5.5 + r() * 2.8;
           put(
@@ -4827,7 +4802,7 @@ export class World {
               [width * 1.8, height, width * 1.4], [0, yaw, 0]);
           }
           const plant = base.clone().addScaledVector(t, 9);
-          if (this.distanceToRoad(plant) > 17) {
+          if (this.distanceToRoad(plant) > 17 && !this.nearCrossStreet(plant, 3)) {
             put(
               "cactus",
               lowCylinderGeo,
@@ -4907,7 +4882,8 @@ export class World {
         const center = p
           .clone()
           .addScaledVector(side, direction * (29 + depth * 0.5));
-        if (this.distanceToRoad(center) < depth * 0.5 + 20 ||
+        if (this.nearCrossStreet(center, Math.hypot(width, depth) * .5 + 1) ||
+          this.distanceToRoad(center) < depth * 0.5 + 20 ||
           onWheelPlaza(center.x, center.z, Math.hypot(width, depth) * .5)) continue;
         // Keep the existing authored buildings and landmarks readable.
         if (
@@ -5164,6 +5140,10 @@ export class World {
     });
   }
 
+  nearCrossStreet(position, margin) {
+    return this.flyovers.some(layout => distanceToFlyover(position, layout) < 5.6 + margin);
+  }
+
   distanceToRoad(position) {
     let nearest = this.projectMainRoad(position).distance;
     for (const shortcut of this.shortcutRoads) {
@@ -5194,6 +5174,25 @@ export class World {
         branch = road;
       }
     }
+    this.alignRoadSurface(actor, branch, center);
+    if (branch) {
+      const stride = this.samples.length / this.route.length;
+      const from = this.sampleDistances[this.authorSegmentToRouteIndex(branch.from) * stride];
+      const to = this.sampleDistances[this.authorSegmentToRouteIndex(branch.to) * stride];
+      const fraction = (center.index + center.fraction) / (branch.points.length - 1);
+      actor.courseDistance = from + ((to - from + this.courseLength) % this.courseLength) * fraction;
+    }
+    if (pastEdge > shoulderAllowance) {
+      const nx = (center.x - position.x) / center.distance;
+      const nz = (center.z - position.z) / center.distance;
+      position.x += nx * (pastEdge - shoulderAllowance);
+      position.z += nz * (pastEdge - shoulderAllowance);
+      deflectVelocity(actor, nx, nz, 0);
+    }
+    return pastEdge <= 0;
+  }
+
+  alignRoadSurface(actor, branch, center) {
     actor.roadBranch = branch;
     actor.roadSlopeX = 0;
     actor.roadSlopeZ = 0;
@@ -5204,23 +5203,8 @@ export class World {
       actor.roadSlopeX = dx * rise;
       actor.roadSlopeZ = dz * rise;
     }
-    if (branch) {
-      const stride = this.samples.length / this.route.length;
-      const from = this.sampleDistances[this.authorSegmentToRouteIndex(branch.from) * stride];
-      const to = this.sampleDistances[this.authorSegmentToRouteIndex(branch.to) * stride];
-      const fraction = (center.index + center.fraction) / (branch.points.length - 1);
-      actor.courseDistance = from + ((to - from + this.courseLength) % this.courseLength) * fraction;
-    }
     actor.roadHeight = branch ? THREE.MathUtils.lerp(branch.heightProfile[center.index],
       branch.heightProfile[center.index + 1], center.fraction) : this.roadSurfaceY;
-    if (pastEdge > shoulderAllowance) {
-      const nx = (center.x - position.x) / center.distance;
-      const nz = (center.z - position.z) / center.distance;
-      position.x += nx * (pastEdge - shoulderAllowance);
-      position.z += nz * (pastEdge - shoulderAllowance);
-      deflectVelocity(actor, nx, nz, 0);
-    }
-    return pastEdge <= 0;
   }
 
   getRoadHeightAt(x, z, previousHeight) {
@@ -5284,7 +5268,7 @@ export class World {
     this.visibilityTimer = 0;
   }
 
-  update(dt, time, focus, distance = 290, animateScenery = true, flag = "furled") {
+  update(dt, time, focus, distance = 290, animateScenery = true, flag = "furled", racers = []) {
     this.finishMarshal.update(flag, time, dt, focus, distance, animateScenery);
     if (animateScenery) {
       this.landmark.update(time, focus, distance);
@@ -5300,7 +5284,8 @@ export class World {
           (distance + sphere.radius) ** 2;
     }
     for (const traffic of this.traffic) {
-      moveStreetTraffic(this.samples, this.trafficLimits, traffic, dt);
+      const limit = Math.min(followingSpeed(traffic, racers), followingSpeed(traffic, this.traffic));
+      moveStreetTraffic(this.samples, this.trafficLimits, traffic, dt, limit);
       traffic.mesh.position.x=traffic.x;
       traffic.mesh.position.z=traffic.z;
 

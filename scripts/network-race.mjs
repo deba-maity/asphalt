@@ -68,6 +68,20 @@ try {
     },ids[1-index]);
     assert.equal(peer.remote,1);assert(peer.target && peer.speed>0,'Peers receive moving positions');
   }
+  const expectedSurface = await host.evaluate(() => {
+    const g = window.__nightshift.game, w = g.world, p = g.player;
+    const index = w.shortcutRoads.findIndex(road => road.elevated), road = w.shortcutRoads[index];
+    p.mesh.position.copy(road.points[9]); p.roadBranch = road; p.cut = {road,gate:10};
+    p.speed = p.velocityX = p.velocityZ = 0; g.keys = {};
+    for (let i=0;i<8;i++) g.simulate(1/60);
+    return index + 1;
+  });
+  await guest.waitForFunction(([id, surface]) => window.__nightshift.game.remotes.get(id)?.target?.surface === surface,[ids[0],expectedSurface]);
+  assert(await guest.evaluate(id => {
+    const g = window.__nightshift.game, remote = g.remotes.get(id);
+    remote.mesh.position.copy(remote.target.position); g.updateRemote(remote,1/60);
+    return remote.surfaceY > 4.5;
+  },ids[0]),'A remote peer renders on the ramp selected by the driver');
   // Represent the end of a long first race, then use normal result/rematch UI.
   for(const page of pages)await page.evaluate(()=>{
     const g=window.__nightshift.game;g.elapsed=180;g.time=180;g.lastNetwork=179.9;

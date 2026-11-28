@@ -1,6 +1,6 @@
 # NIGHTSHIFT
 
-Racing, time trials and pursuit across four districts, on the `nightshift` branch of `deba-maity/asphalt`. This branch is independent of `ashen-vow`; `main` is unchanged. Current source: **1.1.0-rc.1**.
+Racing, time trials and pursuit across four districts, on the `nightshift` branch of `deba-maity/asphalt`. Current source: **1.1.0-rc.1**.
 
 [Play Nightshift in a browser](https://deba-maity.github.io/asphalt/nightshift/)
 
@@ -10,36 +10,37 @@ In **Police Escape**, follow the gates to extraction. The heat display shows the
 
 Complete a **Time Trial** to record a pace ghost for that district. On the next run, the violet outline follows your recorded line and the timer compares matching gates. The ghost and your best time live in the current browser. The ghost can be switched off in Settings.
 
-## Install and open on your own PC
+## Get the source and start Nightshift
 
-Use Node.js 22 or newer. From the repository in PowerShell:
+Install Git and Node.js 22 or newer. In PowerShell, open the folder where you want to keep the game. For a first checkout, run:
 
 ```powershell
-git fetch origin
-git switch nightshift
+git clone --single-branch --branch nightshift https://github.com/deba-maity/asphalt.git nightshift
+Set-Location .\nightshift
+npm ci
+npm run dev
+```
+
+Open [Nightshift on your PC](http://localhost:5173) after the terminal prints the address. Keep the terminal running while you play. Press Ctrl+C there to stop the server.
+
+### Pull the latest version
+
+Open PowerShell in the existing **nightshift** folder (the one containing `package.json`), including if you used a Git worktree. Stop any running server in that terminal, then run:
+
+```powershell
+git branch --show-current
 git pull --ff-only origin nightshift
 npm ci
 npm run dev
 ```
 
-Open **http://localhost:5173** in your browser. Keep the terminal open; Ctrl+C stops the server. Do not open `index.html` directly. The game assets are included in the repository; no Blender installation or asset account is needed to play.
-
-To keep ASHEN VOW in its existing folder, create a separate worktree instead of switching that folder:
-
-```powershell
-git fetch origin
-git worktree add -b nightshift ..\nightshift origin/nightshift
-Set-Location ..\nightshift
-npm ci
-npm run dev
-```
-
-Use that worktree command once. If you already created a local `nightshift` branch, use `git worktree add ..\nightshift nightshift` instead.
+The first command should print `nightshift`. For later launches from that folder, `npm run dev` starts the game. Git and npm are only needed for the local version. The public play link above opens directly.
 
 [Revision details, isolated asset comparisons and evidence](docs/revision-1.1.md)
 
 ## What changed
 
+- Buses and sedans use separate cross streets. Gold chevrons mark playable shortcuts. On the minimap, a short solid bridge span crosses the broken lower line wherever the two driving routes pass at different heights. Racers make contact at the bodywork, and street traffic brakes behind slower vehicles.
 - Sprint is a one-lap race against rivals; Free Drive leaves the route open for practice. These replace two menu entries whose advertised chase roles were not implemented. Race, Time Trial and Police Escape remain available.
 - Apex GT and Eclipse V8 use a detailed, credited touring model with separate rolling wheels, steering pivots and stationary brake calipers. A simpler mesh takes over at distance. The other vehicles retain their procedural art.
 - Motorcycles have rebuilt forks, better proportioned riders, hands attached to the steering bars, and responsive lean/tuck. Car bodies use damped suspension pitch and roll while the wheels remain grounded.

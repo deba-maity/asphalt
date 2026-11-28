@@ -37,7 +37,7 @@ test("elevated shortcut decks meet at every bend and their rails leave the main 
     const controls = map.route.map(([x, z]) => new THREE.Vector3(x, 0, z));
     const samples = sampleHybridClosedRoute(controls, map.id === "neon" ? 22 : 18, map.straightSegments);
     const project = roadProjection(samples, 14.5);
-    const roads = planShortcutRoads(controls, map.shortcuts, .052).filter(road => road.elevated);
+    const roads = planShortcutRoads(controls, map.shortcuts, .052, project).filter(road => road.elevated);
     assert.ok(roads.length, map.name);
     for (const road of roads) {
       const span = rampSpan(road);
@@ -73,7 +73,8 @@ test("elevated shortcut decks meet at every bend and their rails leave the main 
 test("shortcut arrows follow the deck every 14 or 20 metres through the entry and exit", () => {
   for (const map of maps) {
     const controls = map.route.map(([x, z]) => new THREE.Vector3(x, 0, z));
-    for (const road of planShortcutRoads(controls, map.shortcuts, .052)) {
+    const samples = sampleHybridClosedRoute(controls, map.id === "neon" ? 22 : 18, map.straightSegments);
+    for (const road of planShortcutRoads(controls, map.shortcuts, .052, roadProjection(samples, 22))) {
       for (const spacing of [14,20]) {
         const arrows = shortcutArrowPlacements(road, spacing);
         const span = rampSpan(road);

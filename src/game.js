@@ -1,3 +1,4 @@
+import { bodyContact } from "./contact.js";
 import { courseFlag } from "./finish-marshal.js";
 import { storage } from "./storage.js";
 import { PaceLap } from "./pace-lap.js";
@@ -27,12 +28,17 @@ import { driveStep, engineAcceleration } from "./driving.js";
 import { Tachometer } from "./tachometer.js";
 import { SkidTrails } from "./skid-trails.js";
 import { RoadLights } from "./road-lights.js";
-import { advanceRoute, angleDelta, deflectVelocity, routeStateAt } from "./route-motion.js";
+import { advanceRoute, angleDelta, routeStateAt } from "./route-motion.js";
 
 const clamp = THREE.MathUtils.clamp;
 
-function vehicleContactDistance(first, second) {
-  return ((first.mesh.userData.radius || 2) + (second.mesh.userData.radius || 2)) * .72;
+function contactMass(actor) {
+  return ({bike: .55, heavy: 2.1, monster: 2.4})[actor.spec.kind] || 1;
+}
+function changeVelocity(actor, nx, nz, amount) {
+  actor.velocityX = (actor.velocityX || 0) + nx * amount;
+  actor.velocityZ = (actor.velocityZ || 0) + nz * amount;
+  actor.speed = -Math.sin(actor.mesh.rotation.y) * actor.velocityX - Math.cos(actor.mesh.rotation.y) * actor.velocityZ;
 }
 const mod = (a, n) => ((a % n) + n) % n;
 const gridRowSpacing = 8;
@@ -906,7 +912,7 @@ export class Game {
     }
   }
 
-  updatePlayer(dt) {
+  updatePlayer(dt, score = true) {
     const p = this.player;
     const fromX = p.mesh.position.x, fromZ = p.mesh.position.z;
 
@@ -959,7 +965,6 @@ export class Game {
     p.mesh.position.z += p.velocityZ * dt;
     Object.assign(p.mesh.userData, { acceleration: p.acceleration, yawRate: p.yawRate, slip: p.slip });
 
-    const hit = this.collisions(p);
     p.onRoad = this.world.constrainToRoad(p);
 
     if (!p.onRoad && !p.spec.offroadImmune) {
@@ -1001,19 +1006,8 @@ export class Game {
       if (boost) this.effects?.exhaust(p, this.reducedMotion);
     }
 
-    this.checkProgress(p, fromX, fromZ, dt);
+    if (score) this.checkProgress(p, fromX, fromZ, dt);
 
-    if (hit) {
-      p.health = Math.max(0, p.health - 4 * dt);
-
-      this.shake = 0.7;
-
-      if (this.time >= (p.nextCollisionEffect || 0)) {
-        p.nextCollisionEffect=this.time+.12;
-        this.effects?.emit(p.mesh.position, 0xffb45b, 5, 4);
-        this.audio.blip(94, 0.12);
-      }
-    }
   }
 
   handleWeapons(p, gun, rocket, dt) {
@@ -1156,7 +1150,7 @@ export class Game {
     return false;
   }
 
-  updateRacer(a, dt) {
+  updateRacer(a, dt, score = true) {
     const world = this.world, position = a.mesh.position, samples = world.samples;
     const fromX = position.x, fromZ = position.z;
     if (a.finishedAt != null && this.elapsed - a.finishedAt > 2.5) {
@@ -1200,10 +1194,15 @@ export class Game {
     a.mesh.rotation.y = a.heading;
     position.x += a.velocityX * dt;
     position.z += a.velocityZ * dt;
-    if (a.finishedAt == null) this.collisions(a);
     a.onRoad = world.constrainToRoad(a);
     if (!a.onRoad && !a.spec.offroadImmune) a.speed *= Math.pow(.93, dt * 18);
     this.alignActorToRoad(a);
+    if (score) this.scoreRacer(a, fromX, fromZ, dt);
+    animateVehicle(a.mesh, a.speed, false, this.time, -a.steerInput, a.acceleration < -2, false, dt);
+  }
+
+  scoreRacer(a, fromX, fromZ, dt) {
+    const world = this.world, position = a.mesh.position;
     if (a.finishedAt == null) {
       const gate = world.gatePosition(a.next);
       const crossing = a.next === 0 ? world.finishFraction(fromX, fromZ, position) : null;
@@ -1215,11 +1214,10 @@ export class Game {
         a.next = (a.next + 1) % world.route.length;
       }
     }
-    animateVehicle(a.mesh, a.speed, false, this.time, -a.steerInput, a.acceleration < -2, false, dt);
   }
 
-  updateAI(a, dt) {
-    if (a.role !== "police") { this.updateRacer(a, dt); return; }
+  updateAI(a, dt, score = true) {
+    if (a.role !== "police") { this.updateRacer(a, dt, score); return; }
     const world = this.world, player = this.player, path = a.patrol;
     const distances = world.sampleDistances;
     const patrolDistance = THREE.MathUtils.lerp(distances[path.index], distances[path.index + 1], path.progress);
@@ -1251,8 +1249,7 @@ export class Game {
     a.mesh.position.set(path.x, world.roadSurfaceY, path.z);
     a.mesh.rotation.y = path.heading;
     this.alignActorToRoad(a);
-    const contactRange = Math.abs(player.speed) < 1 ? Math.max(4, vehicleContactDistance(player, a) + .15) : 4;
-    if (a.disabledFor <= 0 && Math.abs(player.surfaceY - a.surfaceY) < 1.5 && a.mesh.position.distanceToSquared(player.mesh.position) < contactRange * contactRange) {
+    if (a.disabledFor <= 0 && bodyContact(player.mesh, a.mesh, a.mesh.userData.footprint, .025)) {
       this.pursuitContact = true;
       // A moving driver can pull clear after a sideswipe. At a standstill the unit holds contact.
       if (!regrouping && player.speed > 7) {
@@ -1272,7 +1269,16 @@ export class Game {
     const blend=-Math.expm1(-dt*12);
     a.mesh.position.lerp(a.target.position, blend);
     a.mesh.rotation.y += angleDelta(a.mesh.rotation.y,a.target.rotation)*blend;
-
+    a.speed = a.target.speed;
+    if (a.target.surface !== undefined) {
+      const road = this.world.shortcutRoads[a.target.surface - 1] ?? null;
+      const center = road ? nearestPointOnPath(a.mesh.position, road.points, false) : null;
+      this.world.alignRoadSurface(a, road, center);
+    } else {
+      // Older peers only send x/z; retain their last known height at crossings.
+      a.roadHeight = undefined;
+      a.roadSlopeX = a.roadSlopeZ = 0;
+    }
     this.alignActorToRoad(a);
 
     animateVehicle(
@@ -1289,67 +1295,63 @@ export class Game {
 
   collisions(p) {
     let hit = false;
-    // Earlier racers have already resolved this pair during this simulation step.
-    const start = this.actors.indexOf(p) + 1;
-    for (let i = start; i < this.actors.length; i++) {
-      const a = this.actors[i];
-      if (a.remote || a.finishedAt != null || Math.abs(p.surfaceY - a.surfaceY) >= 1.5) continue;
-
-      const d = p.mesh.position.distanceTo(a.mesh.position);
-
-      if (d < vehicleContactDistance(p, a)) {
-        // Once a patrol pins a stationary car, hold it instead of pushing it down the circuit.
-        if (a.police && Math.abs(p.speed) < 1 && Math.abs(a.speed) < 4) {
-          a.speed = 0;
-          continue;
-        }
-        hit = true;
-
-        const away = p.mesh.position.clone().sub(a.mesh.position);
-
-        if (away.lengthSq() < 0.1) {
-          away.set(1, 0, 0);
-        }
-
-        away.normalize();
-        deflectVelocity(p,away.x,away.z);
-
-        p.mesh.position.addScaledVector(away, 0.28);
-
-        const canShove = p.spec.kind === "heavy" || p.spec.kind === "monster";
-        a.speed *= canShove ? 0.72 : 0.9;
-        p.speed *= canShove ? 0.98 : 0.88;
+    const resolve = (mesh, other, contact, movable) => {
+      if (!contact) return;
+      const {nx, nz, depth} = contact;
+      const share = movable ? contactMass(other) / (contactMass(p) + contactMass(other)) : 1;
+      p.mesh.position.x += nx * depth * share;
+      p.mesh.position.z += nz * depth * share;
+      if (movable) {
+        mesh.position.x -= nx * depth * (1 - share);
+        mesh.position.z -= nz * depth * (1 - share);
+        other.onRoad = this.world.constrainToRoad(other);
+        this.alignActorToRoad(other);
       }
+      const vx = other?.velocityX ?? -(other?.speed || 0) * Math.sin(mesh.rotation.y);
+      const vz = other?.velocityZ ?? -(other?.speed || 0) * Math.cos(mesh.rotation.y);
+      const closing = -(((p.velocityX || 0) - vx) * nx + ((p.velocityZ || 0) - vz) * nz);
+      if (closing > 0) {
+        const impulse = closing * 1.025;
+        changeVelocity(p, nx, nz, impulse * share);
+        if (movable) changeVelocity(other, -nx, -nz, impulse * (1 - share));
+      }
+      hit = true;
+      if (p !== this.player || closing < 1.2 || this.time < (p.nextCollisionEffect || 0)) return;
+      p.nextCollisionEffect = this.time + .22;
+      p.health = Math.max(0, p.health - Math.min(4, closing * .12));
+      this.shake = Math.min(.8, closing * .055);
+      this.effects?.emit(new THREE.Vector3(contact.x, p.mesh.position.y + .5, contact.z), 0xffb45b, 5, 4);
+      this.audio.blip(94, .12);
+    };
+    for (let i = this.actors.indexOf(p) + 1; i < this.actors.length; i++) {
+      const a = this.actors[i];
+      if (a.remote || a.finishedAt != null) continue;
+      const contact = bodyContact(p.mesh, a.mesh);
+      if (!contact) continue;
+      if (a.police && Math.abs(p.speed) < 1 && Math.abs(a.speed) < 4) {
+        a.speed = 0;
+        continue;
+      }
+      resolve(a.mesh, a, contact, !a.police);
     }
-
+    for (const traffic of this.world.traffic) {
+      resolve(traffic.mesh, traffic, bodyContact(p.mesh, traffic.mesh), false);
+    }
     for (const obstacle of this.world.destructibles || []) {
       if (!obstacle.userData.alive) continue;
-
-      if (p.surfaceY > obstacle.userData.topY + .25) continue;
-      const d = p.mesh.position.distanceTo(obstacle.position);
-      const limit =
-        (p.mesh.userData.radius || 2) + (obstacle.userData.radius || 2.4);
-
-      if (d < limit * 0.72) {
-        const smashes = p.spec.canSmash || p.spec.kind === "monster";
-
-        if (smashes) {
+      for (const shape of obstacle.userData.footprints) {
+        const contact = bodyContact(p.mesh, obstacle, shape);
+        if (!contact) continue;
+        if (p.spec.canSmash || p.spec.kind === "monster") {
           this.world.destroyDestructible(obstacle, Math.abs(p.speed));
-          p.speed *= 0.92;
+          p.speed *= .92;
           this.effects?.emit(obstacle.position, 0xffb45b, 12, 6);
-          this.audio.blip(62, 0.14);
-          continue;
+          this.audio.blip(62, .14);
+          break;
         }
-
-        hit = true;
-        const away = p.mesh.position.clone().sub(obstacle.position);
-        if (away.lengthSq() < 0.1) away.set(1, 0, 0);
-        deflectVelocity(p,away.x,away.z);
-        p.mesh.position.addScaledVector(away.normalize(), 0.65);
-        p.speed *= p.spec.kind === "heavy" ? 0.78 : 0.42;
+        resolve(obstacle, null, contact, false);
       }
     }
-
     return hit;
   }
 
@@ -1432,11 +1434,8 @@ export class Game {
     if (Number.isInteger(data.next) && data.next >= 0 && data.next < this.world.route.length) a.next = data.next;
     if (Number.isInteger(data.lap) && data.lap >= 0 && data.lap <= this.lapGoal()) a.lap = data.lap;
     a.target = {
-      position: new THREE.Vector3(
-        data.x,
-        this.world?.getRoadHeightAt(data.x, data.z) ?? 0,
-        data.z,
-      ),
+      position: new THREE.Vector3(data.x, a.mesh.position.y, data.z),
+      surface: Number.isInteger(data.surface) && data.surface >= 0 && data.surface <= this.world.shortcutRoads.length ? data.surface : undefined,
       rotation: data.rotation,
       speed: data.speed,
     };
@@ -1666,6 +1665,7 @@ export class Game {
     this.eachMovingMesh((mesh) => this.rememberPose(mesh));
     this.time += dt;
 
+    const racing = this.phase === "play";
     if (this.phase === "countdown") {
       this.countdown -= dt;
       this.world.setStartingLights(this.countdown > 2 ? 1 : this.countdown > 1 ? 2 : this.countdown > 0 ? 3 : 4);
@@ -1694,7 +1694,7 @@ export class Game {
         this.phase = "play";
         this.goUntil = .7;
       }
-    } else if (this.phase === "play") {
+    } else if (racing) {
       this.elapsed += dt;
       if (this.goUntil && this.elapsed >= this.goUntil) {
         this.goUntil = 0;
@@ -1704,7 +1704,55 @@ export class Game {
 
       this.updatePoliceHeat(dt);
 
-      this.updatePlayer(dt);
+      this.updatePlayer(dt, false);
+      this.pursuitContact = false;
+      for (const a of this.actors) {
+        if (a === this.player) {
+          continue;
+        }
+
+        if (a.remote) {
+          this.updateRemote(a, dt);
+        } else {
+          this.updateAI(a, dt, false);
+        }
+      }
+
+    } else if (this.phase === "finished") {
+      this.finishTimer -= dt;
+
+      if (this.finishTimer < 0) {
+        this.stop();
+        return;
+      }
+    }
+
+    this.world.update(
+      dt,
+      this.time,
+      this.player.mesh.position,
+      QUALITY[this.qualityMode].distance,
+      !this.reducedMotion,
+      courseFlag(this.config.mode.id, this.player, this.phase, this.elapsed),
+      this.actors,
+    );
+
+    if (racing && this.phase === "play") {
+      for (const actor of this.actors) {
+        if (!actor.remote && !actor.police && actor.finishedAt == null && this.collisions(actor)) {
+          actor.onRoad = this.world.constrainToRoad(actor);
+          this.alignActorToRoad(actor);
+        }
+      }
+
+      // Score the complete displacement, including a nudge across a timing line.
+      // Remote peers and the pace ghost must see the same settled pose as the HUD.
+      for (const actor of this.actors) {
+        if (actor.remote || actor.police || actor.finishedAt != null) continue;
+        const start = actor.mesh.userData.presentation.previous;
+        if (actor === this.player) this.checkProgress(actor, start.x, start.z, dt);
+        else this.scoreRacer(actor, start.x, start.z, dt);
+      }
       if (this.pace && this.phase === "play") {
         const p = this.player;
         this.pace.record(this.elapsed, p.mesh.position, p.surfaceY, p.mesh.rotation.y);
@@ -1717,19 +1765,6 @@ export class Game {
             // Fade the outline where it would overlap the player's bodywork.
             this.ghost.material.opacity = clamp(Math.hypot(pose.x - p.mesh.position.x, pose.z - p.mesh.position.z) / 12, .12, .75);
           }
-        }
-      }
-
-      this.pursuitContact = false;
-      for (const a of this.actors) {
-        if (a === this.player) {
-          continue;
-        }
-
-        if (a.remote) {
-          this.updateRemote(a, dt);
-        } else {
-          this.updateAI(a, dt);
         }
       }
 
@@ -1753,6 +1788,7 @@ export class Game {
           rotation: this.player.mesh.rotation.y,
 
           speed: this.player.speed,
+          surface: this.world.shortcutRoads.indexOf(this.player.roadBranch) + 1,
 
           vehicle: this.player.spec.name,
 
@@ -1763,24 +1799,7 @@ export class Game {
           lap: this.player.lap,
         });
       }
-    } else if (this.phase === "finished") {
-      this.finishTimer -= dt;
-
-      if (this.finishTimer < 0) {
-        this.stop();
-        return;
-      }
     }
-
-    this.world.update(
-      dt,
-      this.time,
-      this.player.mesh.position,
-      QUALITY[this.qualityMode].distance,
-      !this.reducedMotion,
-      courseFlag(this.config.mode.id, this.player, this.phase, this.elapsed),
-    );
-
     this.effects?.update(dt);
     this.skids?.update(dt);
 
